@@ -1,0 +1,8 @@
+{
+  "name": "compressor",
+  "private": true,
+  "version": "0.1.0",
+  "dependencies": {
+    "compressing": "^1.5.1"
+  }
+}
