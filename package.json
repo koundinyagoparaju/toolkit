@@ -9,12 +9,13 @@
     "lerna": "lerna bootstrap"
   },
   "dependencies": {
-    "@material-ui/core": "^4.11.4",
+    "@chakra-ui/react": "^1.6.7",
     "file-saver": "^2.0.5",
-    "next": "10.2.0",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "synchronous-promise": "^2.0.15"
+    "next": "^11.1.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "synchronous-promise": "^2.0.15",
+    "@emotion/styled": "^11.3.0"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.2",

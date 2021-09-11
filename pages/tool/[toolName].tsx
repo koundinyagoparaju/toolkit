@@ -2,11 +2,8 @@ import {GetStaticProps, GetStaticPaths} from "next";
 import fs from "fs";
 import Tool from "../../tools/tool";
 import {ToolManifest} from "../../tools/tool-manifest";
-import TextField from '@material-ui/core/TextField';
-import {Button, Divider} from "@material-ui/core";
-import { SynchronousPromise } from "synchronous-promise";
+import {Text, Button} from '@chakra-ui/react';
 import {useEffect, useState} from "react";
-import {Head} from "next/document";
 
 //Read up https://stackoverflow.com/questions/13488501/nodejs-readdir-and-require-relative-paths to know why ${process.cwd()}/tools is used at one place and ../../tools/ is used at another
 export const getStaticProps: GetStaticProps = async context => {
@@ -65,16 +62,19 @@ export default function ToolPage({toolName}) {
     const inputFields = manifest.input.map((input, index) => {
         switch (input) {
             case "number":
-                return <TextField id={`${index}`} key={`${index}`} inputMode="numeric" onChange={onChange} inputProps={{'data-datatype': input}}/>;
+                return <Text id={`${index}`} key={`${index}`} inputMode="numeric" onChange={onChange} inputProps={{'data-datatype': input}}/>;
             case "string":
-                return <TextField id={`${index}`} key={`${index}`} inputMode="text" onChange={onChange} inputProps={{'data-datatype': input}}/>;
+                return <Text id={`${index}`} key={`${index}`} inputMode="text" onChange={onChange} inputProps={{'data-datatype': input}}/>;
             case "string_array":
             case "number_array":
                 return <div id={`${index}`} key={`${index}`} onChange={onChange} data-datatype={input} >
-                    <TextField id={`${index}-0`} key={`${index}-0`} inputMode="text" inputProps={{'data-datatype': input}}/>
-                    <TextField id={`${index}-1`} key={`${index}-1`} inputMode="text" inputProps={{'data-datatype': 'delimiter'}}/>
+                    <Text id={`${index}-0`} key={`${index}-0`} inputMode="text" inputProps={{'data-datatype': input}}/>
+                    <Text id={`${index}-1`} key={`${index}-1`} inputMode="text" inputProps={{'data-datatype': 'delimiter'}}/>
                 </div>;
-            // case "number_array": return <TextField id={`input-${index}`} inputMode="numeric"/>;
+            case "file":
+            case "file_array":
+                return null
+            // case "number_array": return <Text id={`input-${index}`} inputMode="numeric"/>;
         }
     });
     const outputFields = manifest.output.map((output, index) => {
