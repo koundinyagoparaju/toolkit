@@ -140,7 +140,8 @@ Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval
 ## Contributing
 
 Adding a tool is one Rust file plus a registry line; adding a chain is one
-JSON file. See [CONTRIBUTING.md](CONTRIBUTING.md).
+JSON file. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the concepts and
+walkthroughs live in [docs/](docs/concepts.md).
 
 ## License
 
