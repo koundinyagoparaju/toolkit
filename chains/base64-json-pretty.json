@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "name": "Base64 to pretty JSON",
+    "description": "Decode a Base64-encoded JSON payload (API response, config blob) and pretty-print it.",
+    "nodes": [
+        { "id": "decode", "tool": "base64-decode", "options": {} },
+        { "id": "format", "tool": "json-format", "options": { "indent": 2 } }
+    ],
+    "edges": [{ "from": "decode", "to": "format" }]
+}
