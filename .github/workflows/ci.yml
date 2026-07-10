@@ -1,0 +1,59 @@
+# Tests every PR (and pushes to main).
+#
+# Supply-chain stance: only GitHub-owned actions (actions/*) are used, and
+# nothing here can affect what ships — releases are built by release.yml
+# from a tag. Pin actions to commit SHAs for even stricter guarantees.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  rust:
+    name: Test, lint, format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: rust-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+
+  web:
+    name: Wasm packs + web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: wasm-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+      - run: rustup target add wasm32-unknown-unknown
+      - run: ./scripts/build-web-assets.sh
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo
+          key: audit-${{ runner.os }}-cargo-audit
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit

@@ -1,0 +1,62 @@
+# Builds the CLI for every supported platform. Runs on demand
+# (workflow_dispatch) and as the build stage of release.yml.
+#
+# Asset names must match what scripts/update.sh expects:
+#   toolkit-<os>-<arch>.tar.gz  with the `toolkit` binary at the archive root.
+# Linux builds are musl-static: no system dependencies, run on any distro.
+name: Build binaries
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            asset: toolkit-linux-x86_64.tar.gz
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            asset: toolkit-linux-aarch64.tar.gz
+          - runner: macos-latest
+            target: x86_64-apple-darwin
+            asset: toolkit-macos-x86_64.tar.gz
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            asset: toolkit-macos-aarch64.tar.gz
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset: toolkit-windows-x86_64.zip
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install musl toolchain
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - run: rustup target add ${{ matrix.target }}
+
+      - run: cargo build --release --locked --target ${{ matrix.target }} -p toolkit-cli
+
+      - name: Package (tar.gz)
+        if: ${{ !contains(matrix.asset, '.zip') }}
+        run: |
+          cp "target/${{ matrix.target }}/release/toolkit" toolkit
+          tar -czf "${{ matrix.asset }}" toolkit
+
+      - name: Package (zip)
+        if: contains(matrix.asset, '.zip')
+        shell: pwsh
+        run: Compress-Archive -Path "target/${{ matrix.target }}/release/toolkit.exe" -DestinationPath "${{ matrix.asset }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
