@@ -1,4 +1,4 @@
-use crate::data::{DataType, DataValue};
+use crate::data::{DataType, DataValue, ValueMeta};
 use crate::manifest::OptionSpec;
 use crate::options::{validate_against_specs, Options};
 use crate::tool::{run_tool, Inputs, Registry};
@@ -304,64 +304,57 @@ impl Chain {
         Ok(())
     }
 
-    /// Execute the chain: every entry node receives `input` on each of its
-    /// ports; values flow along edges (with runtime coercion per port).
+    /// Execute the chain on a complete input value. A thin wrapper over the
+    /// push engine ([`Chain::execute_streaming`]) that feeds the value as a
+    /// single chunk and retains every node's output — so buffered and
+    /// streamed execution share one engine and cannot diverge.
     pub fn execute(
         &self,
         registry: &Registry,
         input: DataValue,
     ) -> Result<ChainResult, ChainError> {
+        let (meta, bytes) = input.into_payload();
+        let mut source = std::io::Cursor::new(bytes);
+        let outcome =
+            self.execute_streaming(registry, &meta, &mut source, true, &mut |_, _| Ok(()))?;
+        Ok(ChainResult {
+            outputs: outcome.outputs,
+            sinks: outcome.sinks,
+        })
+    }
+
+    /// Execute the chain as a push-based dataflow: the source is read in
+    /// chunks, streaming nodes transform chunk-by-chunk, non-streaming
+    /// nodes buffer at their inputs ("reservoirs") and run once complete.
+    /// Sink output is delivered incrementally through `on_sink`.
+    ///
+    /// Memory is bounded by the reservoirs' working sets — an all-streaming
+    /// chain runs in O(chunk) memory regardless of input size. With
+    /// `retain_all`, every node's full output is additionally kept (used by
+    /// [`Chain::execute`] and previews); leave it off for large inputs.
+    pub fn execute_streaming<R: std::io::Read>(
+        &self,
+        registry: &Registry,
+        input_meta: &ValueMeta,
+        source: &mut R,
+        retain_all: bool,
+        on_sink: &mut OnSink,
+    ) -> Result<StreamOutcome, ChainError> {
         self.validate(registry)?;
-        let order = self.topo_order()?;
+        let mut engine = Engine::build(self, registry, input_meta, retain_all)?;
 
-        let mut outputs: BTreeMap<String, DataValue> = BTreeMap::new();
-        let has_incoming: HashSet<&str> = self.edges.iter().map(|e| e.to.as_str()).collect();
-        let has_outgoing: HashSet<&str> = self.edges.iter().map(|e| e.from.as_str()).collect();
-
-        for id in &order {
-            let node = self
-                .nodes
-                .iter()
-                .find(|n| &n.id == id)
-                .expect("node exists");
-            let tool = registry.find(&node.tool).expect("validated");
-            let manifest = tool.manifest();
-
-            // Pull inputs from predecessor outputs, scanning edges in
-            // declaration order — which is what defines the value order on
-            // multi ports.
-            let mut inputs = Inputs::new();
-            for port in &manifest.inputs {
-                let values = if has_incoming.contains(id.as_str()) {
-                    let mut values = Vec::new();
-                    for edge in self.edges.iter().filter(|e| &e.to == id) {
-                        if self.resolve_port(edge, &manifest)?.name == port.name {
-                            values.push(
-                                outputs
-                                    .get(&edge.from)
-                                    .expect("validated: predecessor ran first")
-                                    .clone(),
-                            );
-                        }
-                    }
-                    values
-                } else {
-                    vec![input.clone()]
-                };
-                inputs.insert(port.name.clone(), values);
+        let mut buf = vec![0u8; 1 << 20];
+        loop {
+            let n = source
+                .read(&mut buf)
+                .map_err(|e| ChainError::new(format!("failed to read chain input: {e}")))?;
+            if n == 0 {
+                break;
             }
-
-            let output =
-                run_tool(tool, inputs, &node.options).map_err(|e| ChainError::at(id, e.message))?;
-            outputs.insert(id.clone(), output);
+            engine.push_input(registry, &buf[..n], on_sink)?;
         }
-
-        let sinks = order
-            .iter()
-            .filter(|id| !has_outgoing.contains(id.as_str()))
-            .cloned()
-            .collect();
-        Ok(ChainResult { outputs, sinks })
+        engine.end_input(registry, on_sink)?;
+        engine.into_outcome(registry)
     }
 
     fn resolve_port(
@@ -387,6 +380,50 @@ impl Chain {
                 )
             }),
         }
+    }
+
+    /// Successor slots of `node_idx`'s output, in edge-declaration order.
+    fn build_engine_wiring(&self, registry: &Registry) -> Result<Wiring, ChainError> {
+        let index: HashMap<&str, usize> = self
+            .nodes
+            .iter()
+            .enumerate()
+            .map(|(i, n)| (n.id.as_str(), i))
+            .collect();
+
+        // Slots per node: for wired nodes, one per incoming edge, grouped
+        // by port in edge-declaration order (this order defines multi-port
+        // value order). For entry nodes, one per port, fed by chain input.
+        let mut slots: Vec<Vec<Slot>> = (0..self.nodes.len()).map(|_| Vec::new()).collect();
+        let mut outgoing: Vec<Vec<(usize, usize)>> = vec![Vec::new(); self.nodes.len()];
+        let mut edge_slot: HashMap<usize, (usize, usize)> = HashMap::new();
+
+        for (n_idx, node) in self.nodes.iter().enumerate() {
+            let manifest = registry.find(&node.tool).expect("validated").manifest();
+            let wired = self.edges.iter().any(|e| e.to == node.id);
+            for port in &manifest.inputs {
+                if wired {
+                    let mut value_index = 0;
+                    for (e_idx, edge) in self.edges.iter().enumerate() {
+                        if edge.to != node.id
+                            || self.resolve_port(edge, &manifest)?.name != port.name
+                        {
+                            continue;
+                        }
+                        edge_slot.insert(e_idx, (n_idx, slots[n_idx].len()));
+                        slots[n_idx].push(Slot::new(&port.name, value_index));
+                        value_index += 1;
+                    }
+                } else {
+                    slots[n_idx].push(Slot::new(&port.name, 0));
+                }
+            }
+        }
+        for (e_idx, edge) in self.edges.iter().enumerate() {
+            let from = index[edge.from.as_str()];
+            outgoing[from].push(edge_slot[&e_idx]);
+        }
+        Ok((slots, outgoing))
     }
 
     /// Kahn's algorithm; errors on cycles. Ties broken by node declaration
@@ -426,6 +463,348 @@ impl Chain {
     }
 }
 
+/// Incremental consumer of sink output: (node id, chunk).
+pub type OnSink<'a> = dyn FnMut(&str, &[u8]) -> Result<(), String> + 'a;
+
+/// Engine wiring: per-node input slots, per-node outgoing (node, slot).
+type Wiring = (Vec<Vec<Slot>>, Vec<Vec<(usize, usize)>>);
+
+/// Result of a streamed execution.
+pub struct StreamOutcome {
+    /// Full output values: reservoir nodes always; streaming nodes only
+    /// when `retain_all` was requested.
+    pub outputs: BTreeMap<String, DataValue>,
+    pub sinks: Vec<String>,
+    /// Bytes emitted per streaming node (streams aren't retained).
+    pub streamed_bytes: BTreeMap<String, u64>,
+}
+
+/// One expected input value of a node: the port it belongs to, its value
+/// index on that port, and the metadata used to reassemble buffered bytes.
+struct Slot {
+    port: String,
+    index: usize,
+    meta: ValueMeta,
+    buffer: Vec<u8>,
+    ended: bool,
+}
+
+impl Slot {
+    fn new(port: &str, index: usize) -> Slot {
+        Slot {
+            port: port.to_string(),
+            index,
+            meta: ValueMeta {
+                data_type: DataType::Bytes,
+                format: String::new(),
+            },
+            buffer: Vec::new(),
+            ended: false,
+        }
+    }
+}
+
+enum Kind {
+    /// Chunks flow through a live session; nothing is buffered.
+    Streaming(Option<Box<dyn crate::stream::StreamSession>>),
+    /// Inputs accumulate in the slots; the tool runs once they complete.
+    Reservoir,
+}
+
+struct EngineNode {
+    kind: Kind,
+    slots: Vec<Slot>,
+    /// (target node, target slot) fed by this node's output.
+    outgoing: Vec<(usize, usize)>,
+    is_sink: bool,
+    finished: bool,
+    emitted: u64,
+    retained: Vec<u8>,
+}
+
+enum Ev {
+    Chunk(usize, usize, Vec<u8>),
+    End(usize, usize),
+}
+
+struct Engine {
+    ids: Vec<String>,
+    tool_names: Vec<String>,
+    node_options: Vec<Options>,
+    nodes: Vec<EngineNode>,
+    retain_all: bool,
+    outputs: BTreeMap<String, DataValue>,
+}
+
+impl Engine {
+    fn build(
+        chain: &Chain,
+        registry: &Registry,
+        input_meta: &ValueMeta,
+        retain_all: bool,
+    ) -> Result<Engine, ChainError> {
+        let (mut slots, outgoing) = chain.build_engine_wiring(registry)?;
+        let has_incoming: HashSet<&str> = chain.edges.iter().map(|e| e.to.as_str()).collect();
+        let has_outgoing: HashSet<&str> = chain.edges.iter().map(|e| e.from.as_str()).collect();
+
+        // Slot metas known statically: chain input for entry slots, the
+        // source tool's declared output for streaming sources. Reservoir
+        // sources overwrite the meta at delivery time (e.g. image format).
+        let mut nodes = Vec::with_capacity(chain.nodes.len());
+        for (n_idx, node) in chain.nodes.iter().enumerate() {
+            if !has_incoming.contains(node.id.as_str()) {
+                for slot in &mut slots[n_idx] {
+                    slot.meta = input_meta.clone();
+                }
+            }
+            let tool = registry.find(&node.tool).expect("validated");
+            let session = crate::stream::open_stream_validated(tool, &node.options)
+                .map_err(|e| ChainError::at(&node.id, e.message))?;
+            nodes.push(EngineNode {
+                kind: match session {
+                    Some(s) => Kind::Streaming(Some(s)),
+                    None => Kind::Reservoir,
+                },
+                slots: std::mem::take(&mut slots[n_idx]),
+                outgoing: outgoing[n_idx].clone(),
+                is_sink: !has_outgoing.contains(node.id.as_str()),
+                finished: false,
+                emitted: 0,
+                retained: Vec::new(),
+            });
+        }
+        // Static metas for slots fed by streaming sources.
+        for (n_idx, node) in chain.nodes.iter().enumerate() {
+            if matches!(nodes[n_idx].kind, Kind::Streaming(_)) {
+                let output = registry
+                    .find(&node.tool)
+                    .expect("validated")
+                    .manifest()
+                    .output;
+                for (t, s) in nodes[n_idx].outgoing.clone() {
+                    nodes[t].slots[s].meta = ValueMeta {
+                        data_type: output,
+                        format: String::new(),
+                    };
+                }
+            }
+        }
+        Ok(Engine {
+            ids: chain.nodes.iter().map(|n| n.id.clone()).collect(),
+            tool_names: chain.nodes.iter().map(|n| n.tool.clone()).collect(),
+            node_options: chain.nodes.iter().map(|n| n.options.clone()).collect(),
+            nodes,
+            retain_all,
+            outputs: BTreeMap::new(),
+        })
+    }
+
+    fn entry_slots(&self) -> Vec<(usize, usize)> {
+        let fed: HashSet<(usize, usize)> = self
+            .nodes
+            .iter()
+            .flat_map(|n| n.outgoing.iter().copied())
+            .collect();
+        let mut entries = Vec::new();
+        for (n, node) in self.nodes.iter().enumerate() {
+            for s in 0..node.slots.len() {
+                if !fed.contains(&(n, s)) {
+                    entries.push((n, s));
+                }
+            }
+        }
+        entries
+    }
+
+    fn push_input(
+        &mut self,
+        registry: &Registry,
+        chunk: &[u8],
+        on_sink: &mut OnSink,
+    ) -> Result<(), ChainError> {
+        let mut queue: VecDeque<Ev> = self
+            .entry_slots()
+            .into_iter()
+            .map(|(n, s)| Ev::Chunk(n, s, chunk.to_vec()))
+            .collect();
+        self.process(registry, &mut queue, on_sink)
+    }
+
+    fn end_input(&mut self, registry: &Registry, on_sink: &mut OnSink) -> Result<(), ChainError> {
+        let mut queue: VecDeque<Ev> = self
+            .entry_slots()
+            .into_iter()
+            .map(|(n, s)| Ev::End(n, s))
+            .collect();
+        self.process(registry, &mut queue, on_sink)
+    }
+
+    fn process(
+        &mut self,
+        registry: &Registry,
+        queue: &mut VecDeque<Ev>,
+        on_sink: &mut OnSink,
+    ) -> Result<(), ChainError> {
+        while let Some(ev) = queue.pop_front() {
+            match ev {
+                Ev::Chunk(n, s, bytes) => {
+                    if matches!(self.nodes[n].kind, Kind::Reservoir) {
+                        self.nodes[n].slots[s].buffer.extend_from_slice(&bytes);
+                        continue;
+                    }
+                    let (port, index) = {
+                        let slot = &self.nodes[n].slots[s];
+                        (slot.port.clone(), slot.index)
+                    };
+                    let result = {
+                        let Kind::Streaming(session) = &mut self.nodes[n].kind else {
+                            unreachable!()
+                        };
+                        session
+                            .as_mut()
+                            .expect("session live")
+                            .update(&port, index, &bytes)
+                    };
+                    let out = result.map_err(|e| ChainError::at(&self.ids[n], e.message))?;
+                    self.emit(n, out, queue, on_sink)?;
+                }
+                Ev::End(n, s) => {
+                    self.nodes[n].slots[s].ended = true;
+                    let all_ended = self.nodes[n].slots.iter().all(|sl| sl.ended);
+                    if matches!(self.nodes[n].kind, Kind::Reservoir) {
+                        if all_ended && !self.nodes[n].finished {
+                            self.run_reservoir(n, registry, queue, on_sink)?;
+                        }
+                        continue;
+                    }
+                    let (port, index) = {
+                        let slot = &self.nodes[n].slots[s];
+                        (slot.port.clone(), slot.index)
+                    };
+                    let result = {
+                        let Kind::Streaming(session) = &mut self.nodes[n].kind else {
+                            unreachable!()
+                        };
+                        session
+                            .as_mut()
+                            .expect("session live")
+                            .end_input(&port, index)
+                    };
+                    let out = result.map_err(|e| ChainError::at(&self.ids[n], e.message))?;
+                    self.emit(n, out, queue, on_sink)?;
+                    if all_ended && !self.nodes[n].finished {
+                        let result = {
+                            let Kind::Streaming(session) = &mut self.nodes[n].kind else {
+                                unreachable!()
+                            };
+                            session.take().expect("session live").finish()
+                        };
+                        let final_out =
+                            result.map_err(|e| ChainError::at(&self.ids[n], e.message))?;
+                        self.emit(n, final_out, queue, on_sink)?;
+                        self.finish_node(n, queue);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn run_reservoir(
+        &mut self,
+        n: usize,
+        registry: &Registry,
+        queue: &mut VecDeque<Ev>,
+        on_sink: &mut OnSink,
+    ) -> Result<(), ChainError> {
+        let tool = registry.find(&self.tool_names[n]).expect("validated");
+        let mut inputs = Inputs::new();
+        for slot in &mut self.nodes[n].slots {
+            let bytes = std::mem::take(&mut slot.buffer);
+            let value = DataValue::from_payload(&slot.meta, bytes)
+                .map_err(|e| ChainError::at(&self.ids[n], e))?;
+            inputs.entry(slot.port.clone()).or_default().push(value);
+        }
+        let output = run_tool(tool, inputs, &self.node_options[n])
+            .map_err(|e| ChainError::at(&self.ids[n], e.message))?;
+        self.outputs.insert(self.ids[n].clone(), output.clone());
+
+        let (meta, bytes) = output.into_payload();
+        // Downstream reservoirs need the real runtime meta (image format).
+        for (t, s) in self.nodes[n].outgoing.clone() {
+            self.nodes[t].slots[s].meta = meta.clone();
+        }
+        self.nodes[n].emitted = bytes.len() as u64;
+        if self.nodes[n].is_sink {
+            on_sink(&self.ids[n].clone(), &bytes).map_err(ChainError::new)?;
+        }
+        for (t, s) in self.nodes[n].outgoing.clone() {
+            queue.push_back(Ev::Chunk(t, s, bytes.clone()));
+        }
+        self.finish_node(n, queue);
+        Ok(())
+    }
+
+    fn finish_node(&mut self, n: usize, queue: &mut VecDeque<Ev>) {
+        self.nodes[n].finished = true;
+        for (t, s) in self.nodes[n].outgoing.clone() {
+            queue.push_back(Ev::End(t, s));
+        }
+    }
+
+    fn emit(
+        &mut self,
+        n: usize,
+        bytes: Vec<u8>,
+        queue: &mut VecDeque<Ev>,
+        on_sink: &mut OnSink,
+    ) -> Result<(), ChainError> {
+        if bytes.is_empty() {
+            return Ok(());
+        }
+        self.nodes[n].emitted += bytes.len() as u64;
+        if self.retain_all {
+            self.nodes[n].retained.extend_from_slice(&bytes);
+        }
+        if self.nodes[n].is_sink {
+            on_sink(&self.ids[n].clone(), &bytes).map_err(ChainError::new)?;
+        }
+        for (t, s) in self.nodes[n].outgoing.clone() {
+            queue.push_back(Ev::Chunk(t, s, bytes.clone()));
+        }
+        Ok(())
+    }
+
+    fn into_outcome(mut self, registry: &Registry) -> Result<StreamOutcome, ChainError> {
+        let mut streamed_bytes = BTreeMap::new();
+        let mut sinks = Vec::new();
+        for n in 0..self.nodes.len() {
+            if self.nodes[n].is_sink {
+                sinks.push(self.ids[n].clone());
+            }
+            if matches!(self.nodes[n].kind, Kind::Streaming(_)) {
+                streamed_bytes.insert(self.ids[n].clone(), self.nodes[n].emitted);
+                if self.retain_all {
+                    let output = registry
+                        .find(&self.tool_names[n])
+                        .expect("validated")
+                        .manifest()
+                        .output;
+                    let retained = std::mem::take(&mut self.nodes[n].retained);
+                    let value = crate::stream::assemble_output(output, retained)
+                        .map_err(|e| ChainError::at(&self.ids[n], e.message))?;
+                    self.outputs.insert(self.ids[n].clone(), value);
+                }
+            }
+        }
+        Ok(StreamOutcome {
+            outputs: self.outputs,
+            sinks,
+            streamed_bytes,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -441,6 +820,7 @@ mod tests {
             keywords: vec![],
             inputs,
             output,
+            streaming: false,
             options: vec![],
         }
     }
@@ -523,13 +903,102 @@ mod tests {
         }
     }
 
+    /// Streaming test tool: uppercases chunk-by-chunk.
+    struct StreamUpper;
+    struct UpperSession;
+    impl crate::stream::StreamSession for UpperSession {
+        fn update(&mut self, _: &str, _: usize, chunk: &[u8]) -> Result<Vec<u8>, ToolError> {
+            Ok(chunk.to_ascii_uppercase())
+        }
+        fn end_input(&mut self, _: &str, _: usize) -> Result<Vec<u8>, ToolError> {
+            Ok(Vec::new())
+        }
+        fn finish(self: Box<Self>) -> Result<Vec<u8>, ToolError> {
+            Ok(Vec::new())
+        }
+    }
+    impl Tool for StreamUpper {
+        fn manifest(&self) -> Manifest {
+            let mut m = manifest("supper", InputSpec::sole(DataType::Text), DataType::Text);
+            m.streaming = true;
+            m
+        }
+        fn run(&self, inputs: Inputs, options: &Options) -> Result<DataValue, ToolError> {
+            let session = self.open_stream(options)?.expect("streams");
+            crate::stream::buffered_run(session, &self.manifest(), inputs)
+        }
+        fn open_stream(
+            &self,
+            _: &Options,
+        ) -> Result<Option<Box<dyn crate::stream::StreamSession>>, ToolError> {
+            Ok(Some(Box::new(UpperSession)))
+        }
+    }
+
     fn registry() -> Registry {
         Registry::new(vec![
             Box::new(Upper),
             Box::new(Len),
             Box::new(Join),
             Box::new(Gather),
+            Box::new(StreamUpper),
         ])
+    }
+
+    /// A reader that yields at most 3 bytes per read, to force chunking.
+    struct Trickle<'a>(&'a [u8]);
+    impl std::io::Read for Trickle<'_> {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            let n = self.0.len().min(3).min(buf.len());
+            buf[..n].copy_from_slice(&self.0[..n]);
+            self.0 = &self.0[n..];
+            Ok(n)
+        }
+    }
+
+    #[test]
+    fn streaming_chain_chunks_through_and_feeds_reservoirs() {
+        // supper (streaming) -> len (reservoir); observed via sinks.
+        let c = chain(&[("u", "supper"), ("l", "len")], &[("u", "l", None)]);
+        let mut sink_chunks: Vec<(String, Vec<u8>)> = Vec::new();
+        let meta = ValueMeta {
+            data_type: DataType::Text,
+            format: String::new(),
+        };
+        let outcome = c
+            .execute_streaming(
+                &registry(),
+                &meta,
+                &mut Trickle(b"hello world"),
+                false,
+                &mut |id, bytes| {
+                    sink_chunks.push((id.to_string(), bytes.to_vec()));
+                    Ok(())
+                },
+            )
+            .unwrap();
+        // Reservoir "l" saw the full uppercased text.
+        assert_eq!(outcome.outputs["l"], DataValue::Json(serde_json::json!(11)));
+        assert_eq!(outcome.streamed_bytes["u"], 11);
+        // Streaming intermediates are not retained without retain_all.
+        assert!(!outcome.outputs.contains_key("u"));
+        // Only the sink ("l") reached the sink callback, with the final value.
+        assert!(sink_chunks.iter().all(|(id, _)| id == "l"));
+        let sink_bytes: Vec<u8> = sink_chunks.into_iter().flat_map(|(_, b)| b).collect();
+        assert_eq!(sink_bytes, b"11");
+    }
+
+    #[test]
+    fn streamed_and_buffered_execution_agree() {
+        let c = chain(
+            &[("u", "supper"), ("l", "len"), ("g", "gather")],
+            &[("u", "g", Some("items")), ("l", "g", Some("items"))],
+        );
+        let buffered = c
+            .execute(&registry(), DataValue::Text("hey".into()))
+            .unwrap();
+        assert_eq!(buffered.outputs["g"], DataValue::Text("HEY,3".into()));
+        assert_eq!(buffered.outputs["u"], DataValue::Text("HEY".into()));
     }
 
     fn chain(nodes: &[(&str, &str)], edges: &[(&str, &str, Option<&str>)]) -> Chain {

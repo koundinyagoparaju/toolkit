@@ -16,6 +16,10 @@ pub struct Manifest {
     /// target ports by name (defaulting to a tool's sole port).
     pub inputs: Vec<InputSpec>,
     pub output: DataType,
+    /// True when the tool implements a [`crate::stream::StreamSession`]:
+    /// it can process input incrementally with O(1) memory.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub streaming: bool,
     #[serde(default)]
     pub options: Vec<OptionSpec>,
 }

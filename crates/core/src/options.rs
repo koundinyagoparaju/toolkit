@@ -149,6 +149,7 @@ mod tests {
             keywords: vec![],
             inputs: InputSpec::sole(DataType::Text),
             output: DataType::Text,
+            streaming: false,
             options: vec![
                 OptionSpec::integer("width", "Width", "", Some(1), Some(10_000)).required(),
                 OptionSpec::enumeration("mode", "Mode", "", &["fit", "exact"])

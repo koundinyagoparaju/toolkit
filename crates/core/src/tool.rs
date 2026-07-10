@@ -84,6 +84,21 @@ impl InputsExt for Inputs {
 pub trait Tool: Sync + Send {
     fn manifest(&self) -> Manifest;
     fn run(&self, inputs: Inputs, options: &Options) -> Result<DataValue, ToolError>;
+
+    /// Open a streaming session, for tools that process input
+    /// incrementally. `options` must already be validated (use
+    /// [`crate::stream::open_stream_validated`] from outside).
+    ///
+    /// Returning `Some` must agree with `manifest().streaming`; a
+    /// pack-level test enforces this. Streaming tools implement `run` by
+    /// delegating to [`crate::stream::buffered_run`].
+    fn open_stream(
+        &self,
+        options: &Options,
+    ) -> Result<Option<Box<dyn crate::stream::StreamSession>>, ToolError> {
+        let _ = options;
+        Ok(None)
+    }
 }
 
 /// Coerce every port's value, validate options, and run the tool. The single

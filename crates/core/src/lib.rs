@@ -16,10 +16,14 @@ mod chain;
 mod data;
 mod manifest;
 mod options;
+pub mod stream;
 mod tool;
 
-pub use chain::{Chain, ChainError, ChainParam, ChainResult, Edge, Node, ParamTarget};
-pub use data::{DataType, DataValue};
+pub use chain::{
+    Chain, ChainError, ChainParam, ChainResult, Edge, Node, OnSink, ParamTarget, StreamOutcome,
+};
+pub use data::{DataType, DataValue, ValueMeta};
 pub use manifest::{InputSpec, Manifest, OptionKind, OptionSpec};
 pub use options::{validate_against_specs, validate_options, OptGet, Options};
+pub use stream::{buffered_run, open_stream_validated, StreamSession};
 pub use tool::{run_single, run_tool, Inputs, InputsExt, Registry, Tool, ToolError};

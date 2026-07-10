@@ -60,6 +60,22 @@ struct ResponseHeader {
     error: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     output: Option<ValueMeta>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    handle: Option<u32>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct StreamOpenHeader {
+    tool: String,
+    #[serde(default)]
+    options: Options,
+}
+
+#[derive(Serialize, Deserialize)]
+struct StreamChunkHeader {
+    port: String,
+    #[serde(default)]
+    index: usize,
 }
 
 fn frame(header_json: Vec<u8>, payloads: &[&[u8]]) -> Vec<u8> {
@@ -123,6 +139,7 @@ pub fn encode_run_response(result: Result<DataValue, String>) -> Vec<u8> {
                 ok: true,
                 error: None,
                 output: Some(meta),
+                handle: None,
             };
             frame(
                 serde_json::to_vec(&header).expect("header serializes"),
@@ -134,6 +151,7 @@ pub fn encode_run_response(result: Result<DataValue, String>) -> Vec<u8> {
                 ok: false,
                 error: Some(message),
                 output: None,
+                handle: None,
             };
             frame(serde_json::to_vec(&header).expect("header serializes"), &[])
         }
@@ -191,6 +209,60 @@ pub fn manifests_json(registry: &Registry) -> Vec<u8> {
     serde_json::to_vec(&registry.manifests()).expect("manifests serialize")
 }
 
+/// Open a streaming session from a framed request (`{tool, options}`).
+pub fn stream_open(
+    registry: &Registry,
+    request: &[u8],
+) -> Result<Box<dyn crate::stream::StreamSession>, String> {
+    let (header, _) = unframe(request)?;
+    let header: StreamOpenHeader =
+        serde_json::from_slice(header).map_err(|e| format!("bad request header: {e}"))?;
+    let tool = registry
+        .find(&header.tool)
+        .ok_or_else(|| format!("unknown tool \"{}\"", header.tool))?;
+    crate::stream::open_stream_validated(tool, &header.options)
+        .map_err(|e| e.message)?
+        .ok_or_else(|| format!("tool \"{}\" does not support streaming", header.tool))
+}
+
+/// Decode a framed stream chunk request into (port, index, payload).
+pub fn decode_stream_chunk(request: &[u8]) -> Result<(String, usize, &[u8]), String> {
+    let (header, payload) = unframe(request)?;
+    let header: StreamChunkHeader =
+        serde_json::from_slice(header).map_err(|e| format!("bad request header: {e}"))?;
+    Ok((header.port, header.index, payload))
+}
+
+/// Response carrying a freshly-opened session handle.
+pub fn encode_handle_response(handle: u32) -> Vec<u8> {
+    let header = ResponseHeader {
+        ok: true,
+        error: None,
+        output: None,
+        handle: Some(handle),
+    };
+    frame(serde_json::to_vec(&header).expect("header serializes"), &[])
+}
+
+/// Response carrying emitted stream bytes.
+pub fn encode_stream_response(bytes: &[u8]) -> Vec<u8> {
+    let header = ResponseHeader {
+        ok: true,
+        error: None,
+        output: None,
+        handle: None,
+    };
+    frame(
+        serde_json::to_vec(&header).expect("header serializes"),
+        &[bytes],
+    )
+}
+
+/// Error response (shared by run and stream calls).
+pub fn encode_error_response(message: &str) -> Vec<u8> {
+    encode_run_response(Err(message.to_string()))
+}
+
 /// Generates the wasm ABI exports for a pack. The argument is a function
 /// returning the pack's [`Registry`].
 ///
@@ -240,6 +312,103 @@ macro_rules! export_pack_abi {
                 let request = core::slice::from_raw_parts(ptr, len as usize);
                 give($crate::abi::handle_run(&$registry_fn(), request))
             }
+
+            // ---- streaming: stateful sessions in a per-pack slab ----
+
+            std::thread_local! {
+                static TK_SESSIONS: core::cell::RefCell<
+                    Vec<Option<Box<dyn $crate::StreamSession>>>,
+                > = core::cell::RefCell::new(Vec::new());
+            }
+
+            #[no_mangle]
+            pub unsafe extern "C" fn tk_stream_open(ptr: *const u8, len: u32) -> u64 {
+                let request = core::slice::from_raw_parts(ptr, len as usize);
+                give(match $crate::abi::stream_open(&$registry_fn(), request) {
+                    Ok(session) => TK_SESSIONS.with(|slab| {
+                        let mut slab = slab.borrow_mut();
+                        let handle = slab.iter().position(|s| s.is_none()).unwrap_or_else(|| {
+                            slab.push(None);
+                            slab.len() - 1
+                        });
+                        slab[handle] = Some(session);
+                        $crate::abi::encode_handle_response(handle as u32)
+                    }),
+                    Err(e) => $crate::abi::encode_error_response(&e),
+                })
+            }
+
+            fn with_session(
+                handle: u32,
+                f: impl FnOnce(
+                    &mut Box<dyn $crate::StreamSession>,
+                ) -> Result<Vec<u8>, $crate::ToolError>,
+            ) -> Vec<u8> {
+                TK_SESSIONS.with(|slab| {
+                    let mut slab = slab.borrow_mut();
+                    match slab.get_mut(handle as usize).and_then(|s| s.as_mut()) {
+                        Some(session) => match f(session) {
+                            Ok(bytes) => $crate::abi::encode_stream_response(&bytes),
+                            Err(e) => {
+                                slab[handle as usize] = None; // poisoned
+                                $crate::abi::encode_error_response(&e.message)
+                            }
+                        },
+                        None => $crate::abi::encode_error_response("invalid stream handle"),
+                    }
+                })
+            }
+
+            #[no_mangle]
+            pub unsafe extern "C" fn tk_stream_update(
+                handle: u32,
+                ptr: *const u8,
+                len: u32,
+            ) -> u64 {
+                let request = core::slice::from_raw_parts(ptr, len as usize);
+                give(match $crate::abi::decode_stream_chunk(request) {
+                    Ok((port, index, payload)) => {
+                        with_session(handle, |s| s.update(&port, index, payload))
+                    }
+                    Err(e) => $crate::abi::encode_error_response(&e),
+                })
+            }
+
+            #[no_mangle]
+            pub unsafe extern "C" fn tk_stream_end_input(
+                handle: u32,
+                ptr: *const u8,
+                len: u32,
+            ) -> u64 {
+                let request = core::slice::from_raw_parts(ptr, len as usize);
+                give(match $crate::abi::decode_stream_chunk(request) {
+                    Ok((port, index, _)) => with_session(handle, |s| s.end_input(&port, index)),
+                    Err(e) => $crate::abi::encode_error_response(&e),
+                })
+            }
+
+            #[no_mangle]
+            pub extern "C" fn tk_stream_finish(handle: u32) -> u64 {
+                give(TK_SESSIONS.with(|slab| {
+                    let mut slab = slab.borrow_mut();
+                    match slab.get_mut(handle as usize).and_then(|s| s.take()) {
+                        Some(session) => match session.finish() {
+                            Ok(bytes) => $crate::abi::encode_stream_response(&bytes),
+                            Err(e) => $crate::abi::encode_error_response(&e.message),
+                        },
+                        None => $crate::abi::encode_error_response("invalid stream handle"),
+                    }
+                }))
+            }
+
+            #[no_mangle]
+            pub extern "C" fn tk_stream_abort(handle: u32) {
+                TK_SESSIONS.with(|slab| {
+                    if let Some(slot) = slab.borrow_mut().get_mut(handle as usize) {
+                        *slot = None;
+                    }
+                });
+            }
         }
     };
 }
@@ -261,6 +430,7 @@ mod tests {
                 keywords: vec![],
                 inputs: InputSpec::sole(DataType::Text),
                 output: DataType::Text,
+                streaming: false,
                 options: vec![],
             }
         }
@@ -285,6 +455,7 @@ mod tests {
                     InputSpec::named("b", DataType::Text),
                 ],
                 output: DataType::Text,
+                streaming: false,
                 options: vec![],
             }
         }
