@@ -1,12 +1,16 @@
 //! Image tools. All operate on encoded images (png/jpeg/gif/bmp; webp
 //! decode-only) and re-encode on output.
 
+mod clean;
 mod codec;
 mod compress;
 mod convert;
 mod crop;
+mod exif_view;
 mod merge;
+mod qr;
 mod resize;
+mod rotate;
 
 use toolkit_core::Registry;
 
@@ -17,6 +21,11 @@ pub fn registry() -> Registry {
         Box::new(convert::Convert),
         Box::new(compress::Compress),
         Box::new(merge::Merge),
+        Box::new(clean::ImageClean),
+        Box::new(exif_view::ExifView),
+        Box::new(rotate::ImageRotate),
+        Box::new(qr::QrGenerate),
+        Box::new(qr::QrDecode),
     ])
 }
 

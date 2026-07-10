@@ -4,6 +4,8 @@ members = [
     "crates/core",
     "crates/packs/text",
     "crates/packs/image",
+    "crates/packs/crypto",
+    "crates/packs/data",
     "crates/cli",
 ]
 
@@ -15,7 +17,7 @@ repository = "https://github.com/koundinyagoparaju/toolkit"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
 
 # Small wasm binaries for the packs; speed is still fine for interactive use.
 [profile.release]

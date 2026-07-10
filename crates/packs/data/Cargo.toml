@@ -1,0 +1,20 @@
+[package]
+name = "toolkit-pack-data"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+toolkit-core = { path = "../../core" }
+serde_json = { workspace = true }
+serde_yaml = "0.9"
+toml = "0.8"
+csv = "1"
+quick-xml = "0.37"
+time = { version = "0.3", features = ["parsing", "formatting"] }
+url = "2"
+regex = "1"
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }

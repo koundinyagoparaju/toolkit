@@ -6,12 +6,18 @@
 //! up from the manifest.
 
 mod base64_tools;
+mod case_convert;
+mod diff;
 mod doc_merge;
+mod gzip;
 mod hash;
 mod hex;
+mod html_entities;
 mod json;
 mod json_pick;
 mod jwt;
+mod sort_lines;
+mod unicode_escape;
 mod url;
 
 use toolkit_core::Registry;
@@ -30,6 +36,15 @@ pub fn registry() -> Registry {
         Box::new(json::JsonMinify),
         Box::new(json_pick::JsonPick),
         Box::new(hash::Hash),
+        Box::new(gzip::Gzip),
+        Box::new(gzip::Gunzip),
+        Box::new(case_convert::CaseConvert),
+        Box::new(sort_lines::SortLines),
+        Box::new(html_entities::HtmlEncode),
+        Box::new(html_entities::HtmlDecode),
+        Box::new(unicode_escape::UnicodeEscape),
+        Box::new(unicode_escape::UnicodeUnescape),
+        Box::new(diff::TextDiff),
     ])
 }
 

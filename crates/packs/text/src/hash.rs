@@ -1,3 +1,5 @@
+use md5::Md5;
+use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
 use toolkit_core::{
     buffered_run, DataType, DataValue, InputSpec, Inputs, Manifest, OptGet, OptionSpec, Options,
@@ -22,7 +24,7 @@ impl Tool for Hash {
                 "algorithm",
                 "Algorithm",
                 "Digest algorithm.",
-                &["sha256", "sha512"],
+                &["sha256", "sha512", "sha1", "md5", "crc32"],
             )
             .default_value("sha256".into())],
         }
@@ -36,6 +38,9 @@ impl Tool for Hash {
     fn open_stream(&self, options: &Options) -> Result<Option<Box<dyn StreamSession>>, ToolError> {
         let hasher = match options.str_opt("algorithm").unwrap_or("sha256") {
             "sha512" => Hasher::Sha512(Sha512::new()),
+            "sha1" => Hasher::Sha1(Sha1::new()),
+            "md5" => Hasher::Md5(Md5::new()),
+            "crc32" => Hasher::Crc32(crc32fast::Hasher::new()),
             _ => Hasher::Sha256(Sha256::new()),
         };
         Ok(Some(Box::new(HashSession { hasher })))
@@ -45,6 +50,9 @@ impl Tool for Hash {
 enum Hasher {
     Sha256(Sha256),
     Sha512(Sha512),
+    Sha1(Sha1),
+    Md5(Md5),
+    Crc32(crc32fast::Hasher),
 }
 
 struct HashSession {
@@ -56,6 +64,9 @@ impl StreamSession for HashSession {
         match &mut self.hasher {
             Hasher::Sha256(h) => h.update(chunk),
             Hasher::Sha512(h) => h.update(chunk),
+            Hasher::Sha1(h) => h.update(chunk),
+            Hasher::Md5(h) => h.update(chunk),
+            Hasher::Crc32(h) => h.update(chunk),
         }
         Ok(Vec::new())
     }
@@ -68,6 +79,9 @@ impl StreamSession for HashSession {
         let digest = match self.hasher {
             Hasher::Sha256(h) => hex(&h.finalize()),
             Hasher::Sha512(h) => hex(&h.finalize()),
+            Hasher::Sha1(h) => hex(&h.finalize()),
+            Hasher::Md5(h) => hex(&h.finalize()),
+            Hasher::Crc32(h) => format!("{:08x}", h.finalize()),
         };
         Ok(digest.into_bytes())
     }
@@ -106,6 +120,25 @@ mod tests {
         let DataValue::Text(s) = out else { panic!() };
         assert_eq!(s.len(), 128);
         assert!(s.starts_with("cf83e1357eefb8bd")); // SHA-512 of empty input
+    }
+
+    #[test]
+    fn legacy_algorithms() {
+        let run = |algorithm: &str| {
+            let out = run_single(
+                &Hash,
+                DataValue::Text("abc".into()),
+                serde_json::json!({ "algorithm": algorithm })
+                    .as_object()
+                    .unwrap(),
+            )
+            .unwrap();
+            let DataValue::Text(s) = out else { panic!() };
+            s
+        };
+        assert_eq!(run("md5"), "900150983cd24fb0d6963f7d28e17f72");
+        assert_eq!(run("sha1"), "a9993e364706816aba3e25717850c26c9cd0d89d");
+        assert_eq!(run("crc32"), "352441c2");
     }
 
     #[test]
