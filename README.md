@@ -1,34 +1,112 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# toolkit
 
-## Getting Started
+**Data tools that never see your data.**
 
-First, run the development server:
+Base64, URL and hex encoding, JWT inspection, JSON formatting, hashing, image
+resize/crop/convert/compress — the everyday tools you'd otherwise paste
+sensitive data into some website to use. Here, **everything runs on your own
+device**: in your browser as WebAssembly, or in your terminal as a single
+static binary. There is no server. There is nothing to upload to.
 
-```bash
-npm run dev
-# or
-yarn dev
+## Why you can trust it (verify, don't believe)
+
+| Claim | How you verify it |
+| --- | --- |
+| No server receives your data | The site is static files. Open DevTools → Network while using any tool: zero outgoing requests. |
+| Even malicious code couldn't exfiltrate | A strict `Content-Security-Policy` (`default-src 'none'; connect-src 'self'`) makes the browser itself refuse outbound connections. Try `fetch("https://example.com")` in the console. |
+| Works with the network unplugged | The site is an offline-capable PWA. Turn on airplane mode; everything keeps working. |
+| The code is what you audited | Tools are pure Rust (pinned, vendorable, pure-Rust dependencies) compiled to wasm; the page is a small Svelte app; all of it in this repo. Community tools/chains enter via reviewed PRs only — the site never loads code from anywhere else. |
+| The CLI can't phone home | It contains no network code at all, and you can build it from source: `cargo install --path crates/cli`. |
+
+## Using it
+
+### Web
+
+```sh
+./scripts/build-web-assets.sh   # compile tool packs to wasm + emit catalog
+cd web && npm install && npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### CLI
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+```sh
+cargo build --release -p toolkit-cli   # -> target/release/toolkit
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+toolkit list                                      # what's available
+echo -n 'hello' | toolkit run base64-encode       # single tool
+toolkit run image-resize --set width=800 -i in.png -o out.png
+# multi-input tools take one file per named port:
+toolkit run image-merge -i first=a.png -i second=b.png --set mode=vertical -o out.png
+# variable-arity ports (marked "…" in `toolkit list`) take repeated -i:
+toolkit run doc-merge -i a.txt -i b.txt -i c.txt --set separator=$'\n---\n'
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+# chains: pipe syntax…
+echo "$JWT" | toolkit chain 'jwt-decode | json-format indent=4'
+# …or the chain library (with declared, typed parameters):
+toolkit chains                                    # browse the library
+toolkit chain --name image-web-ready --set width=800 -i photo.png -o photo.jpg
+toolkit chain --file my-chain.json -i input.txt
+```
 
-## Learn More
+Drop your own chain files into `~/.config/toolkit/chains/` and run them by
+name — chains are pure data, so this needs no code trust. To update the CLI,
+run `scripts/update.sh` (checksum-verified GitHub release download) or your
+package manager; the `toolkit` binary itself deliberately contains no
+network code, so it never updates itself.
 
-To learn more about Next.js, take a look at the following resources:
+## How it's put together
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+crates/core         the contract: typed values (text/bytes/json/image) with a
+                    coercion matrix, tool manifests (options auto-generate web
+                    forms and CLI flags), the chain (DAG) schema + executor,
+                    and the wasm pack ABI
+crates/packs/text   base64, url, hex, jwt, json, hash tools
+crates/packs/image  resize, crop, convert, compress (pure-Rust codecs)
+crates/cli          `toolkit` binary — links the packs natively
+web/                Svelte app — catalog, tool pages, DAG chain builder;
+                    loads the same packs as lazily-fetched wasm modules
+chains/             community chain library (pure data, no code)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+One tool implementation serves both frontends: the CLI links the Rust
+directly; the browser fetches the pack compiled to WebAssembly, on first use,
+through a tiny hand-written ABI (no codegen — see `crates/core/src/abi.rs`).
+Chains are a versioned JSON DAG; the same file runs in the CLI, the web
+builder, the shareable-URL encoding, and `chains/`.
 
-## Deploy on Vercel
+**Toolchains**: tools declare typed, named input ports (most have one;
+`image-merge` has `first` and `second`; a `multi` port like doc-merge's
+`documents` accepts any number of connections, ordered), so they compose
+into a DAG —
+fan-out is allowed, every edge targets a specific port, and edges are
+type-checked (with sanctioned runtime coercions like bytes→text-if-UTF-8).
+A chain can declare **params** — named, typed knobs (`width`, `quality`)
+that map onto node options — which makes a chain a first-class callable
+unit: the CLI accepts them as `--set width=800`, the web builder renders
+them as a settings form. Share a chain from the web builder: the URL encodes
+the *definition*, never data.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Supply-chain stance**: anything that touches user data is Rust with a
+minimal, pure-Rust, pinned dependency set (vendorable via `cargo vendor`).
+npm exists only for the web shell (svelte + vite, nothing else) and is
+backstopped by the CSP above. Every tool must work on plain single-threaded
+CPU; hardware acceleration may only ever be an additive fast path.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Hosting
+
+Any static file host works. Serve `web/dist` and send the same CSP as an HTTP
+header (it's also in a `<meta>` tag, but a header covers more):
+
+```
+Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+```
+
+## Contributing
+
+Adding a tool is one Rust file plus a registry line; adding a chain is one
+JSON file. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+Apache-2.0
