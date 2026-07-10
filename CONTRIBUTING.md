@@ -84,6 +84,31 @@ for free.
 - **Types**: pick the most specific `DataType`. The coercion matrix
   (`crates/core/src/data.rs`) feeds your tool bytes/text/json as declared.
 
+### Streaming tools
+
+If your tool can process input incrementally (byte transducers: encoders,
+decoders, hashes — not whole-value tools like image or JSON operations),
+implement a `StreamSession` and set `streaming: true`. The buffered path is
+then *derived* from the session, so there is exactly one implementation:
+
+```rust
+fn run(&self, inputs: Inputs, options: &Options) -> Result<DataValue, ToolError> {
+    let session = self.open_stream(options)?.expect("streaming tool");
+    buffered_run(session, &self.manifest(), inputs)
+}
+
+fn open_stream(&self, options: &Options) -> Result<Option<Box<dyn StreamSession>>, ToolError> {
+    Ok(Some(Box::new(MySession::new(options))))
+}
+```
+
+Sessions receive chunks tagged with (port, index) — see
+`crates/packs/text/src/base64_tools.rs` for carry handling across chunk
+boundaries and `doc_merge.rs` for sequential multi-input consumption. Rules:
+chunks for one input arrive in order; buffer internally where your
+semantics need cross-input ordering; a pack test enforces that the
+manifest flag matches the session.
+
 ## Adding a chain
 
 Chains are pure data — a JSON DAG of existing tools (see `chains/*.json`).

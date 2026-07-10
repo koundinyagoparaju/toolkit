@@ -87,6 +87,17 @@ unit: the CLI accepts them as `--set width=800`, the web builder renders
 them as a settings form. Share a chain from the web builder: the URL encodes
 the *definition*, never data.
 
+**Streaming**: transducer-style tools (hash, base64, hex, URL, doc-merge —
+marked `streaming` in the catalog) process input incrementally with
+constant memory: hashing a multi-gigabyte file uses ~5 MB of RAM in the
+CLI, and the browser feeds dropped files chunk-by-chunk via `file.stream()`
+without ever loading them. Chains execute as a push-based dataflow — one
+engine for both modes: streaming nodes transform chunk-by-chunk, tools
+that inherently need the whole value (images, JSON) buffer only at their
+own inputs, so `base64-decode | hash` streams end-to-end and memory is
+bounded by the largest single buffered step, never the sum of
+intermediates.
+
 **Supply-chain stance**: anything that touches user data is Rust with a
 minimal, pure-Rust, pinned dependency set (vendorable via `cargo vendor`).
 npm exists only for the web shell (svelte + vite, nothing else) and is
