@@ -27,3 +27,8 @@ pub use manifest::{InputSpec, Manifest, OptionKind, OptionSpec};
 pub use options::{validate_against_specs, validate_options, OptGet, Options};
 pub use stream::{buffered_run, open_stream_validated, StreamSession};
 pub use tool::{run_single, run_tool, Inputs, InputsExt, Registry, Tool, ToolError};
+
+/// Bytes delivered to an entropy port by drivers. Generous enough for any
+/// generator (a max-length password consumes well under half of this even
+/// with rejection sampling).
+pub const ENTROPY_LEN: usize = 1024;

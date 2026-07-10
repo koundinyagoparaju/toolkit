@@ -272,9 +272,12 @@ impl Chain {
                 let missing: Vec<&str> = m
                     .inputs
                     .iter()
-                    .filter(|p| !wired.contains(&(node.id.as_str(), p.name.clone())))
+                    .filter(|p| !p.entropy && !wired.contains(&(node.id.as_str(), p.name.clone())))
                     .map(|p| p.name.as_str())
                     .collect();
+                if missing.is_empty() {
+                    continue; // only entropy ports unwired: driver fills them
+                }
                 return Err(ChainError::at(
                     &node.id,
                     format!("input port(s) not connected: {}", missing.join(", ")),
@@ -315,8 +318,14 @@ impl Chain {
     ) -> Result<ChainResult, ChainError> {
         let (meta, bytes) = input.into_payload();
         let mut source = std::io::Cursor::new(bytes);
-        let outcome =
-            self.execute_streaming(registry, &meta, &mut source, true, &mut |_, _| Ok(()))?;
+        let outcome = self.execute_streaming(
+            registry,
+            &meta,
+            &mut source,
+            true,
+            &mut |_| Err("this chain needs an entropy source; run via the CLI or web".into()),
+            &mut |_, _| Ok(()),
+        )?;
         Ok(ChainResult {
             outputs: outcome.outputs,
             sinks: outcome.sinks,
@@ -338,10 +347,12 @@ impl Chain {
         input_meta: &ValueMeta,
         source: &mut R,
         retain_all: bool,
+        entropy: &mut OnEntropy,
         on_sink: &mut OnSink,
     ) -> Result<StreamOutcome, ChainError> {
         self.validate(registry)?;
         let mut engine = Engine::build(self, registry, input_meta, retain_all)?;
+        engine.prime_entropy(registry, entropy, on_sink)?;
 
         let mut buf = vec![0u8; 1 << 20];
         loop {
@@ -414,8 +425,17 @@ impl Chain {
                         slots[n_idx].push(Slot::new(&port.name, value_index));
                         value_index += 1;
                     }
+                    if value_index == 0 && port.entropy {
+                        // Wired node with an unwired entropy port: the
+                        // driver fills it.
+                        let mut slot = Slot::new(&port.name, 0);
+                        slot.entropy = true;
+                        slots[n_idx].push(slot);
+                    }
                 } else {
-                    slots[n_idx].push(Slot::new(&port.name, 0));
+                    let mut slot = Slot::new(&port.name, 0);
+                    slot.entropy = port.entropy;
+                    slots[n_idx].push(slot);
                 }
             }
         }
@@ -466,6 +486,9 @@ impl Chain {
 /// Incremental consumer of sink output: (node id, chunk).
 pub type OnSink<'a> = dyn FnMut(&str, &[u8]) -> Result<(), String> + 'a;
 
+/// Driver-supplied randomness for entropy ports: n -> n random bytes.
+pub type OnEntropy<'a> = dyn FnMut(usize) -> Result<Vec<u8>, String> + 'a;
+
 /// Engine wiring: per-node input slots, per-node outgoing (node, slot).
 type Wiring = (Vec<Vec<Slot>>, Vec<Vec<(usize, usize)>>);
 
@@ -487,6 +510,7 @@ struct Slot {
     meta: ValueMeta,
     buffer: Vec<u8>,
     ended: bool,
+    entropy: bool,
 }
 
 impl Slot {
@@ -500,6 +524,7 @@ impl Slot {
             },
             buffer: Vec::new(),
             ended: false,
+            entropy: false,
         }
     }
 }
@@ -608,12 +633,39 @@ impl Engine {
         let mut entries = Vec::new();
         for (n, node) in self.nodes.iter().enumerate() {
             for s in 0..node.slots.len() {
-                if !fed.contains(&(n, s)) {
+                if !fed.contains(&(n, s)) && !node.slots[s].entropy {
                     entries.push((n, s));
                 }
             }
         }
         entries
+    }
+
+    /// Fill every unwired entropy slot from the driver's entropy source
+    /// (one chunk + end). Runs once, before the first input push.
+    fn prime_entropy(
+        &mut self,
+        registry: &Registry,
+        entropy: &mut OnEntropy,
+        on_sink: &mut OnSink,
+    ) -> Result<(), ChainError> {
+        let fed: HashSet<(usize, usize)> = self
+            .nodes
+            .iter()
+            .flat_map(|n| n.outgoing.iter().copied())
+            .collect();
+        let mut queue = VecDeque::new();
+        for (n, node) in self.nodes.iter().enumerate() {
+            for s in 0..node.slots.len() {
+                if node.slots[s].entropy && !fed.contains(&(n, s)) {
+                    let bytes =
+                        entropy(crate::ENTROPY_LEN).map_err(|e| ChainError::at(&self.ids[n], e))?;
+                    queue.push_back(Ev::Chunk(n, s, bytes));
+                    queue.push_back(Ev::End(n, s));
+                }
+            }
+        }
+        self.process(registry, &mut queue, on_sink)
     }
 
     fn push_input(
@@ -971,6 +1023,7 @@ mod tests {
                 &meta,
                 &mut Trickle(b"hello world"),
                 false,
+                &mut |_| Err("no entropy in this test".into()),
                 &mut |id, bytes| {
                     sink_chunks.push((id.to_string(), bytes.to_vec()));
                     Ok(())

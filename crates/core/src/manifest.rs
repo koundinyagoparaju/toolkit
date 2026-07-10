@@ -49,6 +49,13 @@ pub struct InputSpec {
     /// in the type system: `DataType` stays list-free.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub multi: bool,
+    /// An entropy port is auto-filled by the *driver* (CLI: OS RNG; web:
+    /// crypto.getRandomValues) with [`crate::ENTROPY_LEN`] random bytes.
+    /// The tool stays a pure function of its inputs — randomness arrives
+    /// as explicit, auditable data, and wasm packs keep zero host imports.
+    /// UIs hide these ports; chains may wire them for reproducibility.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub entropy: bool,
 }
 
 impl InputSpec {
@@ -60,6 +67,7 @@ impl InputSpec {
             name: Self::SOLE_NAME.into(),
             data_type,
             multi: false,
+            entropy: false,
         }]
     }
 
@@ -68,12 +76,23 @@ impl InputSpec {
             name: name.into(),
             data_type,
             multi: false,
+            entropy: false,
         }
     }
 
     pub fn multi(mut self) -> InputSpec {
         self.multi = true;
         self
+    }
+
+    /// The conventional driver-filled randomness port of a generator tool.
+    pub fn entropy() -> InputSpec {
+        InputSpec {
+            name: "entropy".into(),
+            data_type: DataType::Bytes,
+            multi: false,
+            entropy: true,
+        }
     }
 }
 
