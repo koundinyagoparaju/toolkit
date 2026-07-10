@@ -118,3 +118,29 @@ The core is deliberately inert: anything environmental is injected by a
   `<meta>` tag because static hosts can't send headers; hash routing means
   no rewrites; all asset paths are relative so the mount point is
   irrelevant.
+
+## Reproducing a release
+
+Releases are built with a pinned toolchain (`rust-toolchain.toml`), locked
+dependencies, normalized path prefixes, and deterministic tar/gzip — so
+you can rebuild a release binary yourself and compare hashes instead of
+trusting ours. For the Linux x86_64 artifact:
+
+```sh
+docker run --rm rust:1.96.0 bash -c '
+  apt-get update -qq && apt-get install -y -qq musl-tools >/dev/null &&
+  git clone --depth 1 --branch <TAG> https://github.com/koundinyagoparaju/toolkit /src &&
+  cd /src && rustup target add x86_64-unknown-linux-musl &&
+  export RUSTFLAGS="--remap-path-prefix=$PWD=/build --remap-path-prefix=$HOME=/remapped-home" &&
+  cargo build --release --locked --target x86_64-unknown-linux-musl -p toolkit-cli &&
+  sha256sum target/x86_64-unknown-linux-musl/release/toolkit'
+```
+
+Compare against the `toolkit` binary extracted from the release tarball.
+CI enforces this property on every PR (two clean builds in different
+directories must hash identically), and releases additionally carry GitHub
+build-provenance attestations:
+`gh attestation verify toolkit-linux-x86_64.tar.gz --repo koundinyagoparaju/toolkit`.
+
+Applies to releases after v0.1.0 (earlier builds predate the normalized
+flags).
