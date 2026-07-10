@@ -186,7 +186,14 @@ fn run(cli: Cli) -> Result<(), String> {
                 .find(&tool)
                 .ok_or_else(|| format!("unknown tool \"{tool}\" (see `toolkit list`)"))?;
             let options = parse_set_options(&set)?;
-            let inputs = read_tool_inputs(&t.manifest(), &input)?;
+            let manifest = t.manifest();
+            if manifest.streaming {
+                // O(1) memory: sources are read in chunks, sequentially in
+                // port order, and output is written as it is emitted.
+                let sources = input_sources(&manifest, &input)?;
+                return stream_run(t, &manifest, sources, &options, output.as_deref());
+            }
+            let inputs = read_tool_inputs(&manifest, &input)?;
             let result = toolkit_core::run_tool(t, inputs, &options).map_err(|e| e.message)?;
             write_single_output(result, output.as_deref())
         }
@@ -203,43 +210,13 @@ fn run(cli: Cli) -> Result<(), String> {
             let chain = load_chain(expression, file, name, &chains_dir)?;
             let chain = apply_chain_sets(&chain, &set)?;
             chain.validate(&registry).map_err(|e| e.to_string())?;
-            let value = read_input(input.as_deref())?;
-            let mut result = chain.execute(&registry, value).map_err(|e| e.to_string())?;
-            if let Some(dir) = output_dir {
-                std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-                for id in &result.sinks {
-                    let value = result.outputs.remove(id).expect("sink output exists");
-                    let (meta, bytes) = value.into_payload();
-                    let ext = match meta.data_type {
-                        DataType::Text => "txt".to_string(),
-                        DataType::Json => "json".to_string(),
-                        DataType::Bytes => "bin".to_string(),
-                        DataType::Image => {
-                            if meta.format.is_empty() {
-                                "img".to_string()
-                            } else {
-                                meta.format
-                            }
-                        }
-                    };
-                    let path = dir.join(format!("{id}.{ext}"));
-                    std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
-                    eprintln!("wrote {}", path.display());
-                }
-                Ok(())
-            } else if result.sinks.len() == 1 {
-                let value = result
-                    .outputs
-                    .remove(&result.sinks[0])
-                    .expect("sink output exists");
-                write_single_output(value, output.as_deref())
-            } else {
-                Err(format!(
-                    "chain has {} outputs ({}); use --output-dir to write them",
-                    result.sinks.len(),
-                    result.sinks.join(", ")
-                ))
-            }
+            run_chain_streaming(
+                &chain,
+                &registry,
+                input.as_deref(),
+                output.as_deref(),
+                output_dir,
+            )
         }
         Command::Chains { chains_dir } => {
             let mut dirs = Vec::new();
@@ -366,6 +343,211 @@ fn read_tool_inputs(
         }
     }
     Ok(inputs)
+}
+
+/// Ordered streaming sources for a tool invocation: (port, index, path);
+/// `None` path means stdin. Mirrors read_tool_inputs' argument rules.
+fn input_sources(
+    manifest: &toolkit_core::Manifest,
+    specs: &[String],
+) -> Result<Vec<(String, usize, Option<PathBuf>)>, String> {
+    let mut sources = Vec::new();
+    if let Some(sole) = manifest.sole_input() {
+        if specs.is_empty() {
+            sources.push((sole.name.clone(), 0, None));
+        } else {
+            if !sole.multi && specs.len() > 1 {
+                return Err(format!(
+                    "tool \"{}\" takes a single input; give at most one -i",
+                    manifest.name
+                ));
+            }
+            for (index, spec) in specs.iter().enumerate() {
+                let path = match spec.split_once('=') {
+                    Some((port, path)) if port == sole.name => path,
+                    _ => spec.as_str(),
+                };
+                sources.push((sole.name.clone(), index, Some(PathBuf::from(path))));
+            }
+        }
+        return Ok(sources);
+    }
+    // Multi-port tools: gather per port, ordered by manifest port order.
+    let mut per_port: std::collections::BTreeMap<&str, Vec<PathBuf>> = Default::default();
+    for spec in specs {
+        let Some((port, path)) = spec.split_once('=') else {
+            return Err(format!(
+                "tool \"{}\" has {} input ports; use -i port=path",
+                manifest.name,
+                manifest.inputs.len()
+            ));
+        };
+        per_port.entry(port).or_default().push(PathBuf::from(path));
+    }
+    for port in &manifest.inputs {
+        let paths = per_port.remove(port.name.as_str()).unwrap_or_default();
+        if paths.is_empty() {
+            return Err(format!(
+                "missing -i {}=<path> for tool \"{}\"",
+                port.name, manifest.name
+            ));
+        }
+        for (index, path) in paths.into_iter().enumerate() {
+            sources.push((port.name.clone(), index, Some(path)));
+        }
+    }
+    if let Some((port, _)) = per_port.into_iter().next() {
+        return Err(format!(
+            "tool \"{}\" has no input port \"{port}\"",
+            manifest.name
+        ));
+    }
+    Ok(sources)
+}
+
+/// Run a streaming tool: sources are consumed sequentially in port order,
+/// output is written as emitted. Constant memory for any input size.
+fn stream_run(
+    tool: &dyn toolkit_core::Tool,
+    manifest: &toolkit_core::Manifest,
+    sources: Vec<(String, usize, Option<PathBuf>)>,
+    options: &Options,
+    output: Option<&Path>,
+) -> Result<(), String> {
+    let mut session = toolkit_core::open_stream_validated(tool, options)
+        .map_err(|e| e.message)?
+        .unwrap_or_else(|| panic!("tool \"{}\" advertises streaming", manifest.name));
+
+    let mut writer: Box<dyn Write> = match output {
+        Some(p) => Box::new(
+            std::fs::File::create(p).map_err(|e| format!("cannot create {}: {e}", p.display()))?,
+        ),
+        None => Box::new(std::io::stdout().lock()),
+    };
+    let mut buf = vec![0u8; 1 << 20];
+    for (port, index, path) in sources {
+        let mut reader: Box<dyn Read> = match &path {
+            Some(p) => Box::new(
+                std::fs::File::open(p).map_err(|e| format!("cannot read {}: {e}", p.display()))?,
+            ),
+            None => Box::new(std::io::stdin().lock()),
+        };
+        loop {
+            let n = reader.read(&mut buf).map_err(|e| e.to_string())?;
+            if n == 0 {
+                break;
+            }
+            let out = session
+                .update(&port, index, &buf[..n])
+                .map_err(|e| e.message)?;
+            writer.write_all(&out).map_err(|e| e.to_string())?;
+        }
+        let out = session.end_input(&port, index).map_err(|e| e.message)?;
+        writer.write_all(&out).map_err(|e| e.to_string())?;
+    }
+    let out = session.finish().map_err(|e| e.message)?;
+    writer.write_all(&out).map_err(|e| e.to_string())?;
+    writer.flush().map_err(|e| e.to_string())
+}
+
+/// File extension for a sink, from its tool's output type; image formats
+/// are sniffed from the first bytes.
+fn sink_extension(output: DataType, first_bytes: &[u8]) -> &'static str {
+    match output {
+        DataType::Text => "txt",
+        DataType::Json => "json",
+        DataType::Bytes => "bin",
+        DataType::Image => match first_bytes {
+            [0x89, b'P', b'N', b'G', ..] => "png",
+            [0xff, 0xd8, ..] => "jpeg",
+            [b'G', b'I', b'F', ..] => "gif",
+            [b'B', b'M', ..] => "bmp",
+            [b'R', b'I', b'F', b'F', ..] => "webp",
+            _ => "img",
+        },
+    }
+}
+
+/// Run a chain through the push engine: input read in chunks, sink output
+/// written incrementally. Memory is bounded by the reservoirs (nodes whose
+/// tools cannot stream); an all-streaming chain runs in constant memory.
+fn run_chain_streaming(
+    chain: &Chain,
+    registry: &Registry,
+    input: Option<&Path>,
+    output: Option<&Path>,
+    output_dir: Option<PathBuf>,
+) -> Result<(), String> {
+    let has_outgoing: std::collections::HashSet<&str> =
+        chain.edges.iter().map(|e| e.from.as_str()).collect();
+    let sinks: Vec<&str> = chain
+        .nodes
+        .iter()
+        .filter(|n| !has_outgoing.contains(n.id.as_str()))
+        .map(|n| n.id.as_str())
+        .collect();
+    let sink_outputs: std::collections::HashMap<String, DataType> = chain
+        .nodes
+        .iter()
+        .filter(|n| sinks.contains(&n.id.as_str()))
+        .map(|n| {
+            let out = registry.find(&n.tool).expect("validated").manifest().output;
+            (n.id.clone(), out)
+        })
+        .collect();
+
+    let mut reader: Box<dyn Read> = match input {
+        Some(p) => Box::new(
+            std::fs::File::open(p).map_err(|e| format!("cannot read {}: {e}", p.display()))?,
+        ),
+        None => Box::new(std::io::stdin().lock()),
+    };
+    let meta = toolkit_core::ValueMeta {
+        data_type: DataType::Bytes,
+        format: String::new(),
+    };
+
+    if let Some(dir) = output_dir {
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let mut writers: std::collections::HashMap<String, (PathBuf, std::fs::File)> =
+            Default::default();
+        chain
+            .execute_streaming(registry, &meta, &mut reader, false, &mut |id, bytes| {
+                if !writers.contains_key(id) {
+                    let ext = sink_extension(sink_outputs[id], bytes);
+                    let path = dir.join(format!("{id}.{ext}"));
+                    let file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
+                    writers.insert(id.to_string(), (path, file));
+                }
+                let (_, file) = writers.get_mut(id).expect("created above");
+                file.write_all(bytes).map_err(|e| e.to_string())
+            })
+            .map_err(|e| e.to_string())?;
+        for (_, (path, _)) in writers {
+            eprintln!("wrote {}", path.display());
+        }
+        Ok(())
+    } else if sinks.len() == 1 {
+        let mut writer: Box<dyn Write> = match output {
+            Some(p) => Box::new(
+                std::fs::File::create(p)
+                    .map_err(|e| format!("cannot create {}: {e}", p.display()))?,
+            ),
+            None => Box::new(std::io::stdout().lock()),
+        };
+        chain
+            .execute_streaming(registry, &meta, &mut reader, false, &mut |_, bytes| {
+                writer.write_all(bytes).map_err(|e| e.to_string())
+            })
+            .map_err(|e| e.to_string())?;
+        writer.flush().map_err(|e| e.to_string())
+    } else {
+        Err(format!(
+            "chain has {} outputs ({}); use --output-dir to write them",
+            sinks.len(),
+            sinks.join(", ")
+        ))
+    }
 }
 
 /// Split `--set` pairs into declared-param values (plain keys) and direct
