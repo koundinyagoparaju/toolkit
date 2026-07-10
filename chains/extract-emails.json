@@ -1,0 +1,27 @@
+{
+    "version": 1,
+    "name": "Extract email addresses",
+    "description": "Every email address in a document, as a JSON list — logs, dumps, and exports stay on your device.",
+    "nodes": [
+        {
+            "id": "grep",
+            "tool": "regex-extract",
+            "options": {
+                "pattern": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+            }
+        },
+        {
+            "id": "pretty",
+            "tool": "json-format",
+            "options": {
+                "indent": 2
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "grep",
+            "to": "pretty"
+        }
+    ]
+}

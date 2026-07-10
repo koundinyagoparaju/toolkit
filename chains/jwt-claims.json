@@ -1,0 +1,49 @@
+{
+    "version": 1,
+    "name": "JWT claims",
+    "description": "Pull just the claims (or any part) out of a JWT, pretty-printed.",
+    "params": [
+        {
+            "name": "part",
+            "label": "Part",
+            "description": "Which piece of the token to extract.",
+            "kind": "string",
+            "default": "payload",
+            "maps": [
+                {
+                    "node": "pick",
+                    "option": "path"
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "decode",
+            "tool": "jwt-decode",
+            "options": {}
+        },
+        {
+            "id": "pick",
+            "tool": "json-pick",
+            "options": {}
+        },
+        {
+            "id": "pretty",
+            "tool": "json-format",
+            "options": {
+                "indent": 2
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "decode",
+            "to": "pick"
+        },
+        {
+            "from": "pick",
+            "to": "pretty"
+        }
+    ]
+}

@@ -13,7 +13,7 @@ serde_json = { workspace = true }
 serde_yaml = "0.9"
 toml = "0.8"
 csv = "1"
-quick-xml = "0.37"
+quick-xml = "0.41"
 time = { version = "0.3", features = ["parsing", "formatting"] }
 url = "2"
 regex = "1"

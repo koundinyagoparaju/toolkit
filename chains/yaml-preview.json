@@ -1,0 +1,25 @@
+{
+    "version": 1,
+    "name": "YAML to pretty JSON",
+    "description": "Read a YAML config as formatted JSON.",
+    "nodes": [
+        {
+            "id": "convert",
+            "tool": "yaml-to-json",
+            "options": {}
+        },
+        {
+            "id": "pretty",
+            "tool": "json-format",
+            "options": {
+                "indent": 2
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "convert",
+            "to": "pretty"
+        }
+    ]
+}

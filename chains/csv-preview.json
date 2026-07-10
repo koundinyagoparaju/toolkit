@@ -1,0 +1,40 @@
+{
+    "version": 1,
+    "name": "CSV to pretty JSON",
+    "description": "Parse a CSV export into readable JSON objects.",
+    "params": [
+        {
+            "name": "delimiter",
+            "label": "Delimiter",
+            "description": "",
+            "kind": "string",
+            "default": ",",
+            "maps": [
+                {
+                    "node": "parse",
+                    "option": "delimiter"
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "parse",
+            "tool": "csv-to-json",
+            "options": {}
+        },
+        {
+            "id": "pretty",
+            "tool": "json-format",
+            "options": {
+                "indent": 2
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "parse",
+            "to": "pretty"
+        }
+    ]
+}

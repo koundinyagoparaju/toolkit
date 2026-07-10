@@ -1,0 +1,25 @@
+{
+    "version": 1,
+    "name": "URL inspector",
+    "description": "Break a URL into scheme, host, path, and decoded query parameters — readable JSON for links full of tokens.",
+    "nodes": [
+        {
+            "id": "parse",
+            "tool": "url-parse",
+            "options": {}
+        },
+        {
+            "id": "pretty",
+            "tool": "json-format",
+            "options": {
+                "indent": 2
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "parse",
+            "to": "pretty"
+        }
+    ]
+}

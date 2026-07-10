@@ -1,0 +1,25 @@
+{
+    "version": 1,
+    "name": "Photo privacy report",
+    "description": "See exactly what a photo would tell the world — GPS position, timestamps, camera — before you share it. Pair with photo-share-safe to strip it.",
+    "nodes": [
+        {
+            "id": "exif",
+            "tool": "exif-view",
+            "options": {}
+        },
+        {
+            "id": "pretty",
+            "tool": "json-format",
+            "options": {
+                "indent": 2
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "exif",
+            "to": "pretty"
+        }
+    ]
+}

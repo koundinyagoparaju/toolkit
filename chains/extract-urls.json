@@ -1,0 +1,27 @@
+{
+    "version": 1,
+    "name": "Extract URLs",
+    "description": "Every http(s) link in a document, as a JSON list.",
+    "nodes": [
+        {
+            "id": "grep",
+            "tool": "regex-extract",
+            "options": {
+                "pattern": "https?://[^\\s\"'<>)\\]]+"
+            }
+        },
+        {
+            "id": "pretty",
+            "tool": "json-format",
+            "options": {
+                "indent": 2
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "grep",
+            "to": "pretty"
+        }
+    ]
+}

@@ -1,0 +1,54 @@
+{
+    "version": 1,
+    "name": "Packed JSON inspector",
+    "description": "Decode base64 + gzip'd JSON blobs (compressed API payloads, config exports, state dumps).",
+    "params": [
+        {
+            "name": "format",
+            "label": "Compression",
+            "description": "",
+            "kind": "enum",
+            "values": [
+                "gzip",
+                "zlib",
+                "raw"
+            ],
+            "default": "gzip",
+            "maps": [
+                {
+                    "node": "inflate",
+                    "option": "format"
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "b64",
+            "tool": "base64-decode",
+            "options": {}
+        },
+        {
+            "id": "inflate",
+            "tool": "gunzip",
+            "options": {}
+        },
+        {
+            "id": "pretty",
+            "tool": "json-format",
+            "options": {
+                "indent": 2
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "b64",
+            "to": "inflate"
+        },
+        {
+            "from": "inflate",
+            "to": "pretty"
+        }
+    ]
+}

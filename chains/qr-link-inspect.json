@@ -1,0 +1,34 @@
+{
+    "version": 1,
+    "name": "QR link inspector",
+    "description": "Decode a QR code from a screenshot AND break down the URL inside it — check where a code actually points before opening it.",
+    "nodes": [
+        {
+            "id": "qr",
+            "tool": "qr-decode",
+            "options": {}
+        },
+        {
+            "id": "parse",
+            "tool": "url-parse",
+            "options": {}
+        },
+        {
+            "id": "pretty",
+            "tool": "json-format",
+            "options": {
+                "indent": 2
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "qr",
+            "to": "parse"
+        },
+        {
+            "from": "parse",
+            "to": "pretty"
+        }
+    ]
+}
