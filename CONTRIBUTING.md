@@ -41,4 +41,24 @@ cd web && npm install && npm run dev
 ```
 
 Before opening a PR: `cargo test`, `cargo fmt`, `cargo clippy`, and if you
-touched the web app, `npm run build`.
+touched the web app, `npm run build`. Note user-facing changes in
+[CHANGELOG.md](CHANGELOG.md) under `## [Unreleased]`.
+
+## Good first tools
+
+Each of these is a single Rust file plus one registry line, pure by
+construction, and backed by a well-maintained pure-Rust crate or a small
+hand-roll. Follow [docs/adding-a-tool.md](docs/adding-a-tool.md):
+
+- **Ascii85 / Base85** encode+decode (text → text)
+- **Punycode** IDNA encode+decode (text → text)
+- **Slugify** — text → URL-safe slug
+- **Number base convert** — arbitrary radix 2–36 (text → text)
+- **Roman numerals** encode+decode (text ↔ integer)
+- **CSS/JS/HTML minify** (text → text)
+- **JSON ⇄ CSV** flatten (json ↔ text)
+- **Image → ASCII art** (image → text)
+- **Barcode (Code128) generate** (text → image), pairing with the QR tools
+
+Comment on an issue labelled `good first tool`, or open a
+[tool request](.github/ISSUE_TEMPLATE/tool_request.md) with your idea.

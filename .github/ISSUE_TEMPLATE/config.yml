@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Concepts & contributor docs
+    url: https://github.com/koundinyagoparaju/toolkit/blob/main/docs/concepts.md
+    about: The mental model — values, ports, packs, chains, streaming, trust.
+  - name: Security disclosure
+    url: https://github.com/koundinyagoparaju/toolkit/security/advisories/new
+    about: Report a vulnerability privately instead of opening a public issue.
