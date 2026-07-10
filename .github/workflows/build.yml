@@ -34,7 +34,7 @@ jobs:
             target: x86_64-pc-windows-msvc
             asset: toolkit-windows-x86_64.zip
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install musl toolchain
         if: contains(matrix.target, 'musl')
@@ -42,20 +42,30 @@ jobs:
 
       - run: rustup target add ${{ matrix.target }}
 
+      # Reproducible builds: normalize embedded paths so anyone can rebuild
+      # and compare hashes (see docs/architecture.md "Reproducing a release").
+      - name: Set reproducible build flags
+        shell: bash
+        run: echo "RUSTFLAGS=--remap-path-prefix=$PWD=/build --remap-path-prefix=$HOME=/remapped-home" >> "$GITHUB_ENV"
+
       - run: cargo build --release --locked --target ${{ matrix.target }} -p toolkit-cli
 
       - name: Package (tar.gz)
         if: ${{ !contains(matrix.asset, '.zip') }}
         run: |
           cp "target/${{ matrix.target }}/release/toolkit" toolkit
-          tar -czf "${{ matrix.asset }}" toolkit
+          # Deterministic archive: fixed mtime/owner/order, gzip without
+          # timestamp — so the tarball hash is reproducible, not just the
+          # binary inside it.
+          tar --sort=name --owner=0 --group=0 --numeric-owner \
+              --mtime='UTC 2020-01-01' -cf - toolkit | gzip -n > "${{ matrix.asset }}"
 
       - name: Package (zip)
         if: contains(matrix.asset, '.zip')
         shell: pwsh
         run: Compress-Archive -Path "target/${{ matrix.target }}/release/toolkit.exe" -DestinationPath "${{ matrix.asset }}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ matrix.asset }}
           path: ${{ matrix.asset }}

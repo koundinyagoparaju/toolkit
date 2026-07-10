@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -18,7 +20,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: assets
           merge-multiple: true
@@ -28,6 +30,14 @@ jobs:
           cd assets
           sha256sum * > SHA256SUMS
           cat SHA256SUMS
+
+      # Cryptographic provenance: proves each artifact was built by THIS
+      # repository's workflow at this commit (verify with `gh attestation
+      # verify <file> --repo koundinyagoparaju/toolkit`).
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: assets/*
 
       - name: Create GitHub release
         env:
