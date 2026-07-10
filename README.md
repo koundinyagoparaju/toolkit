@@ -2,6 +2,12 @@
 
 **Data tools that never see your data.**
 
+**Use it now: [koundinyagoparaju.github.io/toolkit](https://koundinyagoparaju.github.io/toolkit/)** — or install the CLI:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh
+```
+
 Base64/32/58, URL and hex encoding, JWT inspection, JSON ↔ YAML/TOML/CSV,
 hashing and HMAC, timestamps, regex extraction, diffs, gzip, QR codes,
 password/UUID generation, EXIF stripping, image resize/crop/convert/merge —
@@ -18,11 +24,26 @@ static binary. There is no server. There is nothing to upload to.
 | Even malicious code couldn't exfiltrate | A strict `Content-Security-Policy` (`default-src 'none'; connect-src 'self'`) makes the browser itself refuse outbound connections. Try `fetch("https://example.com")` in the console. |
 | Works with the network unplugged | The site is an offline-capable PWA. Turn on airplane mode; everything keeps working. |
 | The code is what you audited | Tools are pure Rust (pinned, vendorable, pure-Rust dependencies) compiled to wasm; the page is a small Svelte app; all of it in this repo. Community tools/chains enter via reviewed PRs only — the site never loads code from anywhere else. |
+| The binaries match the source | Builds are reproducible (pinned toolchain, locked deps, normalized paths — enforced in CI) and releases carry GitHub provenance attestations. Rebuild and compare: [docs/architecture.md](docs/architecture.md#reproducing-a-release). |
 | The CLI can't phone home | It contains no network code at all, and you can build it from source: `cargo install --path crates/cli`. |
 
 ## Using it
 
 ### Web
+
+The app is live at
+**[koundinyagoparaju.github.io/toolkit](https://koundinyagoparaju.github.io/toolkit/)**
+— it works offline after the first visit, and you can verify its no-network
+claims yourself (see the table above, or the in-app "Why trust this?" page).
+
+![Tool catalog](docs/images/catalog.png)
+
+Compose tools into typed pipelines in the chain builder — here two resize
+branches fan into image-merge's named ports:
+
+![Chain builder](docs/images/builder.png)
+
+To run it locally:
 
 ```sh
 ./scripts/build-web-assets.sh   # compile tool packs to wasm + emit catalog
