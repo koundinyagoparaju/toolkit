@@ -31,6 +31,9 @@ const injectCsp = {
 };
 
 export default defineConfig({
+    // Relative base so the app works at any mount point (GitHub Pages
+    // serves under /<repo>/). All runtime fetches are already relative.
+    base: "./",
     plugins: [svelte(), injectCsp],
     build: { target: "es2022" },
 });
