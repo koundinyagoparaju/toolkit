@@ -1,0 +1,141 @@
+:root {
+    --bg: #0f172a;
+    --bg-raised: #1e293b;
+    --bg-input: #0b1120;
+    --border: #334155;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #38bdf8;
+    --accent-dim: #0ea5e9;
+    --ok: #4ade80;
+    --err: #f87171;
+    --radius: 8px;
+    color-scheme: dark;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+code,
+pre,
+textarea {
+    font-family: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+}
+
+h1 {
+    font-size: 1.5rem;
+}
+h2 {
+    font-size: 1.15rem;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem 1.25rem 4rem;
+}
+
+.card {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+}
+
+.btn {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: #04121e;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.btn:hover {
+    background: var(--accent);
+}
+
+.btn.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn.secondary:hover {
+    border-color: var(--accent);
+    background: transparent;
+}
+
+.btn.danger {
+    background: transparent;
+    color: var(--err);
+    border: 1px solid var(--border);
+}
+
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.45rem 0.6rem;
+    font-size: 0.95rem;
+    width: 100%;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 7rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--accent-dim);
+    outline-offset: -1px;
+}
+
+label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 0.2rem;
+}
+
+.error {
+    color: var(--err);
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.8rem;
+}
+
+.dim {
+    color: var(--text-dim);
+}
+
+.mono {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+}
