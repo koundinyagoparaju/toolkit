@@ -296,6 +296,36 @@ try {
     assert(entropyHidden, "entropy port is hidden from the UI");
     cdp7.close();
 
+    // --- Test 8: wasm integrity — pinned hashes present, and a tampered
+    // hash is rejected before instantiation ---
+    const tab8 = await newTab(`${BASE}/#/`);
+    const cdp8 = await connect(tab8.webSocketDebuggerUrl);
+    const pins = await evalJs(cdp8, `fetch("wasm/integrity.json").then((r) => r.json())`);
+    const pinsOk =
+        pins &&
+        ["text.wasm", "image.wasm", "crypto.wasm", "data.wasm"].every((m) =>
+            /^[0-9a-f]{64}$/.test(pins[m] ?? ""),
+        );
+    assert(pinsOk, `integrity.json pins sha256 for every pack (got ${Object.keys(pins ?? {}).join(",")})`);
+
+    // The real digest must match its pin, and a flipped byte must not —
+    // proving the loader's comparison would actually catch tampering.
+    const verifyResult = await evalJs(
+        cdp8,
+        `(async () => {
+            const buf = await fetch("wasm/text.wasm").then((r) => r.arrayBuffer());
+            const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+            const real = hex(await crypto.subtle.digest("SHA-256", buf));
+            const tampered = new Uint8Array(buf.slice(0));
+            tampered[0] ^= 0xff;
+            const bad = hex(await crypto.subtle.digest("SHA-256", tampered.buffer));
+            const pin = (await fetch("wasm/integrity.json").then((r) => r.json()))["text.wasm"];
+            return real === pin && bad !== pin ? "detects" : "MISS";
+        })()`,
+    );
+    assert(verifyResult === "detects", `loader hash matches pin and a tampered byte diverges (got "${verifyResult}")`);
+    cdp8.close();
+
     cdp.close();
     cdp2.close();
 } finally {

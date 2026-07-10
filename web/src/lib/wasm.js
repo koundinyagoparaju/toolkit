@@ -11,14 +11,52 @@ const decoder = new TextDecoder();
 /** module name -> Promise<exports>, so each pack is fetched at most once. */
 const packs = new Map();
 
+/** Promise<{module: sha256hex}>, fetched at most once. */
+let integrity = null;
+function pinnedHashes() {
+    if (!integrity) {
+        integrity = fetch("wasm/integrity.json").then((r) => {
+            if (!r.ok) throw new Error("wasm/integrity.json missing — cannot verify pack integrity");
+            return r.json();
+        });
+    }
+    return integrity;
+}
+
+function toHex(buffer) {
+    return Array.from(new Uint8Array(buffer))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+}
+
+// Verify a pack against its pinned sha256 before we ever instantiate it.
+// The bytes come from our own origin, but this closes the gap between "the
+// server we deployed" and "the code that got compiled and reviewed": a
+// tampered or stale pack is refused rather than run. Requires a secure
+// context (crypto.subtle) — always true on the deployed https site.
+async function loadVerified(module) {
+    const [pins, bytes] = await Promise.all([
+        pinnedHashes(),
+        fetch(`wasm/${module}`).then((r) => {
+            if (!r.ok) throw new Error(`failed to fetch pack ${module}`);
+            return r.arrayBuffer();
+        }),
+    ]);
+    const expected = pins[module];
+    if (!expected) throw new Error(`no pinned hash for pack ${module}`);
+    const actual = toHex(await crypto.subtle.digest("SHA-256", bytes));
+    if (actual !== expected) {
+        throw new Error(
+            `integrity check failed for ${module}: expected ${expected}, got ${actual}`,
+        );
+    }
+    const result = await WebAssembly.instantiate(bytes, {});
+    return result.instance.exports;
+}
+
 export function loadPack(module) {
     if (!packs.has(module)) {
-        packs.set(
-            module,
-            WebAssembly.instantiateStreaming(fetch(`wasm/${module}`), {}).then(
-                (result) => result.instance.exports,
-            ),
-        );
+        packs.set(module, loadVerified(module));
     }
     return packs.get(module);
 }

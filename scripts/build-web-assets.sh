@@ -16,6 +16,23 @@ cp target/wasm32-unknown-unknown/release/toolkit_pack_data.wasm web/public/wasm/
 
 cargo run --quiet --release -p toolkit-cli -- manifests > web/public/wasm/manifests.json
 
+# Integrity manifest: sha256 of each pack, so the loader can verify the
+# bytes it fetches before instantiating them. Pairs with reproducible
+# builds — anyone can rebuild a pack and confirm the pinned hash.
+sha256_hex() { # portable: coreutils sha256sum or BSD/macOS shasum
+    if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1
+    else shasum -a 256 "$1" | cut -d' ' -f1; fi
+}
+{
+    printf '{'
+    sep=""
+    for m in text image crypto data; do
+        printf '%s"%s.wasm":"%s"' "$sep" "$m" "$(sha256_hex "web/public/wasm/$m.wasm")"
+        sep=","
+    done
+    printf '}\n'
+} > web/public/wasm/integrity.json
+
 # Chain library: copy chains and build an index of their filenames.
 rm -f web/public/chains/*.json
 index="["
