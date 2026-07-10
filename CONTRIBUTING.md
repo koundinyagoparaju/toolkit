@@ -109,6 +109,14 @@ chunks for one input arrive in order; buffer internally where your
 semantics need cross-input ordering; a pack test enforces that the
 manifest flag matches the session.
 
+### Generator tools
+
+A tool that needs randomness declares `InputSpec::entropy()` — a hidden
+port the driver fills with CSPRNG bytes (`toolkit_core::ENTROPY_LEN`). The
+tool remains a pure function of its inputs; never reach for ambient
+randomness (there is none in the wasm sandbox, by design). See
+`crates/packs/crypto/src/generators.rs`.
+
 ## Adding a chain
 
 Chains are pure data — a JSON DAG of existing tools (see `chains/*.json`).

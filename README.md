@@ -2,9 +2,11 @@
 
 **Data tools that never see your data.**
 
-Base64, URL and hex encoding, JWT inspection, JSON formatting, hashing, image
-resize/crop/convert/compress — the everyday tools you'd otherwise paste
-sensitive data into some website to use. Here, **everything runs on your own
+Base64/32/58, URL and hex encoding, JWT inspection, JSON ↔ YAML/TOML/CSV,
+hashing and HMAC, timestamps, regex extraction, diffs, gzip, QR codes,
+password/UUID generation, EXIF stripping, image resize/crop/convert/merge —
+the everyday tools you'd otherwise paste sensitive data into some website
+to use. Here, **everything runs on your own
 device**: in your browser as WebAssembly, or in your terminal as a single
 static binary. There is no server. There is nothing to upload to.
 
@@ -61,8 +63,10 @@ crates/core         the contract: typed values (text/bytes/json/image) with a
                     coercion matrix, tool manifests (options auto-generate web
                     forms and CLI flags), the chain (DAG) schema + executor,
                     and the wasm pack ABI
-crates/packs/text   base64, url, hex, jwt, json, hash tools
-crates/packs/image  resize, crop, convert, compress (pure-Rust codecs)
+crates/packs/text   encodings, json, hash, gzip, diff, case/sort/escape tools
+crates/packs/image  resize, crop, convert, compress, merge, EXIF, QR codes
+crates/packs/crypto hmac, base32/58, uuid + password + random-byte generators
+crates/packs/data   json↔yaml/toml/csv, xml, timestamps, url, regex, markdown
 crates/cli          `toolkit` binary — links the packs natively
 web/                Svelte app — catalog, tool pages, DAG chain builder;
                     loads the same packs as lazily-fetched wasm modules
@@ -97,6 +101,13 @@ that inherently need the whole value (images, JSON) buffer only at their
 own inputs, so `base64-decode | hash` streams end-to-end and memory is
 bounded by the largest single buffered step, never the sum of
 intermediates.
+
+**Generators without ambient randomness**: uuid, password-gen and
+random-bytes take their randomness through an explicit `entropy` input port
+that the driver fills (CLI: OS RNG; web: `crypto.getRandomValues`). Tools
+stay pure functions, the wasm sandbox keeps *zero* host imports, and the
+entropy is visible in the request to anyone auditing — you can even wire
+fixed bytes into the port for reproducible output.
 
 **Supply-chain stance**: anything that touches user data is Rust with a
 minimal, pure-Rust, pinned dependency set (vendorable via `cargo vendor`).
