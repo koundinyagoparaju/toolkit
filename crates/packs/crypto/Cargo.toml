@@ -10,7 +10,7 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 toolkit-core = { path = "../../core" }
 serde_json = { workspace = true }
-hmac = "0.12"
+hmac = "0.13"
 sha2 = "0.10"
 data-encoding = "2"
 bs58 = "0.5"
