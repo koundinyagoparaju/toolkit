@@ -1,0 +1,16 @@
+[package]
+name = "toolkit-pack-text"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+toolkit-core = { path = "../../core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+base64 = "0.22"
+percent-encoding = "2"
+sha2 = "0.10"

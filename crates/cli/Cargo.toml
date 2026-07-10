@@ -1,0 +1,16 @@
+[package]
+name = "toolkit-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "toolkit"
+path = "src/main.rs"
+
+[dependencies]
+toolkit-core = { path = "../core" }
+toolkit-pack-text = { path = "../packs/text" }
+toolkit-pack-image = { path = "../packs/image" }
+serde_json = { workspace = true }
+clap = { version = "4", features = ["derive"] }

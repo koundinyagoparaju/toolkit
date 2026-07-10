@@ -1,0 +1,15 @@
+[package]
+name = "toolkit-pack-image"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+toolkit-core = { path = "../../core" }
+serde_json = { workspace = true }
+# Pure-Rust codecs only; default features disabled to drop rayon (threads
+# are unavailable on wasm32) and codecs we don't ship.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp", "webp"] }
