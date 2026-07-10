@@ -17,6 +17,7 @@ impl Tool for Crop {
                 .to_vec(),
             inputs: InputSpec::sole(DataType::Image),
             output: DataType::Image,
+            streaming: false,
             options: vec![
                 OptionSpec::integer(
                     "x",

@@ -22,6 +22,7 @@ impl Tool for Merge {
                 InputSpec::named("second", DataType::Image),
             ],
             output: DataType::Image,
+            streaming: false,
             options: vec![
                 OptionSpec::enumeration(
                     "mode",

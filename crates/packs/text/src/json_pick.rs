@@ -21,6 +21,7 @@ impl Tool for JsonPick {
                 .to_vec(),
             inputs: InputSpec::sole(DataType::Json),
             output: DataType::Json,
+            streaming: false,
             options: vec![OptionSpec::string(
                 "path",
                 "Path",

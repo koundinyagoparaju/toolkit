@@ -16,6 +16,7 @@ impl Tool for Compress {
             keywords: ["image", "compress", "optimize", "quality", "size"].map(String::from).to_vec(),
             inputs: InputSpec::sole(DataType::Image),
             output: DataType::Image,
+            streaming: false,
             options: vec![OptionSpec::integer(
                 "quality",
                 "Quality",

@@ -18,6 +18,7 @@ impl Tool for JwtDecode {
             keywords: ["jwt", "token", "decode", "json web token", "auth"].map(String::from).to_vec(),
             inputs: InputSpec::sole(DataType::Text),
             output: DataType::Json,
+            streaming: false,
             options: vec![],
         }
     }

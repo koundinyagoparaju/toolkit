@@ -16,6 +16,7 @@ impl Tool for Resize {
             keywords: ["image", "resize", "scale", "thumbnail", "shrink"].map(String::from).to_vec(),
             inputs: InputSpec::sole(DataType::Image),
             output: DataType::Image,
+            streaming: false,
             options: vec![
                 OptionSpec::integer("width", "Width (px)", "Target width in pixels.", Some(1), Some(20_000)),
                 OptionSpec::integer("height", "Height (px)", "Target height in pixels.", Some(1), Some(20_000)),

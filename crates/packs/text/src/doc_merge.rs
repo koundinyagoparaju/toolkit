@@ -1,11 +1,13 @@
 use toolkit_core::{
-    DataType, DataValue, InputSpec, Inputs, InputsExt, Manifest, OptGet, OptionSpec, Options, Tool,
-    ToolError,
+    buffered_run, DataType, DataValue, InputSpec, Inputs, Manifest, OptGet, OptionSpec, Options,
+    StreamSession, Tool, ToolError,
 };
 
-/// The pack's first variable-arity tool: one `multi` port that accepts any
-/// number of documents. Cardinality lives on the port — the type system
-/// stays list-free.
+/// Variable-arity tool: one `multi` port accepting any number of documents.
+/// Streams with sequential consumption: the current document's chunks pass
+/// straight through; chunks arriving early for later documents are buffered
+/// until their turn (bounded degradation for lockstep chain branches,
+/// perfect O(1) streaming for sequential sources like CLI file lists).
 pub struct DocMerge;
 
 impl Tool for DocMerge {
@@ -19,6 +21,7 @@ impl Tool for DocMerge {
                 .to_vec(),
             inputs: vec![InputSpec::named("documents", DataType::Text).multi()],
             output: DataType::Text,
+            streaming: true,
             options: vec![OptionSpec::string(
                 "separator",
                 "Separator",
@@ -28,19 +31,96 @@ impl Tool for DocMerge {
         }
     }
 
-    fn run(&self, mut inputs: Inputs, options: &Options) -> Result<DataValue, ToolError> {
-        let documents = inputs.take_many("documents");
-        let separator = options.str_opt("separator").unwrap_or("\n").to_string();
-        let parts: Vec<String> = documents
-            .into_iter()
-            .map(|doc| {
-                let DataValue::Text(text) = doc else {
-                    unreachable!()
-                };
-                text
-            })
-            .collect();
-        Ok(DataValue::Text(parts.join(&separator)))
+    fn run(&self, inputs: Inputs, options: &Options) -> Result<DataValue, ToolError> {
+        let session = self.open_stream(options)?.expect("streaming tool");
+        buffered_run(session, &self.manifest(), inputs)
+    }
+
+    fn open_stream(&self, options: &Options) -> Result<Option<Box<dyn StreamSession>>, ToolError> {
+        Ok(Some(Box::new(MergeSession {
+            separator: options
+                .str_opt("separator")
+                .unwrap_or("\n")
+                .as_bytes()
+                .to_vec(),
+            current: 0,
+            sep_pending: false,
+            buffers: std::collections::BTreeMap::new(),
+            ended: std::collections::BTreeSet::new(),
+        })))
+    }
+}
+
+struct MergeSession {
+    separator: Vec<u8>,
+    /// The document currently allowed to pass through.
+    current: usize,
+    /// A separator is owed before the current document's first byte.
+    sep_pending: bool,
+    /// Early chunks of future documents, keyed by index.
+    buffers: std::collections::BTreeMap<usize, Vec<u8>>,
+    ended: std::collections::BTreeSet<usize>,
+}
+
+impl MergeSession {
+    fn sep(&mut self, out: &mut Vec<u8>) {
+        if self.sep_pending {
+            out.extend_from_slice(&self.separator);
+            self.sep_pending = false;
+        }
+    }
+
+    /// The current document ended: move on, flushing whatever the next
+    /// ones already delivered (and cascading past fully-ended ones).
+    fn advance(&mut self, out: &mut Vec<u8>) {
+        loop {
+            self.sep(out); // an ended-but-empty document still owes one
+            self.current += 1;
+            self.sep_pending = true;
+            if let Some(buf) = self.buffers.remove(&self.current) {
+                if !buf.is_empty() {
+                    self.sep(out);
+                    out.extend_from_slice(&buf);
+                }
+            }
+            if !self.ended.contains(&self.current) {
+                break;
+            }
+        }
+    }
+}
+
+impl StreamSession for MergeSession {
+    fn update(&mut self, _: &str, index: usize, chunk: &[u8]) -> Result<Vec<u8>, ToolError> {
+        let mut out = Vec::new();
+        if index == self.current {
+            self.sep(&mut out);
+            out.extend_from_slice(chunk);
+        } else if index > self.current {
+            self.buffers
+                .entry(index)
+                .or_default()
+                .extend_from_slice(chunk);
+        } else {
+            return Err(ToolError::new("document chunk arrived after its end"));
+        }
+        Ok(out)
+    }
+
+    fn end_input(&mut self, _: &str, index: usize) -> Result<Vec<u8>, ToolError> {
+        self.ended.insert(index);
+        let mut out = Vec::new();
+        if index == self.current {
+            self.advance(&mut out);
+        }
+        Ok(out)
+    }
+
+    fn finish(self: Box<Self>) -> Result<Vec<u8>, ToolError> {
+        // The driver ends every input before finish, so advance() has
+        // flushed everything; nothing can remain buffered.
+        debug_assert!(self.buffers.is_empty());
+        Ok(Vec::new())
     }
 }
 
@@ -78,9 +158,13 @@ mod tests {
     }
 
     #[test]
+    fn empty_documents_keep_their_separators() {
+        let out = run_tool(&DocMerge, docs(&["a", "", "b"]), &Options::new()).unwrap();
+        assert_eq!(out, DataValue::Text("a\n\nb".into()));
+    }
+
+    #[test]
     fn single_document_passes_through() {
-        // A multi port with one value is fine — and run_single works since
-        // doc-merge has a sole (multi) port.
         let out = run_single(&DocMerge, DataValue::Text("solo".into()), &Options::new()).unwrap();
         assert_eq!(out, DataValue::Text("solo".into()));
     }
@@ -107,5 +191,20 @@ mod tests {
     #[test]
     fn empty_port_is_an_error() {
         assert!(run_tool(&DocMerge, Inputs::new(), &Options::new()).is_err());
+    }
+
+    #[test]
+    fn streaming_buffers_out_of_order_and_flushes_in_order() {
+        // Interleaved arrival: doc1 data before doc0 finishes.
+        let mut s = DocMerge.open_stream(&Options::new()).unwrap().unwrap();
+        let mut out = Vec::new();
+        out.extend(s.update("documents", 0, b"AA").unwrap());
+        out.extend(s.update("documents", 1, b"BB").unwrap()); // buffered
+        out.extend(s.update("documents", 0, b"aa").unwrap());
+        out.extend(s.end_input("documents", 0).unwrap()); // flushes doc1's BB
+        out.extend(s.update("documents", 1, b"bb").unwrap());
+        out.extend(s.end_input("documents", 1).unwrap());
+        out.extend(s.finish().unwrap());
+        assert_eq!(String::from_utf8(out).unwrap(), "AAaa\nBBbb");
     }
 }

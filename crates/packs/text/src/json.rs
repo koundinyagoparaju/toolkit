@@ -16,6 +16,7 @@ impl Tool for JsonFormat {
                 .to_vec(),
             inputs: InputSpec::sole(DataType::Json),
             output: DataType::Text,
+            streaming: false,
             options: vec![OptionSpec::integer(
                 "indent",
                 "Indent width",
@@ -55,6 +56,7 @@ impl Tool for JsonMinify {
             keywords: ["json", "minify", "compact"].map(String::from).to_vec(),
             inputs: InputSpec::sole(DataType::Json),
             output: DataType::Text,
+            streaming: false,
             options: vec![],
         }
     }

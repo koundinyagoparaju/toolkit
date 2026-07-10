@@ -1,7 +1,7 @@
 use sha2::{Digest, Sha256, Sha512};
 use toolkit_core::{
-    DataType, DataValue, InputSpec, Inputs, InputsExt, Manifest, OptGet, OptionSpec, Options, Tool,
-    ToolError,
+    buffered_run, DataType, DataValue, InputSpec, Inputs, Manifest, OptGet, OptionSpec, Options,
+    StreamSession, Tool, ToolError,
 };
 
 pub struct Hash;
@@ -17,6 +17,7 @@ impl Tool for Hash {
                 .to_vec(),
             inputs: InputSpec::sole(DataType::Bytes),
             output: DataType::Text,
+            streaming: true,
             options: vec![OptionSpec::enumeration(
                 "algorithm",
                 "Algorithm",
@@ -28,14 +29,47 @@ impl Tool for Hash {
     }
 
     fn run(&self, inputs: Inputs, options: &Options) -> Result<DataValue, ToolError> {
-        let DataValue::Bytes(bytes) = inputs.sole() else {
-            unreachable!()
+        let session = self.open_stream(options)?.expect("streaming tool");
+        buffered_run(session, &self.manifest(), inputs)
+    }
+
+    fn open_stream(&self, options: &Options) -> Result<Option<Box<dyn StreamSession>>, ToolError> {
+        let hasher = match options.str_opt("algorithm").unwrap_or("sha256") {
+            "sha512" => Hasher::Sha512(Sha512::new()),
+            _ => Hasher::Sha256(Sha256::new()),
         };
-        let digest = match options.str_opt("algorithm").unwrap_or("sha256") {
-            "sha512" => hex(&Sha512::digest(&bytes)),
-            _ => hex(&Sha256::digest(&bytes)),
+        Ok(Some(Box::new(HashSession { hasher })))
+    }
+}
+
+enum Hasher {
+    Sha256(Sha256),
+    Sha512(Sha512),
+}
+
+struct HashSession {
+    hasher: Hasher,
+}
+
+impl StreamSession for HashSession {
+    fn update(&mut self, _: &str, _: usize, chunk: &[u8]) -> Result<Vec<u8>, ToolError> {
+        match &mut self.hasher {
+            Hasher::Sha256(h) => h.update(chunk),
+            Hasher::Sha512(h) => h.update(chunk),
+        }
+        Ok(Vec::new())
+    }
+
+    fn end_input(&mut self, _: &str, _: usize) -> Result<Vec<u8>, ToolError> {
+        Ok(Vec::new())
+    }
+
+    fn finish(self: Box<Self>) -> Result<Vec<u8>, ToolError> {
+        let digest = match self.hasher {
+            Hasher::Sha256(h) => hex(&h.finalize()),
+            Hasher::Sha512(h) => hex(&h.finalize()),
         };
-        Ok(DataValue::Text(digest))
+        Ok(digest.into_bytes())
     }
 }
 
@@ -72,5 +106,19 @@ mod tests {
         let DataValue::Text(s) = out else { panic!() };
         assert_eq!(s.len(), 128);
         assert!(s.starts_with("cf83e1357eefb8bd")); // SHA-512 of empty input
+    }
+
+    #[test]
+    fn streaming_chunks_equal_one_shot() {
+        let mut session = Hash.open_stream(&Options::new()).unwrap().unwrap();
+        for chunk in [b"a".as_slice(), b"b", b"c"] {
+            assert!(session.update("input", 0, chunk).unwrap().is_empty());
+        }
+        session.end_input("input", 0).unwrap();
+        let digest = session.finish().unwrap();
+        assert_eq!(
+            String::from_utf8(digest).unwrap(),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 }
