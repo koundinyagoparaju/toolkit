@@ -8,6 +8,7 @@ import { typeCompatible } from "./catalog.js";
 import { openToolStream, runTool } from "./wasm.js";
 
 const PREVIEW_CAP = 4096;
+const ENTROPY_LEN = 1024;
 
 /** Resolve which input port an edge feeds, mirroring core's resolve_port. */
 export function edgePort(edge, toTool) {
@@ -74,7 +75,9 @@ export function validateChain(chain, catalog) {
     for (const node of chain.nodes) {
         if (!incoming.get(node.id)) continue;
         const tool = catalog.tools.get(node.tool);
-        const missing = tool.inputs.filter((p) => !wired.has(`${node.id} ${p.name}`));
+        const missing = tool.inputs.filter(
+            (p) => !p.entropy && !wired.has(`${node.id} ${p.name}`),
+        );
         if (missing.length) {
             throw new Error(
                 `node "${node.id}": input port(s) not connected: ${missing.map((p) => p.name).join(", ")}`,
@@ -146,6 +149,16 @@ function buildEngine(chain, catalog) {
                         ended: false,
                     });
                 });
+                if (valueIndex === 0 && port.entropy) {
+                    node.slots.push({
+                        port: port.name,
+                        index: 0,
+                        meta: { type: "bytes" },
+                        buffer: [],
+                        ended: false,
+                        entropy: true,
+                    });
+                }
             } else {
                 node.slots.push({
                     port: port.name,
@@ -153,6 +166,7 @@ function buildEngine(chain, catalog) {
                     meta: { type: "bytes" },
                     buffer: [],
                     ended: false,
+                    entropy: port.entropy,
                 });
             }
         }
@@ -288,10 +302,19 @@ export async function executeChainStreaming(chain, catalog, chunkSource, inputMe
 
     const entrySlots = [];
     nodes.forEach((node, nIdx) =>
-        node.slots.forEach((_, sIdx) => {
-            if (!fed.has(`${nIdx} ${sIdx}`)) entrySlots.push([nIdx, sIdx]);
+        node.slots.forEach((slot, sIdx) => {
+            if (fed.has(`${nIdx} ${sIdx}`)) return;
+            if (slot.entropy) {
+                // Driver-filled randomness: one chunk from the browser
+                // CSPRNG, visible in the ABI request like any other input.
+                queue.push(["chunk", nIdx, sIdx, crypto.getRandomValues(new Uint8Array(ENTROPY_LEN))]);
+                queue.push(["end", nIdx, sIdx]);
+            } else {
+                entrySlots.push([nIdx, sIdx]);
+            }
         }),
     );
+    await process();
     for await (const chunk of chunkSource) {
         for (const [n, s] of entrySlots) queue.push(["chunk", n, s, chunk]);
         await process();

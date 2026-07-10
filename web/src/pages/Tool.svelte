@@ -8,6 +8,8 @@
     let { catalog, name } = $props();
 
     let tool = $derived(catalog.tools.get(name));
+    // Entropy ports are auto-filled from the browser CSPRNG, never shown.
+    let visiblePorts = $derived(tool ? tool.inputs.filter((p) => !p.entropy) : []);
     // port name -> ordered value slots (single ports have exactly one slot;
     // multi ports grow/shrink with Add/Remove).
     let inputs = $state({});
@@ -18,13 +20,15 @@
 
     let ready = $derived(
         tool &&
-            tool.inputs.every((p) => (inputs[p.name] ?? []).length > 0 && inputs[p.name].every(Boolean)),
+            visiblePorts.every(
+                (p) => (inputs[p.name] ?? []).length > 0 && inputs[p.name].every(Boolean),
+            ),
     );
 
     // Reset state when navigating between tools.
     $effect(() => {
         void name;
-        inputs = tool ? Object.fromEntries(tool.inputs.map((p) => [p.name, [null]])) : {};
+        inputs = tool ? Object.fromEntries(visiblePorts.map((p) => [p.name, [null]])) : {};
         options = {};
         output = null;
         error = null;
@@ -34,6 +38,7 @@
     $effect(() => {
         void inputs;
         void options;
+        void name;
         if (!ready) {
             output = null;
             error = null;
@@ -65,9 +70,9 @@
     async function runBuffered() {
         const payload = {};
         for (const p of tool.inputs) {
-            payload[p.name] = await Promise.all(
-                $state.snapshot(inputs[p.name]).map(ensureBytes),
-            );
+            payload[p.name] = p.entropy
+                ? [{ type: "bytes", bytes: crypto.getRandomValues(new Uint8Array(1024)) }]
+                : await Promise.all($state.snapshot(inputs[p.name]).map(ensureBytes));
         }
         return runTool(tool.module, tool.name, options, payload);
     }
@@ -126,10 +131,10 @@
 
     <div class="layout">
         <div class="main">
-            {#each tool.inputs as port (port.name)}
+            {#each visiblePorts as port (port.name)}
                 <section>
                     <h2>
-                        {tool.inputs.length > 1 ? `Input “${port.name}”` : "Input"}
+                        {visiblePorts.length > 1 ? `Input “${port.name}”` : "Input"}
                         <span class="mono dim">({port.type}{port.multi ? "…" : ""})</span>
                     </h2>
                     {#each inputs[port.name] ?? [] as _, i (i)}
@@ -164,11 +169,16 @@
                     <p class="error">{error}</p>
                 {:else if output}
                     <ValueOutput value={output} />
-                {:else}
+                    {#if tool.inputs.some((p) => p.entropy)}
+                        <p><button class="btn secondary" onclick={run}>Generate again</button></p>
+                    {/if}
+                {:else if visiblePorts.length}
                     <p class="dim">
-                        Provide {tool.inputs.length > 1 ? "all inputs" : "input"} above — the tool
+                        Provide {visiblePorts.length > 1 ? "all inputs" : "input"} above — the tool
                         runs automatically.
                     </p>
+                {:else}
+                    <p class="dim">Generating…</p>
                 {/if}
             </section>
         </div>

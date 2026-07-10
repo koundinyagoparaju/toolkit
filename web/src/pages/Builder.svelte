@@ -191,8 +191,13 @@
 
     // ---- geometry ----
 
+    /** Ports rendered in the UI (entropy ports are driver-filled). */
+    function ports(tool) {
+        return tool.inputs.filter((p) => !p.entropy);
+    }
+
     function portY(tool, index) {
-        return (NODE_H * (index + 1)) / (tool.inputs.length + 1);
+        return (NODE_H * (index + 1)) / (ports(tool).length + 1);
     }
 
     function edgePath(edge) {
@@ -200,7 +205,7 @@
         const to = nodes.find((n) => n.id === edge.to);
         const toTool = catalog.tools.get(to.tool);
         const port = edgePort(edge, toTool);
-        const portIndex = toTool.inputs.findIndex((p) => p.name === port.name);
+        const portIndex = ports(toTool).findIndex((p) => p.name === port.name);
         const x1 = from.x + NODE_W;
         const y1 = from.y + NODE_H / 2;
         const x2 = to.x;
@@ -225,7 +230,7 @@
             (e) => e.to === edge.to && edgePort(e, toTool).name === port.name,
         );
         if (siblings.length < 2) return null;
-        const portIndex = toTool.inputs.findIndex((p) => p.name === port.name);
+        const portIndex = ports(toTool).findIndex((p) => p.name === port.name);
         return {
             n: siblings.indexOf(edge) + 1,
             x: to.x - 20,
@@ -350,7 +355,7 @@
                     <text class="sub" x="12" y="40">
                         {tool.inputs.map((p) => p.type + (p.multi ? "…" : "")).join("+")} → {tool.output}
                     </text>
-                    {#each tool.inputs as port, i (port.name)}
+                    {#each ports(tool) as port, i (port.name)}
                         <circle
                             class="port"
                             class:target={pendingFrom && pendingFrom !== node.id}
@@ -364,7 +369,7 @@
                         >
                             <title>{port.name} ({port.type}{port.multi ? ", accepts many" : ""})</title>
                         </circle>
-                        {#if tool.inputs.length > 1 || port.multi}
+                        {#if ports(tool).length > 1 || port.multi}
                             <text class="port-label" x="-11" y={portY(tool, i) + 3}>
                                 {port.name}{port.multi ? "…" : ""}
                             </text>
