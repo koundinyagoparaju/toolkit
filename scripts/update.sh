@@ -12,7 +12,7 @@
 # Verifies the SHA-256 checksum shipped with the release before installing.
 set -euo pipefail
 
-REPO="${TOOLKIT_REPO:-koundinya/toolkit}"
+REPO="${TOOLKIT_REPO:-koundinyagoparaju/toolkit}"
 INSTALL_DIR="${TOOLKIT_INSTALL_DIR:-$HOME/.local/bin}"
 API="https://api.github.com/repos/$REPO/releases/latest"
 
