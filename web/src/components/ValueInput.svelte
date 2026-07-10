@@ -20,12 +20,20 @@
         value = t === "" ? null : textValue(t);
     }
 
+    // Files above this are not read eagerly: streaming tools consume them
+    // chunk-by-chunk via file.stream(), buffered tools read on demand.
+    const EAGER_LIMIT = 32 * 1024 * 1024;
+
     async function fromFile(file) {
         if (!file) return;
-        const bytes = new Uint8Array(await file.arrayBuffer());
         text = "";
-        fileInfo = { name: file.name, size: bytes.length };
-        value = bytesValue(bytes);
+        fileInfo = { name: file.name, size: file.size };
+        if (file.size <= EAGER_LIMIT) {
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            value = { ...bytesValue(bytes), file };
+        } else {
+            value = { type: "bytes", bytes: null, file, size: file.size };
+        }
     }
 
     function clear() {

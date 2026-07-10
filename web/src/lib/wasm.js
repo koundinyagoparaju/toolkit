@@ -97,3 +97,61 @@ export async function packManifests(module) {
     const bytes = takeBuffer(exports, exports.tk_manifests());
     return JSON.parse(decoder.decode(bytes));
 }
+
+// ---- streaming sessions ----
+
+function callFramed(exports, invoke, request) {
+    const ptr = exports.tk_alloc(request.length);
+    new Uint8Array(exports.memory.buffer, ptr, request.length).set(request);
+    const packed = invoke(ptr, request.length);
+    exports.tk_dealloc(ptr, request.length);
+    const { header, payload } = unframe(takeBuffer(exports, packed));
+    if (!header.ok) throw new Error(header.error ?? "tool failed");
+    return { header, payload };
+}
+
+/**
+ * Open a streaming session for a tool (manifest.streaming must be true).
+ * Chunks are tagged with the input port and value index they belong to.
+ * Returns { update, endInput, finish, abort }.
+ */
+export async function openToolStream(module, tool, options) {
+    const exports = await loadPack(module);
+    const { header } = callFramed(
+        exports,
+        (p, l) => exports.tk_stream_open(p, l),
+        frame({ tool, options }, new Uint8Array(0)),
+    );
+    const handle = header.handle;
+    let live = true;
+    return {
+        update(port, index, chunk) {
+            const { payload } = callFramed(
+                exports,
+                (p, l) => exports.tk_stream_update(handle, p, l),
+                frame({ port, index }, chunk),
+            );
+            return payload;
+        },
+        endInput(port, index) {
+            const { payload } = callFramed(
+                exports,
+                (p, l) => exports.tk_stream_end_input(handle, p, l),
+                frame({ port, index }, new Uint8Array(0)),
+            );
+            return payload;
+        },
+        finish() {
+            live = false;
+            const { header: h, payload } = unframe(
+                takeBuffer(exports, exports.tk_stream_finish(handle)),
+            );
+            if (!h.ok) throw new Error(h.error ?? "tool failed");
+            return payload;
+        },
+        abort() {
+            if (live) exports.tk_stream_abort(handle);
+            live = false;
+        },
+    };
+}

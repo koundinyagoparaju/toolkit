@@ -2,7 +2,8 @@
     import OptionsForm from "../components/OptionsForm.svelte";
     import ValueInput from "../components/ValueInput.svelte";
     import ValueOutput from "../components/ValueOutput.svelte";
-    import { runTool } from "../lib/wasm.js";
+    import { concatBytes, ensureBytes, prettySize } from "../lib/catalog.js";
+    import { openToolStream, runTool } from "../lib/wasm.js";
 
     let { catalog, name } = $props();
 
@@ -42,20 +43,69 @@
         return () => clearTimeout(timer);
     });
 
+    let progress = $state(0);
+
     async function run() {
         if (!ready) return;
         running = true;
+        progress = 0;
         try {
-            const payload = Object.fromEntries(
-                tool.inputs.map((p) => [p.name, $state.snapshot(inputs[p.name])]),
-            );
-            output = await runTool(tool.module, tool.name, options, payload);
+            output = tool.streaming
+                ? await runStreaming()
+                : await runBuffered();
             error = null;
         } catch (e) {
             output = null;
             error = e.message;
         } finally {
             running = false;
+        }
+    }
+
+    async function runBuffered() {
+        const payload = {};
+        for (const p of tool.inputs) {
+            payload[p.name] = await Promise.all(
+                $state.snapshot(inputs[p.name]).map(ensureBytes),
+            );
+        }
+        return runTool(tool.module, tool.name, options, payload);
+    }
+
+    /** Sources are consumed sequentially in port order; a File is fed
+     *  chunk-by-chunk via file.stream() and never fully loaded. */
+    async function runStreaming() {
+        const session = await openToolStream(
+            tool.module,
+            tool.name,
+            $state.snapshot(options),
+        );
+        try {
+            const out = [];
+            for (const port of tool.inputs) {
+                const values = $state.snapshot(inputs[port.name]);
+                for (let i = 0; i < values.length; i++) {
+                    const v = values[i];
+                    if (v.file) {
+                        const reader = v.file.stream().getReader();
+                        for (;;) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            out.push(session.update(port.name, i, value));
+                            progress += value.length;
+                        }
+                    } else {
+                        out.push(session.update(port.name, i, v.bytes));
+                        progress += v.bytes.length;
+                    }
+                    out.push(session.endInput(port.name, i));
+                }
+            }
+            out.push(session.finish());
+            return { type: tool.output, bytes: concatBytes(out) };
+        } catch (e) {
+            session.abort();
+            throw e;
         }
     }
 
@@ -105,7 +155,10 @@
             <section>
                 <h2>
                     Output <span class="mono dim">({tool.output})</span>
-                    {#if running}<span class="dim"> · running…</span>{/if}
+                    {#if running}<span class="dim">
+                            · running…{#if tool.streaming && progress}
+                                {prettySize(progress)} processed{/if}</span
+                        >{/if}
                 </h2>
                 {#if error}
                     <p class="error">{error}</p>

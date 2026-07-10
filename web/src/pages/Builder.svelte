@@ -2,8 +2,21 @@
     import OptionsForm from "../components/OptionsForm.svelte";
     import ValueInput from "../components/ValueInput.svelte";
     import ValueOutput from "../components/ValueOutput.svelte";
-    import { chainFromHash, chainToHash, typeCompatible } from "../lib/catalog.js";
-    import { applyParams, edgePort, executeChain, validateChain } from "../lib/dagRun.js";
+    import {
+        chainFromHash,
+        chainToHash,
+        ensureBytes,
+        fileChunks,
+        prettySize,
+        typeCompatible,
+    } from "../lib/catalog.js";
+    import {
+        applyParams,
+        edgePort,
+        executeChain,
+        executeChainStreaming,
+        validateChain,
+    } from "../lib/dagRun.js";
 
     let { catalog, shared = "" } = $props();
 
@@ -148,7 +161,19 @@
         }
         running = true;
         try {
-            results = await executeChain(effective, catalog, input);
+            if (input.file && !input.bytes) {
+                // Large file: push it through chunk-by-chunk. Streaming
+                // intermediates keep a capped preview instead of the value.
+                results = await executeChainStreaming(
+                    effective,
+                    catalog,
+                    fileChunks(input.file),
+                    { type: input.type },
+                    false,
+                );
+            } else {
+                results = await executeChain(effective, catalog, await ensureBytes(input));
+            }
             const failed = [...results.values()].filter((r) => !r.ok).length;
             flash(failed ? "err" : "ok", failed ? `${failed} step(s) failed` : "Chain ran ✓");
         } finally {
@@ -378,9 +403,15 @@
             <button class="btn danger" onclick={() => removeNode(selected.id)}>Remove node</button>
             {#if result}
                 <h2>Step output</h2>
-                {#if result.ok}
+                {#if result.ok && result.value}
                     <ValueOutput value={result.value} />
-                {:else}
+                {:else if result.ok && result.streamed}
+                    <p class="dim">
+                        Streamed {prettySize(result.streamed.total)} through this
+                        step{result.streamed.truncated ? " — preview:" : ":"}
+                    </p>
+                    <ValueOutput value={result.streamed.preview} />
+                {:else if !result.ok}
                     <p class="error">{result.error}</p>
                 {/if}
             {/if}

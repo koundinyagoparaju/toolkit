@@ -1,10 +1,13 @@
-// Client-side chain execution: walk the DAG in topological order, calling
-// each node's pack. Structure/type validation mirrors the Rust executor
-// (crates/core/src/chain.rs); the type rules come from the generated
-// coercion matrix, so the two sides cannot drift apart.
+// Client-side chain execution: a push-based dataflow mirroring the Rust
+// engine (crates/core/src/chain.rs). Streaming tools transform chunk by
+// chunk through wasm sessions; non-streaming tools buffer at their inputs
+// ("reservoirs") and run once complete. Buffered execution is the same
+// engine fed a single chunk, so the two modes cannot diverge.
 
 import { typeCompatible } from "./catalog.js";
-import { runTool } from "./wasm.js";
+import { openToolStream, runTool } from "./wasm.js";
+
+const PREVIEW_CAP = 4096;
 
 /** Resolve which input port an edge feeds, mirroring core's resolve_port. */
 export function edgePort(edge, toTool) {
@@ -95,52 +98,237 @@ export function validateChain(chain, catalog) {
     return order;
 }
 
+function concat(chunks) {
+    const total = chunks.reduce((n, c) => n + c.length, 0);
+    const out = new Uint8Array(total);
+    let offset = 0;
+    for (const c of chunks) {
+        out.set(c, offset);
+        offset += c.length;
+    }
+    return out;
+}
+
+/** Build the engine's wiring: per-node slots (port, index, meta) grouped by
+ *  port in edge-declaration order, plus each node's outgoing slot list. */
+function buildEngine(chain, catalog) {
+    const idx = new Map(chain.nodes.map((n, i) => [n.id, i]));
+    const nodes = chain.nodes.map((n) => {
+        const tool = catalog.tools.get(n.tool);
+        return {
+            id: n.id,
+            tool,
+            options: n.options ?? {},
+            slots: [],
+            outgoing: [],
+            isSink: !(chain.edges ?? []).some((e) => e.from === n.id),
+            session: null,
+            finished: false,
+            emitted: 0,
+            retained: [],
+            preview: [],
+        };
+    });
+    const edgeSlot = new Map();
+    for (const node of nodes) {
+        const wired = (chain.edges ?? []).some((e) => e.to === node.id);
+        for (const port of node.tool.inputs) {
+            if (wired) {
+                let valueIndex = 0;
+                (chain.edges ?? []).forEach((edge, eIdx) => {
+                    if (edge.to !== node.id || edgePort(edge, node.tool).name !== port.name) return;
+                    edgeSlot.set(eIdx, [idx.get(node.id), node.slots.length]);
+                    node.slots.push({
+                        port: port.name,
+                        index: valueIndex++,
+                        meta: { type: "bytes" },
+                        buffer: [],
+                        ended: false,
+                    });
+                });
+            } else {
+                node.slots.push({
+                    port: port.name,
+                    index: 0,
+                    meta: { type: "bytes" },
+                    buffer: [],
+                    ended: false,
+                });
+            }
+        }
+    }
+    (chain.edges ?? []).forEach((edge, eIdx) => {
+        nodes[idx.get(edge.from)].outgoing.push(edgeSlot.get(eIdx));
+    });
+    return nodes;
+}
+
 /**
- * Execute a chain. Returns per-node results:
- * Map<nodeId, {ok: true, value} | {ok: false, error}>.
- * Downstream nodes of a failed node are skipped (absent from the map).
+ * Execute a chain over a source of chunks (an async iterable of
+ * Uint8Array). Returns Map<nodeId, result>:
+ * - reservoir nodes and sinks: {ok: true, value}
+ * - streaming intermediates (unless retain): {ok: true, streamed: {total, preview}}
+ * - failures: {ok: false, error} (downstream nodes are absent)
  */
-export async function executeChain(chain, catalog, input) {
-    const order = validateChain(chain, catalog);
+export async function executeChainStreaming(chain, catalog, chunkSource, inputMeta, retain = false) {
+    validateChain(chain, catalog);
+    const nodes = buildEngine(chain, catalog);
     const results = new Map();
-    const hasIncoming = new Set((chain.edges ?? []).map((e) => e.to));
 
-    for (const id of order) {
-        const node = chain.nodes.find((n) => n.id === id);
-        const tool = catalog.tools.get(node.tool);
+    // Static metas: chain input for entry slots, declared output type for
+    // slots fed by streaming sources; reservoir sources overwrite at
+    // delivery time (e.g. the actual image format).
+    const fed = new Set(nodes.flatMap((n) => n.outgoing.map(([t, s]) => `${t} ${s}`)));
+    nodes.forEach((node, nIdx) => {
+        node.slots.forEach((slot, sIdx) => {
+            if (!fed.has(`${nIdx} ${sIdx}`)) slot.meta = { ...inputMeta };
+        });
+        if (node.tool.streaming) {
+            for (const [t, s] of node.outgoing) {
+                nodes[t].slots[s].meta = { type: node.tool.output };
+            }
+        }
+    });
 
-        // Pull inputs from predecessor results, scanning edges in
-        // declaration order — which defines value order on multi ports
-        // (mirrors the Rust executor).
+    // Open sessions for streaming nodes.
+    for (const node of nodes) {
+        if (node.tool.streaming) {
+            node.session = await openToolStream(node.tool.module, node.tool.name, node.options);
+        }
+    }
+
+    const failed = new Set();
+    const queue = [];
+
+    const emit = (nIdx, bytes) => {
+        const node = nodes[nIdx];
+        if (!bytes.length) return;
+        node.emitted += bytes.length;
+        if (retain || node.isSink) {
+            node.retained.push(bytes);
+        } else if (node.preview.reduce((n, c) => n + c.length, 0) < PREVIEW_CAP) {
+            node.preview.push(bytes.slice(0, PREVIEW_CAP));
+        }
+        for (const [t, s] of node.outgoing) queue.push(["chunk", t, s, bytes]);
+    };
+
+    const markFailed = (nIdx, message) => {
+        results.set(nodes[nIdx].id, { ok: false, error: message });
+        failed.add(nIdx);
+        nodes[nIdx].session?.abort();
+        nodes[nIdx].finished = true;
+    };
+
+    const finishNode = (nIdx) => {
+        nodes[nIdx].finished = true;
+        for (const [t, s] of nodes[nIdx].outgoing) queue.push(["end", t, s]);
+    };
+
+    const runReservoir = async (nIdx) => {
+        const node = nodes[nIdx];
         const inputs = {};
-        let ready = true;
-        for (const port of tool.inputs) {
-            let values;
-            if (hasIncoming.has(id)) {
-                values = [];
-                for (const edge of (chain.edges ?? []).filter((e) => e.to === id)) {
-                    if (edgePort(edge, tool).name !== port.name) continue;
-                    const upstream = results.get(edge.from);
-                    if (!upstream?.ok) {
-                        ready = false; // upstream failed or was skipped
-                        break;
+        for (const slot of node.slots) {
+            const value = { type: slot.meta.type, bytes: concat(slot.buffer) };
+            if (slot.meta.format) value.format = slot.meta.format;
+            slot.buffer = [];
+            (inputs[slot.port] ??= []).push(value);
+        }
+        let output;
+        try {
+            output = await runTool(node.tool.module, node.tool.name, node.options, inputs);
+        } catch (e) {
+            markFailed(nIdx, e.message);
+            return;
+        }
+        results.set(node.id, { ok: true, value: output });
+        node.emitted = output.bytes.length;
+        for (const [t, s] of node.outgoing) {
+            nodes[t].slots[s].meta = { type: output.type, ...(output.format ? { format: output.format } : {}) };
+            queue.push(["chunk", t, s, output.bytes]);
+        }
+        if (node.isSink) node.retained = [];
+        finishNode(nIdx);
+    };
+
+    const process = async () => {
+        while (queue.length) {
+            const [kind, nIdx, sIdx, bytes] = queue.shift();
+            const node = nodes[nIdx];
+            if (failed.has(nIdx)) continue;
+            const slot = node.slots[sIdx];
+            if (kind === "chunk") {
+                if (node.session) {
+                    try {
+                        emit(nIdx, node.session.update(slot.port, slot.index, bytes));
+                    } catch (e) {
+                        markFailed(nIdx, e.message);
                     }
-                    values.push(upstream.value);
+                } else {
+                    slot.buffer.push(bytes);
                 }
             } else {
-                values = [input];
+                slot.ended = true;
+                const allEnded = node.slots.every((s) => s.ended);
+                if (node.session) {
+                    try {
+                        emit(nIdx, node.session.endInput(slot.port, slot.index));
+                        if (allEnded && !node.finished) {
+                            emit(nIdx, node.session.finish());
+                            finishNode(nIdx);
+                        }
+                    } catch (e) {
+                        markFailed(nIdx, e.message);
+                    }
+                } else if (allEnded && !node.finished) {
+                    await runReservoir(nIdx);
+                }
             }
-            if (!ready) break;
-            inputs[port.name] = values;
         }
-        if (!ready) continue;
+    };
 
-        try {
-            const value = await runTool(tool.module, node.tool, node.options ?? {}, inputs);
-            results.set(id, { ok: true, value });
-        } catch (error) {
-            results.set(id, { ok: false, error: error.message });
+    const entrySlots = [];
+    nodes.forEach((node, nIdx) =>
+        node.slots.forEach((_, sIdx) => {
+            if (!fed.has(`${nIdx} ${sIdx}`)) entrySlots.push([nIdx, sIdx]);
+        }),
+    );
+    for await (const chunk of chunkSource) {
+        for (const [n, s] of entrySlots) queue.push(["chunk", n, s, chunk]);
+        await process();
+    }
+    for (const [n, s] of entrySlots) queue.push(["end", n, s]);
+    await process();
+
+    // Assemble results for streaming nodes.
+    for (const node of nodes) {
+        if (!node.session || results.has(node.id)) continue;
+        if (!node.finished) continue; // upstream failed; leave absent
+        if (retain || node.isSink) {
+            const value = { type: node.tool.output, bytes: concat(node.retained) };
+            results.set(node.id, { ok: true, value });
+        } else {
+            const previewBytes = concat(node.preview).slice(0, PREVIEW_CAP);
+            results.set(node.id, {
+                ok: true,
+                streamed: {
+                    total: node.emitted,
+                    preview: { type: node.tool.output, bytes: previewBytes },
+                    truncated: node.emitted > previewBytes.length,
+                },
+            });
         }
     }
     return results;
+}
+
+/**
+ * Execute a chain on a complete in-memory value — the same push engine fed
+ * a single chunk, with every node's output retained (per-node previews).
+ */
+export async function executeChain(chain, catalog, input) {
+    const meta = { type: input.type, ...(input.format ? { format: input.format } : {}) };
+    async function* once() {
+        yield input.bytes;
+    }
+    return executeChainStreaming(chain, catalog, once(), meta, true);
 }

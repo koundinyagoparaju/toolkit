@@ -78,3 +78,31 @@ export function chainFromHash(hash) {
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
     return JSON.parse(decoder.decode(bytes));
 }
+
+/** Materialize a value's bytes (large files defer reading until needed). */
+export async function ensureBytes(value) {
+    if (value.bytes) return value;
+    const bytes = new Uint8Array(await value.file.arrayBuffer());
+    return { ...value, bytes };
+}
+
+/** Stream a File as an async iterable of Uint8Array chunks. */
+export async function* fileChunks(file) {
+    const reader = file.stream().getReader();
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        yield value;
+    }
+}
+
+export function concatBytes(chunks) {
+    const total = chunks.reduce((n, c) => n + c.length, 0);
+    const out = new Uint8Array(total);
+    let offset = 0;
+    for (const c of chunks) {
+        out.set(c, offset);
+        offset += c.length;
+    }
+    return out;
+}
