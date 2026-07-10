@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "name": "SAML redirect inspector",
+    "description": "Decode a SAMLRequest/SAMLResponse from a redirect URL: base64 -> raw inflate -> pretty XML. The kind of token you should never paste into a website.",
+    "nodes": [
+        { "id": "b64", "tool": "base64-decode", "options": {} },
+        { "id": "inflate", "tool": "gunzip", "options": { "format": "raw" } },
+        { "id": "xml", "tool": "xml-format", "options": { "indent": 2 } }
+    ],
+    "edges": [
+        { "from": "b64", "to": "inflate" },
+        { "from": "inflate", "to": "xml" }
+    ]
+}

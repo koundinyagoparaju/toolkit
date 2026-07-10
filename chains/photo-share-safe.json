@@ -1,0 +1,36 @@
+{
+    "version": 1,
+    "name": "Photo: share safely",
+    "description": "Prepare a photo for sharing: strip ALL metadata (EXIF, GPS location), shrink it, and re-encode as a compact JPEG.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The photo is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 16,
+            "max": 20000,
+            "default": 2048,
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+            "name": "quality",
+            "label": "JPEG quality",
+            "description": "",
+            "kind": "integer",
+            "min": 1,
+            "max": 100,
+            "default": 85,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "clean", "tool": "image-clean", "options": {} },
+        { "id": "resize", "tool": "image-resize", "options": { "mode": "fit" } },
+        { "id": "jpeg", "tool": "image-convert", "options": { "format": "jpeg" } }
+    ],
+    "edges": [
+        { "from": "clean", "to": "resize" },
+        { "from": "resize", "to": "jpeg" }
+    ]
+}

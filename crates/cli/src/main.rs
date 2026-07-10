@@ -93,6 +93,8 @@ fn registry() -> Registry {
     Registry::merge([
         toolkit_pack_text::registry(),
         toolkit_pack_image::registry(),
+        toolkit_pack_crypto::registry(),
+        toolkit_pack_data::registry(),
     ])
 }
 
@@ -291,6 +293,13 @@ fn read_tool_inputs(
 ) -> Result<toolkit_core::Inputs, String> {
     let mut inputs = toolkit_core::Inputs::new();
     if let Some(sole) = manifest.sole_input() {
+        if sole.entropy && specs.is_empty() {
+            inputs.insert(
+                sole.name.clone(),
+                vec![DataValue::Bytes(os_entropy(toolkit_core::ENTROPY_LEN)?)],
+            );
+            return Ok(inputs);
+        }
         // Values may be given bare (-i path, repeatable if the port is
         // multi) or as port=path; stdin when none are given.
         let mut values = Vec::new();
@@ -336,6 +345,13 @@ fn read_tool_inputs(
     }
     for port in &manifest.inputs {
         if !inputs.contains_key(&port.name) {
+            if port.entropy {
+                inputs.insert(
+                    port.name.clone(),
+                    vec![DataValue::Bytes(os_entropy(toolkit_core::ENTROPY_LEN)?)],
+                );
+                continue;
+            }
             return Err(format!(
                 "missing -i {}=<path> for tool \"{}\"",
                 port.name, manifest.name
@@ -512,16 +528,23 @@ fn run_chain_streaming(
         let mut writers: std::collections::HashMap<String, (PathBuf, std::fs::File)> =
             Default::default();
         chain
-            .execute_streaming(registry, &meta, &mut reader, false, &mut |id, bytes| {
-                if !writers.contains_key(id) {
-                    let ext = sink_extension(sink_outputs[id], bytes);
-                    let path = dir.join(format!("{id}.{ext}"));
-                    let file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
-                    writers.insert(id.to_string(), (path, file));
-                }
-                let (_, file) = writers.get_mut(id).expect("created above");
-                file.write_all(bytes).map_err(|e| e.to_string())
-            })
+            .execute_streaming(
+                registry,
+                &meta,
+                &mut reader,
+                false,
+                &mut os_entropy,
+                &mut |id, bytes| {
+                    if !writers.contains_key(id) {
+                        let ext = sink_extension(sink_outputs[id], bytes);
+                        let path = dir.join(format!("{id}.{ext}"));
+                        let file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
+                        writers.insert(id.to_string(), (path, file));
+                    }
+                    let (_, file) = writers.get_mut(id).expect("created above");
+                    file.write_all(bytes).map_err(|e| e.to_string())
+                },
+            )
             .map_err(|e| e.to_string())?;
         for (_, (path, _)) in writers {
             eprintln!("wrote {}", path.display());
@@ -536,9 +559,14 @@ fn run_chain_streaming(
             None => Box::new(std::io::stdout().lock()),
         };
         chain
-            .execute_streaming(registry, &meta, &mut reader, false, &mut |_, bytes| {
-                writer.write_all(bytes).map_err(|e| e.to_string())
-            })
+            .execute_streaming(
+                registry,
+                &meta,
+                &mut reader,
+                false,
+                &mut os_entropy,
+                &mut |_, bytes| writer.write_all(bytes).map_err(|e| e.to_string()),
+            )
             .map_err(|e| e.to_string())?;
         writer.flush().map_err(|e| e.to_string())
     } else {
@@ -637,6 +665,13 @@ fn parse_set_options(pairs: &[String]) -> Result<Options, String> {
         options.insert(key.to_string(), value);
     }
     Ok(options)
+}
+
+/// Driver-side randomness for entropy ports, from the OS RNG.
+fn os_entropy(n: usize) -> Result<Vec<u8>, String> {
+    let mut bytes = vec![0u8; n];
+    getrandom::fill(&mut bytes).map_err(|e| format!("OS entropy unavailable: {e}"))?;
+    Ok(bytes)
 }
 
 /// Input always enters as Bytes; the coercion matrix turns it into whatever

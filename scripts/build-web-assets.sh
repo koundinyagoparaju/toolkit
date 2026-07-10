@@ -6,11 +6,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-cargo build --release --target wasm32-unknown-unknown -p toolkit-pack-text -p toolkit-pack-image
+cargo build --release --target wasm32-unknown-unknown -p toolkit-pack-text -p toolkit-pack-image -p toolkit-pack-crypto -p toolkit-pack-data
 
 mkdir -p web/public/wasm web/public/chains
 cp target/wasm32-unknown-unknown/release/toolkit_pack_text.wasm web/public/wasm/text.wasm
 cp target/wasm32-unknown-unknown/release/toolkit_pack_image.wasm web/public/wasm/image.wasm
+cp target/wasm32-unknown-unknown/release/toolkit_pack_crypto.wasm web/public/wasm/crypto.wasm
+cp target/wasm32-unknown-unknown/release/toolkit_pack_data.wasm web/public/wasm/data.wasm
 
 cargo run --quiet --release -p toolkit-cli -- manifests > web/public/wasm/manifests.json
 

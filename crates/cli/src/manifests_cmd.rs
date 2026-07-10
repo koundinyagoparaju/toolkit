@@ -30,6 +30,16 @@ pub fn catalog_json() -> String {
             "module": "image.wasm",
             "tools": toolkit_pack_image::registry().manifests(),
         },
+        {
+            "name": "crypto",
+            "module": "crypto.wasm",
+            "tools": toolkit_pack_crypto::registry().manifests(),
+        },
+        {
+            "name": "data",
+            "module": "data.wasm",
+            "tools": toolkit_pack_data::registry().manifests(),
+        },
     ]);
 
     serde_json::to_string_pretty(&serde_json::json!({
