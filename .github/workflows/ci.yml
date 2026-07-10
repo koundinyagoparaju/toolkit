@@ -15,8 +15,8 @@ jobs:
     name: Test, lint, format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
@@ -31,8 +31,8 @@ jobs:
     name: Wasm packs + web build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
@@ -45,15 +45,45 @@ jobs:
         working-directory: web
       - run: npm run build
         working-directory: web
+      - name: ABI protocol tests (wasm via Node)
+        run: node tests/abi.test.mjs
+      - name: Browser end-to-end tests (headless Chrome)
+        run: |
+          (cd web && npm run preview -- --port 4173 --strictPort &) 
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/ >/dev/null && break; sleep 1; done
+          node tests/browser.test.mjs
 
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cargo
           key: audit-${{ runner.os }}-cargo-audit
       - run: cargo install cargo-audit --locked
       - run: cargo audit
+
+  repro:
+    name: Reproducible build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Build twice in different directories, compare hashes
+        run: |
+          cp -r "$PWD" /tmp/build-a
+          cp -r "$PWD" /tmp/build-b
+          for d in /tmp/build-a /tmp/build-b; do
+            cd "$d"
+            export RUSTFLAGS="--remap-path-prefix=$PWD=/build --remap-path-prefix=$HOME=/remapped-home"
+            cargo build --release --locked -p toolkit-cli
+            cargo build --release --locked --target wasm32-unknown-unknown -p toolkit-pack-text
+          done
+          a_cli=$(sha256sum /tmp/build-a/target/release/toolkit | cut -d' ' -f1)
+          b_cli=$(sha256sum /tmp/build-b/target/release/toolkit | cut -d' ' -f1)
+          a_wasm=$(sha256sum /tmp/build-a/target/wasm32-unknown-unknown/release/toolkit_pack_text.wasm | cut -d' ' -f1)
+          b_wasm=$(sha256sum /tmp/build-b/target/wasm32-unknown-unknown/release/toolkit_pack_text.wasm | cut -d' ' -f1)
+          echo "cli:  $a_cli / $b_cli"
+          echo "wasm: $a_wasm / $b_wasm"
+          test "$a_cli" = "$b_cli" && test "$a_wasm" = "$b_wasm"
