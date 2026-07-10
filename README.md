@@ -31,6 +31,19 @@ cd web && npm install && npm run dev
 
 ### CLI
 
+One-line install (Linux and macOS; downloads the latest release and
+verifies its SHA-256 checksum):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh
+# or:  wget -qO- https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh
+```
+
+Piping a script into your shell means trusting it — and this project's
+whole point is that you shouldn't have to. The script is ~90 auditable
+lines; download and read it first, or build from the audited source
+instead:
+
 ```sh
 cargo build --release -p toolkit-cli   # -> target/release/toolkit
 
@@ -52,9 +65,9 @@ toolkit chain --file my-chain.json -i input.txt
 
 Drop your own chain files into `~/.config/toolkit/chains/` and run them by
 name — chains are pure data, so this needs no code trust. To update the CLI,
-run `scripts/update.sh` (checksum-verified GitHub release download) or your
-package manager; the `toolkit` binary itself deliberately contains no
-network code, so it never updates itself.
+re-run the install one-liner (it detects your version) or use your package
+manager; the `toolkit` binary itself deliberately contains no network
+code, so it never updates itself.
 
 ## How it's put together
 
