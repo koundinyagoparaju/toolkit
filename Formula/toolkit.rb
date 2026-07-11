@@ -4,26 +4,26 @@
 class Toolkit < Formula
   desc "Everyday data tools that run entirely on your device"
   homepage "https://koundinyagoparaju.github.io/toolkit/"
-  version "0.8.0"
+  version "0.9.0"
   license "Apache-2.0"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.8.0/toolkit-macos-aarch64.tar.gz"
-      sha256 "79fcad0b27a6a281a9b3e551905380509ba22bc593ccf1c76c32b5a062c28614"
+      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.9.0/toolkit-macos-aarch64.tar.gz"
+      sha256 "ab50693c88159181cfb93fcc99f31c58a711d568cf7e14fdc2c641916aadf55d"
     else
-      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.8.0/toolkit-macos-x86_64.tar.gz"
-      sha256 "114fb032c717bef925ac6c4f385ce9a34e4f20633b9267a8a61968078aa90201"
+      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.9.0/toolkit-macos-x86_64.tar.gz"
+      sha256 "5a1b56c816ed45ff8ab56313e8078ff77b387b0e65a6e99434129c9ce9e5c6e0"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.8.0/toolkit-linux-aarch64.tar.gz"
-      sha256 "88013ef6e9c2d0bc3e9ba1a9fe543b2b35fcec5578022664340a4f3220fe9dff"
+      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.9.0/toolkit-linux-aarch64.tar.gz"
+      sha256 "80b1e50cbd527eb8cab73135203aa493cee4a066feb83f794387968d002aa2f3"
     else
-      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.8.0/toolkit-linux-x86_64.tar.gz"
-      sha256 "b31568004bedfa23999d08198a750f2780bb2c25ba05b7fb877277f633a30c31"
+      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.9.0/toolkit-linux-x86_64.tar.gz"
+      sha256 "556f34d1b399f100b0f48db90ce8f8d79c6279546a61e073d0bfc3c48e8268c2"
     end
   end
 
@@ -32,6 +32,6 @@ class Toolkit < Formula
   end
 
   test do
-    assert_equal "aGk=", shell_output("#{bin}/toolkit run base64-encode hi").strip
+    assert_equal "aGk=", shell_output("#{bin}/toolkit run-tool base64-encode hi").strip
   end
 end
