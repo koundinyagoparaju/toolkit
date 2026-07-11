@@ -25,9 +25,14 @@ enum Command {
     List,
     /// Show a tool's description and options
     Info { tool: String },
-    /// Run a single tool (input from stdin or --input, output to stdout or --output)
+    /// Run a single tool (input as an argument, from stdin, or --input)
     Run {
         tool: String,
+        /// The input value itself, e.g. `toolkit run base64-encode hello`.
+        /// Only for tools with one input port (repeatable for
+        /// variable-arity ports); use -i for files or named ports.
+        #[arg(value_name = "VALUE", conflicts_with = "input")]
+        value: Vec<String>,
         /// Input file. For multi-input tools, repeat as -i port=path
         /// (e.g. -i first=a.png -i second=b.png). Single-input tools
         /// default to stdin.
@@ -184,6 +189,7 @@ fn run(cli: Cli) -> Result<(), String> {
         }
         Command::Run {
             tool,
+            value,
             input,
             output,
             set,
@@ -193,6 +199,13 @@ fn run(cli: Cli) -> Result<(), String> {
                 .ok_or_else(|| format!("unknown tool \"{tool}\" (see `toolkit list`)"))?;
             let options = parse_set_options(&set)?;
             let manifest = t.manifest();
+            if !value.is_empty() {
+                // Values given on the command line are small by nature, so
+                // the buffered path is fine even for streaming tools.
+                let inputs = positional_inputs(&manifest, value)?;
+                let result = toolkit_core::run_tool(t, inputs, &options).map_err(|e| e.message)?;
+                return write_single_output(result, output.as_deref());
+            }
             if manifest.streaming {
                 // O(1) memory: sources are read in chunks, sequentially in
                 // port order, and output is written as it is emitted.
@@ -285,6 +298,56 @@ fn run(cli: Cli) -> Result<(), String> {
 
 /// Build the input set for `run`: `-i path`/stdin for single-port tools,
 /// `-i port=path` (repeated) for multi-port tools.
+/// Positional VALUEs -> the tool's single non-entropy port, as text.
+fn positional_inputs(
+    manifest: &toolkit_core::Manifest,
+    values: Vec<String>,
+) -> Result<toolkit_core::Inputs, String> {
+    let ports: Vec<&toolkit_core::InputSpec> =
+        manifest.inputs.iter().filter(|p| !p.entropy).collect();
+    let port = match ports.as_slice() {
+        [one] => one,
+        [] => {
+            return Err(format!(
+                "tool \"{}\" takes no input; drop the argument",
+                manifest.name
+            ))
+        }
+        many => {
+            return Err(format!(
+                "tool \"{}\" has {} input ports; use -i port=path (ports: {})",
+                manifest.name,
+                many.len(),
+                many.iter()
+                    .map(|p| p.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ))
+        }
+    };
+    if !port.multi && values.len() > 1 {
+        return Err(format!(
+            "tool \"{}\" takes a single input, got {} arguments — quote the value?",
+            manifest.name,
+            values.len()
+        ));
+    }
+    let mut inputs = toolkit_core::Inputs::new();
+    inputs.insert(
+        port.name.clone(),
+        values.into_iter().map(DataValue::Text).collect(),
+    );
+    for p in &manifest.inputs {
+        if p.entropy {
+            inputs.insert(
+                p.name.clone(),
+                vec![DataValue::Bytes(os_entropy(toolkit_core::ENTROPY_LEN)?)],
+            );
+        }
+    }
+    Ok(inputs)
+}
+
 fn read_tool_inputs(
     manifest: &toolkit_core::Manifest,
     specs: &[String],

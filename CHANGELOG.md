@@ -6,6 +6,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `toolkit run <tool> <value>`: single-input tools take the input directly
+  as an argument (`toolkit run base64-encode hello`), repeatable for
+  variable-arity ports; stdin and `-i` unchanged.
+
 ## [0.2.0] - 2026-07-11
 
 ### Added

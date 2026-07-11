@@ -69,6 +69,7 @@
 <section>
     <h2>A taste</h2>
     <pre>toolkit list                                  # every tool, with its types
+toolkit run base64-encode 'hello world'       # input as an argument, or stdin
 echo -n "$JWT" | toolkit chain 'jwt-decode | json-format'
 toolkit run image-resize --set width=800 -i photo.png -o small.png
 toolkit chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg

@@ -64,7 +64,10 @@
             .join("");
         if (!visiblePorts.length) return `toolkit run ${tool.name}${sets}`;
         if (visiblePorts.length === 1 && !visiblePorts[0].multi) {
-            return `toolkit run ${tool.name}${sets} -i <file>`;
+            const port = visiblePorts[0];
+            return port.type === "text" || port.type === "json"
+                ? `toolkit run ${tool.name}${sets} '<${port.type}>'`
+                : `toolkit run ${tool.name}${sets} -i <file>`;
         }
         const ins = visiblePorts
             .map((p) => (p.multi ? " -i <file> -i <file>" : ` -i ${p.name}=<file>`))

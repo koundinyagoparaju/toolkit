@@ -87,7 +87,8 @@ instead:
 cargo build --release -p toolkit-cli   # -> target/release/toolkit
 
 toolkit list                                      # what's available
-echo -n 'hello' | toolkit run base64-encode       # single tool
+toolkit run base64-encode 'hello world'           # input as an argument…
+echo -n 'hello' | toolkit run base64-encode       # …or from stdin
 toolkit run image-resize --set width=800 -i in.png -o out.png
 # multi-input tools take one file per named port:
 toolkit run image-merge -i first=a.png -i second=b.png --set mode=vertical -o out.png
