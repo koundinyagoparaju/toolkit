@@ -7,12 +7,14 @@ mod base32_tools;
 mod base58_tools;
 mod generators;
 mod hmac_tool;
+mod jwt_verify;
 
 use toolkit_core::Registry;
 
 pub fn registry() -> Registry {
     Registry::new(vec![
         Box::new(hmac_tool::Hmac),
+        Box::new(jwt_verify::JwtVerify),
         Box::new(generators::Uuid),
         Box::new(generators::PasswordGen),
         Box::new(generators::RandomBytes),

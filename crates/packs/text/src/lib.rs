@@ -20,6 +20,7 @@ mod json_pick;
 mod jwt;
 mod lorem;
 mod number_base;
+mod slugify;
 mod sort_lines;
 mod unicode_escape;
 mod url;
@@ -53,6 +54,7 @@ pub fn registry() -> Registry {
         Box::new(binary::TextToBinary),
         Box::new(binary::BinaryToText),
         Box::new(lorem::LoremIpsum),
+        Box::new(slugify::Slugify),
     ])
 }
 

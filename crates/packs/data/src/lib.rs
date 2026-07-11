@@ -6,6 +6,7 @@ mod csv_tools;
 mod filetype;
 mod http_status;
 mod json_diff;
+mod json_schema_infer;
 mod markdown;
 mod regex_tool;
 mod sql_format;
@@ -33,6 +34,7 @@ pub fn registry() -> Registry {
         Box::new(color::ColorConvert),
         Box::new(filetype::FileType),
         Box::new(json_diff::JsonDiff),
+        Box::new(json_schema_infer::JsonSchemaInfer),
         Box::new(http_status::HttpStatus),
         Box::new(sql_format::SqlFormat),
     ])
