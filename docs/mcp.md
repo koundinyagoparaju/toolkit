@@ -68,8 +68,20 @@ An inline definition works too:
   "input": "aGVsbG8="}}
 ```
 
-Single-input chains only for now; the output is the final step's result
-(labelled per sink when a chain has several).
+A chain with declared `inputs` (e.g. a diff's `old` and `new`) takes an
+object of named values instead of a string:
+
+```json
+{"name": "run-chain", "arguments": {
+  "chain": {"version": 1,
+            "inputs": [{"name": "old", "binds": [{"node": "d", "port": "old"}]},
+                       {"name": "new", "binds": [{"node": "d", "port": "new"}]}],
+            "nodes": [{"id": "d", "tool": "text-diff"}], "edges": []},
+  "input": {"old": "line one\nline two\n", "new": "line one\nline 2\n"}}}
+```
+
+The output is the final step's result. A chain with several final steps
+(sinks) returns one block per sink, each tagged with its node id.
 
 Output comes back as text: strings and JSON directly, byte output as text
 when it's valid UTF-8 (else base64). A tool error is returned as a normal

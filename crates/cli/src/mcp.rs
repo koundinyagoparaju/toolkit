@@ -88,7 +88,7 @@ fn tool_list(registry: &Registry) -> Vec<Value> {
 fn run_chain_tool() -> Value {
     json!({
         "name": RUN_CHAIN,
-        "description": "Run a toolchain in one call. `chain` is either a pipe expression like \"base64-decode | json-format indent=2\" or a chain-definition object ({version, nodes, edges}); `input` is the value fed to the chain. Returns the output(s) of the chain's final step(s).",
+        "description": "Run a toolchain in one call. `chain` is either a pipe expression like \"base64-decode | json-format indent=2\" or a chain-definition object ({version, nodes, edges}, optionally with declared `inputs`); `input` is a string for a single-input chain, or an object of named inputs ({old: ..., new: ...}) for a chain with declared inputs. Returns the output(s) of the chain's final step(s).",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -96,8 +96,7 @@ fn run_chain_tool() -> Value {
                     "description": "a pipe expression string, or a chain-definition object",
                 },
                 "input": {
-                    "type": "string",
-                    "description": "text fed to the chain's entry",
+                    "description": "text for a single-input chain, or an object {name: text} for a chain with declared inputs",
                 },
             },
             "required": ["chain", "input"],
@@ -225,23 +224,26 @@ fn run_chain_call(registry: &Registry, args: &Value) -> Result<Vec<Value>, Strin
             .map_err(|e| format!("invalid chain: {e}"))?,
         _ => return Err("\"chain\" must be a pipe expression or a chain object".into()),
     };
-    let input = args
-        .get("input")
-        .and_then(Value::as_str)
-        .ok_or("missing string \"input\"")?;
 
-    // Ad-hoc chains take a single input; declared multi-input chains would
-    // need a named-value map (not exposed here yet).
-    let name = chain.sole_input_name().map_err(|e| e.to_string())?;
-    let mut reader = std::io::Cursor::new(input.as_bytes().to_vec());
-    let mut sources = [NamedSource {
-        name,
-        meta: ValueMeta {
-            data_type: toolkit_core::DataType::Bytes,
-            format: String::new(),
-        },
-        reader: &mut reader,
-    }];
+    // (name, bytes) per chain input. A string feeds the sole input; an
+    // object supplies a value per declared input by name.
+    let payloads = chain_input_payloads(&chain, args.get("input"))?;
+    let mut cursors: Vec<(String, std::io::Cursor<Vec<u8>>)> = payloads
+        .into_iter()
+        .map(|(name, bytes)| (name, std::io::Cursor::new(bytes)))
+        .collect();
+    let mut sources: Vec<NamedSource<'_>> = cursors
+        .iter_mut()
+        .map(|(name, reader)| NamedSource {
+            name: name.clone(),
+            meta: ValueMeta {
+                data_type: toolkit_core::DataType::Bytes,
+                format: String::new(),
+            },
+            reader,
+        })
+        .collect();
+
     let mut entropy = |n: usize| crate::os_entropy(n);
     let outcome = chain
         .execute_streaming_multi(registry, &mut sources, true, &mut entropy, &mut |_, _| {
@@ -264,6 +266,40 @@ fn run_chain_call(registry: &Registry, args: &Value) -> Result<Vec<Value>, Strin
                 c
             })
             .collect())
+    }
+}
+
+fn chain_input_payloads(
+    chain: &Chain,
+    input: Option<&Value>,
+) -> Result<Vec<(String, Vec<u8>)>, String> {
+    let declared: Vec<&str> = chain.inputs.iter().map(|i| i.name.as_str()).collect();
+    match input {
+        // A string feeds the chain's single input (name "" when none are
+        // declared, or the one declared name).
+        Some(Value::String(text)) => {
+            let name = chain.sole_input_name().map_err(|e| e.to_string())?;
+            Ok(vec![(name, text.as_bytes().to_vec())])
+        }
+        // An object supplies a value per declared input.
+        Some(Value::Object(map)) => {
+            if declared.is_empty() {
+                return Err("this chain takes a single input; pass \"input\" as a string".into());
+            }
+            let mut payloads = Vec::new();
+            for name in &declared {
+                let value = map
+                    .get(*name)
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| format!("missing string input \"{name}\""))?;
+                payloads.push((name.to_string(), value.as_bytes().to_vec()));
+            }
+            if let Some(extra) = map.keys().find(|k| !declared.contains(&k.as_str())) {
+                return Err(format!("chain has no input named \"{extra}\""));
+            }
+            Ok(payloads)
+        }
+        _ => Err("\"input\" must be a string, or an object of named inputs".into()),
     }
 }
 
@@ -477,6 +513,60 @@ mod tests {
         )
         .unwrap();
         assert_eq!(r["isError"], true);
+    }
+
+    #[test]
+    fn run_chain_multi_input_and_multi_sink() {
+        let reg = crate::registry();
+
+        // Multi-input: text-diff with declared old/new inputs.
+        let chain = json!({
+            "version": 1,
+            "inputs": [
+                { "name": "old", "binds": [{ "node": "d", "port": "old" }] },
+                { "name": "new", "binds": [{ "node": "d", "port": "new" }] },
+            ],
+            "nodes": [{ "id": "d", "tool": "text-diff" }],
+            "edges": [],
+        });
+        let r = call_tool(
+            &reg,
+            &json!({ "name": RUN_CHAIN, "arguments": {
+                "chain": chain, "input": { "old": "a\nb\n", "new": "a\nc\n" } } }),
+        )
+        .unwrap();
+        assert_eq!(r["isError"], false);
+        assert!(r["content"][0]["text"].as_str().unwrap().contains("-b"));
+
+        // A named input the chain doesn't declare is an error.
+        let bad = call_tool(
+            &reg,
+            &json!({ "name": RUN_CHAIN, "arguments": {
+                "chain": chain, "input": { "old": "a", "new": "b", "extra": "x" } } }),
+        )
+        .unwrap();
+        assert_eq!(bad["isError"], true);
+
+        // Multi-sink: two entry nodes, both sinks; one input feeds both.
+        let fanout = json!({
+            "version": 1,
+            "nodes": [{ "id": "e", "tool": "base64-encode" },
+                      { "id": "h", "tool": "hex-encode" }],
+            "edges": [],
+        });
+        let r = call_tool(
+            &reg,
+            &json!({ "name": RUN_CHAIN, "arguments": { "chain": fanout, "input": "hi" } }),
+        )
+        .unwrap();
+        let sinks: Vec<(&str, &str)> = r["content"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| (c["_sink"].as_str().unwrap(), c["text"].as_str().unwrap()))
+            .collect();
+        assert!(sinks.contains(&("e", "aGk=")));
+        assert!(sinks.contains(&("h", "6869")));
     }
 
     #[test]

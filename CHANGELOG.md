@@ -9,7 +9,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - MCP `run-chain` tool: run a whole toolchain (pipe expression or inline
   chain JSON) in one call, so an agent doesn't shuttle intermediate data
-  through separate tool calls.
+  through separate tool calls. Supports chains with declared named inputs
+  (an object of values) and multiple sinks (one output block per sink).
 
 ## [0.11.0] - 2026-07-11
 
