@@ -6,6 +6,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Chain `--set` completion now offers `node.option=` override keys (with
+  their enum/bool values) alongside declared params — so completion is
+  useful on every chain, not just the few with params.
+
 ### Changed
 - Subcommands renamed for consistency: `tools` lists tools (like `chains`
   lists chains), `run-tool` runs a tool, `run-chain` runs a chain. The old

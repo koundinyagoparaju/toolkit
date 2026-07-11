@@ -184,8 +184,20 @@ fn complete_candidates(
                 let Ok(chain) = load_chain(None, file, name, chains_dir.as_deref()) else {
                     return Vec::new();
                 };
-                let specs: Vec<toolkit_core::OptionSpec> =
+                // --set accepts declared params AND node.option overrides;
+                // offer both. Prefixing the option specs with the node id
+                // lets one code path handle keys and values for either.
+                let mut specs: Vec<toolkit_core::OptionSpec> =
                     chain.params.iter().map(|p| p.spec.clone()).collect();
+                for node in &chain.nodes {
+                    if let Some(tool) = registry.find(&node.tool) {
+                        for opt in tool.manifest().options {
+                            let mut prefixed = opt.clone();
+                            prefixed.name = format!("{}.{}", node.id, opt.name);
+                            specs.push(prefixed);
+                        }
+                    }
+                }
                 candidates_from_specs(&specs, current)
             } else {
                 complete_set_candidates(registry, current, words)
@@ -1335,7 +1347,7 @@ mod tests {
                 "--set",
             ]),
         );
-        assert_eq!(keys, vec!["width=", "format="]);
+        assert_eq!(keys[..2], ["width=".to_string(), "format=".to_string()]);
 
         let values = complete_candidates(
             &registry,
@@ -1352,6 +1364,10 @@ mod tests {
             ]),
         );
         assert_eq!(values, vec!["format=png", "format=jpeg"]);
+
+        // node.option overrides complete too (mychain's node "a" runs
+        // json-format, so a.indent= is offered).
+        assert!(keys.contains(&"a.indent=".to_string()), "{keys:?}");
 
         // Unknown chain: quiet, not an error.
         assert!(complete_candidates(
