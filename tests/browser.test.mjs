@@ -25,6 +25,11 @@ const chrome = execFile(CHROME, [
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Close the page itself — cdp.close() only closes the WebSocket, and a
+ *  pile of live tabs (one of which just streamed 40MB) can stall later
+ *  tab loads under memory pressure. */
+const closeTab = (tab) => fetch(`http://localhost:${PORT}/json/close/${tab.id}`).catch(() => {});
+
 async function newTab(url) {
     for (let i = 0; i < 40; i++) {
         try {
@@ -319,6 +324,7 @@ try {
         `40MB file streamed through hash in-browser (got "${digest6.slice(0, 16)}…", want "${expected.slice(0, 16)}…")`,
     );
     cdp6.close();
+    await closeTab(tab6);
 
 
     // --- Test 7: generator page auto-runs with browser entropy ---
@@ -521,6 +527,7 @@ try {
     }
     rmSync(downloadDir, { recursive: true, force: true });
     cdpDl.close();
+    await closeTab(tabDl);
 
     // --- Test 12: wasm integrity — pinned hashes present, and a tampered
     // hash is rejected before instantiation ---
