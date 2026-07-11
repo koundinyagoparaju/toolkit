@@ -2,6 +2,7 @@
     import { loadCatalog } from "./lib/catalog.js";
     import Builder from "./pages/Builder.svelte";
     import Chains from "./pages/Chains.svelte";
+    import Cli from "./pages/Cli.svelte";
     import Home from "./pages/Home.svelte";
     import Tool from "./pages/Tool.svelte";
     import Trust from "./pages/Trust.svelte";
@@ -23,6 +24,7 @@
             <a href="#/">Tools</a>
             <a href="#/chains">Chains</a>
             <a href="#/builder">Builder</a>
+            <a href="#/cli">CLI</a>
             <a href="#/trust">Why trust this?</a>
         </div>
     </div>
@@ -38,6 +40,8 @@
             <Chains />
         {:else if route.page === "builder"}
             <Builder {catalog} shared={route.arg} />
+        {:else if route.page === "cli"}
+            <Cli />
         {:else if route.page === "trust"}
             <Trust />
         {:else}

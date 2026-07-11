@@ -210,11 +210,7 @@
                 <p class="dim">
                     The CLI is one static binary with every tool and chain — pipe-friendly,
                     offline, and it streams (gigabytes in a few MB of memory).
-                    <a
-                        href="https://github.com/koundinyagoparaju/toolkit#cli"
-                        target="_blank"
-                        rel="noreferrer">Install it</a
-                    >.
+                    <a href="#/cli">Install it</a>.
                 </p>
             </section>
         </div>

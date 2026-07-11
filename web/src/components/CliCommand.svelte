@@ -27,8 +27,8 @@
     }
     code {
         flex: 1;
-        overflow-x: auto;
-        white-space: nowrap;
+        white-space: pre-wrap;
+        word-break: break-all;
         font-size: 0.82rem;
         color: var(--text-dim);
     }
