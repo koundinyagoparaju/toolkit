@@ -1,6 +1,6 @@
 # toolkit
 
-**Data tools that never see your data.**
+**The everyday tools you keep reaching for — handy, fast, and private by construction.**
 
 **Use it now: [koundinyagoparaju.github.io/toolkit](https://koundinyagoparaju.github.io/toolkit/)** — or install the CLI:
 
@@ -11,10 +11,11 @@ curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scri
 Base64/32/58, URL and hex encoding, JWT inspection, JSON ↔ YAML/TOML/CSV,
 hashing and HMAC, timestamps, regex extraction, diffs, gzip, QR codes,
 password/UUID generation, EXIF stripping, image resize/crop/convert/merge —
-the everyday tools you'd otherwise paste sensitive data into some website
-to use. Here, **everything runs on your own
-device**: in your browser as WebAssembly, or in your terminal as a single
-static binary. There is no server. There is nothing to upload to.
+the small jobs that come up constantly, in one fast place, composable into
+chains. And unlike the websites you'd otherwise paste sensitive data into,
+**everything runs on your own device**: in your browser as WebAssembly, or
+in your terminal as a single static binary. There is no server. There is
+nothing to upload to.
 
 ## Why you can trust it (verify, don't believe)
 

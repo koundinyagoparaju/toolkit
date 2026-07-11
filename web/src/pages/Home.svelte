@@ -19,10 +19,11 @@
 </script>
 
 <header class="hero">
-    <h1>Tools that never see your data.</h1>
+    <h1>The everyday tools, always at hand.</h1>
     <p class="dim">
-        Everything on this site runs inside your browser — decoding, hashing, image processing, all
-        of it. There is no server to upload to. <a href="#/trust">Verify it yourself.</a>
+        Decode, convert, hash, inspect, resize — the small jobs that come up all the time, in one
+        fast place. And because everything runs in your browser, your data never leaves your
+        device. <a href="#/trust">Verify it yourself.</a>
     </p>
     <input type="text" placeholder="Search tools… (base64, jwt, resize, …)" bind:value={query} />
 </header>

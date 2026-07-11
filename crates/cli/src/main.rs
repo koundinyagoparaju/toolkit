@@ -12,7 +12,7 @@ use toolkit_core::{Chain, DataType, DataValue, Options, Registry};
 #[command(
     name = "toolkit",
     version,
-    about = "Privacy-first data tools. Everything runs locally."
+    about = "Everyday data tools — handy, fast, and running entirely on your machine."
 )]
 struct Cli {
     #[command(subcommand)]
