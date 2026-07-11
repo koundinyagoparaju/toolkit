@@ -108,9 +108,10 @@ toolkit chain --name image-web-ready --set width=800 -i photo.png -o photo.jpg
 toolkit chain --file my-chain.json -i input.txt
 ```
 
-Tab completion covers tool names and options, including enum values
-(`toolkit run hash --set algorithm=<TAB>` offers the algorithms). Works
-in bash, zsh, and fish; PowerShell gets commands and flags. Put the
+Tab completion covers tool names, options with their enum values
+(`toolkit run hash --set algorithm=<TAB>` offers the algorithms), chain
+names (`toolkit chain -n <TAB>` lists your library), and chain params.
+Works in bash, zsh, and fish; PowerShell gets commands and flags. Put the
 files at these paths and the installer keeps them fresh on every update:
 
 ```sh

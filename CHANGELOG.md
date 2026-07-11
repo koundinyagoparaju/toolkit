@@ -6,6 +6,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Chain completion: `toolkit chain -n <TAB>` offers chain names from the
+  project and user libraries, and `--set <TAB>` offers the selected
+  chain's declared params with their enum/bool values (bash, zsh, fish).
+
 ## [0.6.0] - 2026-07-11
 
 ### Added
