@@ -404,15 +404,41 @@ fn registry() -> Registry {
     ])
 }
 
+/// The stdlib's message when print!/println! hit a closed pipe — and
+/// only that. A failed write for any other reason (disk full, I/O error)
+/// must stay a loud panic, or data loss goes unnoticed.
+fn is_broken_pipe_panic(message: &str) -> bool {
+    message.starts_with("failed printing to")
+        && (message.contains("Broken pipe") || message.contains("os error 232"))
+}
+
 fn main() {
-    // Rust ignores SIGPIPE at startup, which turns `toolkit list | head`
+    // Rust ignores SIGPIPE at startup, which turns `toolkit tools | head`
     // into a "failed printing to stdout: Broken pipe" panic once the
     // reader goes away. Restore the default so a closed pipe ends the
-    // process quietly, like every other CLI.
+    // process quietly, like every other CLI. (The env override exists so
+    // tests can exercise the panic-hook path below on Unix.)
     #[cfg(unix)]
-    unsafe {
-        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    if std::env::var_os("TOOLKIT_SKIP_SIGPIPE_RESET").is_none() {
+        unsafe {
+            libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+        }
     }
+    // Windows has no SIGPIPE: a closed pipe surfaces as a print panic
+    // instead. Exit quietly for that one case, and only that one.
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let message = info
+            .payload()
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| info.payload().downcast_ref::<&str>().copied())
+            .unwrap_or("");
+        if is_broken_pipe_panic(message) {
+            std::process::exit(0);
+        }
+        default_hook(info);
+    }));
     if let Err(message) = run(Cli::parse()) {
         eprintln!("error: {message}");
         std::process::exit(1);
@@ -1309,6 +1335,21 @@ mod tests {
                 .validate(&registry)
                 .unwrap_or_else(|e| panic!("built-in chain {name} does not validate: {e}"));
         }
+    }
+
+    #[test]
+    fn broken_pipe_matcher_is_narrow() {
+        assert!(is_broken_pipe_panic(
+            "failed printing to stdout: Broken pipe (os error 32)"
+        ));
+        assert!(is_broken_pipe_panic(
+            "failed printing to stdout: The pipe is being closed. (os error 232)"
+        ));
+        // Real write failures must stay loud.
+        assert!(!is_broken_pipe_panic(
+            "failed printing to stdout: No space left on device (os error 28)"
+        ));
+        assert!(!is_broken_pipe_panic("index out of bounds"));
     }
 
     #[test]
