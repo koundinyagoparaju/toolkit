@@ -56,7 +56,7 @@
     <h2>Prefer the terminal?</h2>
     <p>
         The same tools ship as a single static CLI binary with no network code at all:
-        <code>echo 'eyJ…' | toolkit chain 'jwt-decode | json-format'</code> — or build it yourself
+        <code>echo 'eyJ…' | toolkit run-chain 'jwt-decode | json-format'</code> — or build it yourself
         from the audited source with <code>cargo install</code>.
     </p>
 </section>

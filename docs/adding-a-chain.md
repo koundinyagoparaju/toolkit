@@ -54,7 +54,7 @@ internal. Each param is an option spec plus `maps`:
 }]
 ```
 
-The CLI accepts them (`toolkit chain --name x --set quality=70`), the web
+The CLI accepts them (`toolkit run-chain --name x --set quality=70`), the web
 builder renders a settings form, and `toolkit chains` lists them.
 Precedence: invocation > chain file > tool defaults.
 
@@ -79,7 +79,7 @@ port must be fed by exactly one source, an edge **or** a binding, never
 both. One input may bind several ports (fan-out); a multi port may take
 several bindings, ordered by input declaration.
 
-The CLI takes each by name (`toolkit chain -n your-chain -i old=a.txt
+The CLI takes each by name (`toolkit run-chain -n your-chain -i old=a.txt
 -i new=b.txt`; single-input chains still default to stdin), and the web
 builder renders one input panel per declared input. Streaming works the
 same as ever: inputs are fed in declaration order, chunk by chunk.
@@ -88,7 +88,7 @@ same as ever: inputs are fed in declaration order, chunk by chunk.
 
 ```sh
 cargo run -q -p toolkit-cli -- chains --chains-dir chains  # your chain listed, params shown
-echo 'real input' | cargo run -q -p toolkit-cli -- chain --chains-dir chains --name your-chain
+echo 'real input' | cargo run -q -p toolkit-cli -- run-chain --chains-dir chains --name your-chain
 ./scripts/build-web-assets.sh                              # regenerates the web chain index
 ```
 

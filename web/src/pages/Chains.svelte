@@ -11,7 +11,7 @@
 </p>
 <p class="dim">
     Every chain here also runs in your terminal:
-    <code>toolkit chain -n &lt;name&gt;</code> —
+    <code>toolkit run-chain -n &lt;name&gt;</code> —
     <a href="#/cli">install the CLI</a>.
 </p>
 

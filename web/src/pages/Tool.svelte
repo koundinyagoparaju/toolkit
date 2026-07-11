@@ -63,7 +63,7 @@
             .filter(([, v]) => v !== undefined && v !== "")
             .map(([k, v]) => ` --set ${k}=${quote(v)}`)
             .join("");
-        const base = `toolkit run ${tool.name}${sets}`;
+        const base = `toolkit run-tool ${tool.name}${sets}`;
         if (!visiblePorts.length) return [base];
 
         // The page's typed input, when it's short and single-line, makes

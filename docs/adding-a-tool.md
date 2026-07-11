@@ -83,7 +83,7 @@ type-checking, and the wasm build all pick the tool up from its manifest.
 
 ```sh
 cargo test -p toolkit-pack-text
-echo -n 'Hello!' | cargo run -q -p toolkit-cli -- run rot13    # Uryyb!
+echo -n 'Hello!' | cargo run -q -p toolkit-cli -- run-tool rot13    # Uryyb!
 ./scripts/build-web-assets.sh && cd web && npm run dev          # see it in the catalog
 ```
 

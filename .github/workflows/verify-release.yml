@@ -28,6 +28,8 @@ jobs:
           set -euo pipefail
           sh scripts/install.sh
           export PATH="$HOME/.local/bin:$PATH"
+          # `run` (not `run-tool`): the alias works in every released
+          # version this workflow might verify.
           toolkit --version
           out="$(toolkit run base64-encode hi)"
           test "$out" = "aGk=" || { echo "unexpected output: $out"; exit 1; }

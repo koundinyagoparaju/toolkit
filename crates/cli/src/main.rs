@@ -33,14 +33,16 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// List all available tools
-    List,
+    #[command(alias = "list")]
+    Tools,
     /// Show a tool's description and options
     Info { tool: String },
     /// Run a single tool (input as an argument, from stdin, or --input)
-    Run {
+    #[command(alias = "run")]
+    RunTool {
         #[arg(index = 1)]
         tool: String,
-        /// The input value itself, e.g. `toolkit run base64-encode hello`.
+        /// The input value itself, e.g. `toolkit run-tool base64-encode hello`.
         /// Only for tools with one input port (repeatable for
         /// variable-arity ports); use -i for files or named ports.
         #[arg(value_name = "VALUE", conflicts_with = "input", index = 2)]
@@ -58,7 +60,8 @@ enum Command {
         set: Vec<String>,
     },
     /// Run a toolchain: pipe syntax, a chain JSON file, or a named chain
-    Chain {
+    #[command(alias = "chain")]
+    RunChain {
         /// Pipe expression, e.g. "base64-decode | json-format indent=4"
         expression: Option<String>,
         /// Load the chain from a JSON file
@@ -174,7 +177,7 @@ fn complete_candidates(
             names
         }
         "set" => {
-            let in_chain = words.iter().any(|w| w == "chain");
+            let in_chain = words.iter().any(|w| w == "run-chain" || w == "chain");
             if in_chain {
                 let file = flag_value(words, &["-f", "--file"]).map(PathBuf::from);
                 let name = flag_value(words, &["-n", "--name"]).map(String::from);
@@ -269,8 +272,8 @@ fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[
             // Patch the two --set/-s arms inside the run section only.
             let mut script = script;
             for (label, set_kind_arms, name_arms) in [
-                ("toolkit__subcmd__run)", true, false),
-                ("toolkit__subcmd__chain)", true, true),
+                ("toolkit__subcmd__run__subcmd__tool)", true, false),
+                ("toolkit__subcmd__run__subcmd__chain)", true, true),
             ] {
                 script = patch_bash_section(script, label, set_kind_arms, name_arms);
             }
@@ -281,7 +284,7 @@ fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[
             // completion for run, option/param completion for --set on
             // both subcommands, and chain-name completion for -n/--name.
             format!(
-                "{script}complete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -f -a \"{}\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand chain\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand chain\" -s n -l name -x -a \"(toolkit __complete chain-name (commandline -ct) -- (commandline -opc))\"\n",
+                "{script}complete -c toolkit -n \"__fish_toolkit_using_subcommand run-tool\" -f -a \"{}\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run-tool\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run-chain\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run-chain\" -s n -l name -x -a \"(toolkit __complete chain-name (commandline -ct) -- (commandline -opc))\"\n",
                 tool_names.join(" ")
             )
         }
@@ -340,7 +343,10 @@ fn patch_bash_section(script: String, label: &str, set_arms: bool, name_arms: bo
 /// non-flag word after `run` that isn't a value of a value-taking flag.
 fn complete_set_candidates(registry: &Registry, current: &str, words: &[String]) -> Vec<String> {
     let value_flags = ["-i", "--input", "-o", "--output", "-s", "--set"];
-    let mut after_run = words.iter().skip_while(|w| w.as_str() != "run").skip(1);
+    let mut after_run = words
+        .iter()
+        .skip_while(|w| w.as_str() != "run-tool" && w.as_str() != "run")
+        .skip(1);
     let mut tool_name = None;
     while let Some(word) = after_run.next() {
         if value_flags.contains(&word.as_str()) {
@@ -480,7 +486,7 @@ fn print_table(header: (&str, &str, &str), rows: &[(String, String, String)]) {
 fn run(cli: Cli) -> Result<(), String> {
     let registry = registry();
     match cli.command {
-        Command::List => {
+        Command::Tools => {
             let mut manifests = registry.manifests();
             manifests.sort_by(|a, b| a.name.cmp(&b.name));
             let rows: Vec<(String, String, String)> = manifests
@@ -534,7 +540,7 @@ fn run(cli: Cli) -> Result<(), String> {
             }
             Ok(())
         }
-        Command::Run {
+        Command::RunTool {
             tool,
             value,
             input,
@@ -563,7 +569,7 @@ fn run(cli: Cli) -> Result<(), String> {
             let result = toolkit_core::run_tool(t, inputs, &options).map_err(|e| e.message)?;
             write_single_output(result, output.as_deref())
         }
-        Command::Chain {
+        Command::RunChain {
             expression,
             file,
             name,
@@ -654,7 +660,7 @@ fn run(cli: Cli) -> Result<(), String> {
             // names after `run`. Injected only here — the parser keeps its
             // friendlier unknown-tool error.
             let names: Vec<String> = registry.manifests().into_iter().map(|m| m.name).collect();
-            let cmd = Cli::command().mut_subcommand("run", |run| {
+            let cmd = Cli::command().mut_subcommand("run-tool", |run| {
                 run.mut_arg("tool", |a| {
                     a.value_parser(clap::builder::PossibleValuesParser::new(names.clone()))
                 })

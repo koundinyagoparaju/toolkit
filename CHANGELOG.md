@@ -6,8 +6,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- Subcommands renamed for consistency: `tools` lists tools (like `chains`
+  lists chains), `run-tool` runs a tool, `run-chain` runs a chain. The old
+  names (`list`, `run`, `chain`) keep working as hidden aliases, so
+  existing scripts and muscle memory are safe.
+
 ### Fixed
-- Piping into a command that exits early (`toolkit list | head`, or a
+- Piping into a command that exits early (`toolkit tools | head`, or a
   typo'd pipe target) panicked with "failed printing to stdout: Broken
   pipe". The CLI now restores default SIGPIPE handling on Unix and dies
   quietly like other tools.

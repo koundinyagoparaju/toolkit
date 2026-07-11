@@ -96,8 +96,8 @@ if ($env:OS -eq "Windows_NT") {
     if (($userPath -split ';') -notcontains $InstallDir) {
         [Environment]::SetEnvironmentVariable("Path", "$userPath;$InstallDir", "User")
         Write-Host "added $InstallDir to your user PATH (undo: Settings > Environment Variables)"
-        Write-Host "open a new terminal, then run: toolkit list"
+        Write-Host "open a new terminal, then run: toolkit tools"
     } else {
-        Write-Host "run: toolkit list"
+        Write-Host "run: toolkit tools"
     }
 }

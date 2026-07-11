@@ -37,7 +37,7 @@ review, and the site never loads code from anywhere but this repo.
 
 ```sh
 cargo test                        # everything Rust
-cargo run -p toolkit-cli -- list  # CLI against native packs
+cargo run -p toolkit-cli -- tools  # CLI against native packs
 ./scripts/build-web-assets.sh     # wasm packs + manifests for the web app
 cd web && npm install && npm run dev
 ```

@@ -15,9 +15,9 @@ curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scri
 # Windows (PowerShell)
 irm https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.ps1 | iex
 
-echo -n "$JWT" | toolkit chain 'jwt-decode | json-format'
-toolkit chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
-toolkit run hash -i backup.iso                  # streams, gigabytes in a few MB of RAM
+echo -n "$JWT" | toolkit run-chain 'jwt-decode | json-format'
+toolkit run-chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
+toolkit run-tool hash -i backup.iso                  # streams, gigabytes in a few MB of RAM
 ```
 
 The tools: base64/32/58, URL and hex encoding, JWT inspection, JSON to and
@@ -76,27 +76,27 @@ cargo build --release -p toolkit-cli   # -> target/release/toolkit
 Usage:
 
 ```sh
-toolkit list                                      # what's available
-toolkit run base64-encode 'hello world'           # input as an argument
-echo -n 'hello' | toolkit run base64-encode       # or from stdin
-toolkit run image-resize --set width=800 -i in.png -o out.png
+toolkit tools                                      # what's available
+toolkit run-tool base64-encode 'hello world'           # input as an argument
+echo -n 'hello' | toolkit run-tool base64-encode       # or from stdin
+toolkit run-tool image-resize --set width=800 -i in.png -o out.png
 
 # multi-input tools take one file per named port:
-toolkit run image-merge -i first=a.png -i second=b.png --set mode=vertical -o out.png
-# variable-arity ports (marked "…" in `toolkit list`) take repeated -i:
-toolkit run doc-merge -i a.txt -i b.txt -i c.txt --set separator=$'\n---\n'
+toolkit run-tool image-merge -i first=a.png -i second=b.png --set mode=vertical -o out.png
+# variable-arity ports (marked "…" in `toolkit tools`) take repeated -i:
+toolkit run-tool doc-merge -i a.txt -i b.txt -i c.txt --set separator=$'\n---\n'
 
 # chains, as pipe syntax:
-echo "$JWT" | toolkit chain 'jwt-decode | json-format indent=4'
+echo "$JWT" | toolkit run-chain 'jwt-decode | json-format indent=4'
 # or from the library, with declared typed parameters:
 toolkit chains
-toolkit chain --name image-web-ready --set width=800 -i photo.png -o photo.jpg
-toolkit chain --file my-chain.json -i input.txt
+toolkit run-chain --name image-web-ready --set width=800 -i photo.png -o photo.jpg
+toolkit run-chain --file my-chain.json -i input.txt
 ```
 
 Tab completion covers tool names, options with their enum values
-(`toolkit run hash --set algorithm=<TAB>` offers the algorithms), chain
-names (`toolkit chain -n <TAB>` lists your library), and chain params.
+(`toolkit run-tool hash --set algorithm=<TAB>` offers the algorithms), chain
+names (`toolkit run-chain -n <TAB>` lists your library), and chain params.
 Works in bash, zsh, and fish; PowerShell gets commands and flags. Put the
 files at these paths and the installer keeps them fresh on every update:
 

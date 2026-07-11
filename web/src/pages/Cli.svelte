@@ -71,17 +71,17 @@
 
 <section>
     <h2>A taste</h2>
-    <pre>toolkit list                                  # every tool, with its types
-toolkit run base64-encode 'hello world'       # input as an argument, or stdin
-echo -n "$JWT" | toolkit chain 'jwt-decode | json-format'
-toolkit run image-resize --set width=800 -i photo.png -o small.png
-toolkit chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
-toolkit run text-diff -i old=a.txt -i new=b.txt
-toolkit run hash -i backup.iso                # streams: GBs in a few MB of RAM</pre>
+    <pre>toolkit tools                                  # every tool, with its types
+toolkit run-tool base64-encode 'hello world'       # input as an argument, or stdin
+echo -n "$JWT" | toolkit run-chain 'jwt-decode | json-format'
+toolkit run-tool image-resize --set width=800 -i photo.png -o small.png
+toolkit run-chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
+toolkit run-tool text-diff -i old=a.txt -i new=b.txt
+toolkit run-tool hash -i backup.iso                # streams: GBs in a few MB of RAM</pre>
     <p class="dim">
         Every tool page here shows its own terminal equivalent — options included — and every
         chain in the <a href="#/chains">library</a> runs as
-        <code>toolkit chain -n &lt;name&gt;</code>. Tab completion (tool names included) comes
+        <code>toolkit run-chain -n &lt;name&gt;</code>. Tab completion (tool names included) comes
         from <code>toolkit completions bash|zsh|fish|powershell</code>. Drop your own chain files into
         <code>~/.config/toolkit/chains/</code> and they run by name too.
     </p>
