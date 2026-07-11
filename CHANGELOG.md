@@ -14,6 +14,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   cargo-fuzz targets per pack running weekly in CI.
 - Web loader verifies each wasm pack against a pinned sha256
   (`wasm/integrity.json`) before instantiating it.
+- The chain builder is fully keyboard-operable: Tab reaches nodes, ports,
+  and connections; Enter connects/selects, Delete removes, arrow keys move
+  nodes, Escape cancels — with ARIA labels throughout.
+- PNG app icons (192/512 + apple-touch-icon) so installing to an iOS or
+  Android home screen shows the lock icon instead of a blank tile.
 
 ### Fixed
 - `color-convert` panicked (instead of erroring) on hex notation

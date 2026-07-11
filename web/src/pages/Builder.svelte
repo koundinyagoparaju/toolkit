@@ -120,6 +120,61 @@
         results = new Map();
     }
 
+    function removeEdge(edge) {
+        edges = edges.filter((e) => e !== edge);
+        results = new Map();
+    }
+
+    /** Keyboard activation for SVG "buttons" (Enter / Space). */
+    function onActivate(fn) {
+        return (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            event.stopPropagation();
+            fn(event);
+        };
+    }
+
+    /** Select / delete / nudge a node from the keyboard. */
+    function nodeKeydown(node, event) {
+        const step = event.shiftKey ? 24 : 8;
+        switch (event.key) {
+            case "Enter":
+            case " ":
+                selectedId = node.id;
+                break;
+            case "Delete":
+            case "Backspace":
+                removeNode(node.id);
+                break;
+            case "ArrowLeft":
+                node.x = Math.max(0, node.x - step);
+                break;
+            case "ArrowRight":
+                node.x += step;
+                break;
+            case "ArrowUp":
+                node.y = Math.max(0, node.y - step);
+                break;
+            case "ArrowDown":
+                node.y += step;
+                break;
+            default:
+                return;
+        }
+        event.preventDefault();
+    }
+
+    function toolLabelOf(nodeId) {
+        const node = nodes.find((n) => n.id === nodeId);
+        return node ? catalog.tools.get(node.tool).label : nodeId;
+    }
+
+    function edgeLabel(edge) {
+        const port = edge.to_port ? ` (port “${edge.to_port}”)` : "";
+        return `Connection from ${toolLabelOf(edge.from)} to ${toolLabelOf(edge.to)}${port} — press Enter to remove`;
+    }
+
     function tryConnect(from, to, portName) {
         pendingFrom = null;
         if (from === to) return;
@@ -266,7 +321,8 @@
 <p class="dim">
     Compose tools into a pipeline: add nodes, then click a node's <em>output dot</em> followed by
     another node's <em>input dot</em> to connect them. Connections are type-checked. Click an edge
-    to remove it.
+    to remove it. Everything also works from the keyboard: Tab between elements, Enter to
+    activate, arrow keys to move a node, Escape to cancel.
 </p>
 
 <div class="toolbar">
@@ -308,10 +364,16 @@
             <ValueInput bind:value={input} hint={entryTool?.inputs[0]?.type ?? "text"} />
         </section>
 
-        <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
+        <!-- The pointer listeners implement mouse dragging and click-away;
+             every action has a keyboard path (Tab + Enter/arrows on nodes,
+             ports, and edges; Escape here), so the rule is a false positive
+             for this drag surface. -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <svg
             bind:this={svgEl}
             class="canvas"
+            role="application"
+            aria-label="Chain canvas. Tab moves between nodes, ports, and connections; Enter activates; Escape cancels a pending connection."
             onpointermove={onMove}
             onpointerup={() => (drag = null)}
             onclick={(e) => {
@@ -320,15 +382,24 @@
                     pendingFrom = null;
                 }
             }}
+            onkeydown={(e) => {
+                if (e.key === "Escape") pendingFrom = null;
+            }}
         >
             {#each edges as edge, i (i)}
                 {@const badge = edgeBadge(edge)}
                 <path
                     class="edge"
                     d={edgePath(edge)}
-                    onclick={() => {
-                        edges = edges.filter((e) => e !== edge);
-                        results = new Map();
+                    role="button"
+                    tabindex="0"
+                    aria-label={edgeLabel(edge)}
+                    onclick={() => removeEdge(edge)}
+                    onkeydown={(e) => {
+                        if (["Enter", " ", "Delete", "Backspace"].includes(e.key)) {
+                            e.preventDefault();
+                            removeEdge(edge);
+                        }
                     }}
                 >
                     <title>click to remove</title>
@@ -349,7 +420,11 @@
                         height={NODE_H}
                         rx="8"
                         stroke={nodeStroke(node)}
+                        role="button"
+                        tabindex="0"
+                        aria-label="{tool.label} node — Enter selects, Delete removes, arrow keys move it"
                         onpointerdown={(e) => startDrag(node, e)}
+                        onkeydown={(e) => nodeKeydown(node, e)}
                     />
                     <text class="title" x="12" y="22">{tool.label}</text>
                     <text class="sub" x="12" y="40">
@@ -362,10 +437,19 @@
                             cx="0"
                             cy={portY(tool, i)}
                             r="7"
+                            role="button"
+                            tabindex="0"
+                            aria-label="Input “{port.name}” ({port.type}) of {tool.label}{pendingFrom &&
+                            pendingFrom !== node.id
+                                ? ` — Enter connects it to ${toolLabelOf(pendingFrom)}`
+                                : ''}"
                             onclick={(e) => {
                                 e.stopPropagation();
                                 if (pendingFrom) tryConnect(pendingFrom, node.id, port.name);
                             }}
+                            onkeydown={onActivate(() => {
+                                if (pendingFrom) tryConnect(pendingFrom, node.id, port.name);
+                            })}
                         >
                             <title>{port.name} ({port.type}{port.multi ? ", accepts many" : ""})</title>
                         </circle>
@@ -382,10 +466,17 @@
                         cx={NODE_W}
                         cy={NODE_H / 2}
                         r="7"
+                        role="button"
+                        tabindex="0"
+                        aria-pressed={pendingFrom === node.id}
+                        aria-label="Output of {tool.label} ({tool.output}) — Enter starts a connection, then activate an input port"
                         onclick={(e) => {
                             e.stopPropagation();
                             pendingFrom = pendingFrom === node.id ? null : node.id;
                         }}
+                        onkeydown={onActivate(() => {
+                            pendingFrom = pendingFrom === node.id ? null : node.id;
+                        })}
                     />
                 </g>
             {/each}
@@ -506,6 +597,12 @@
     .port.target {
         stroke: var(--accent);
         fill: var(--accent-dim);
+    }
+    .port:focus-visible,
+    .edge:focus-visible,
+    rect:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
     }
     .port.out.active {
         fill: var(--accent);

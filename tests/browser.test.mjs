@@ -296,7 +296,41 @@ try {
     assert(entropyHidden, "entropy port is hidden from the UI");
     cdp7.close();
 
-    // --- Test 8: wasm integrity — pinned hashes present, and a tampered
+    // --- Test 8: keyboard-only connecting in the builder ---
+    // Two unconnected nodes; connect them with Enter on the output port
+    // then Enter on the input port — no pointer events at all.
+    const kbChain = {
+        version: 1,
+        nodes: [
+            { id: "a", tool: "base64-decode", options: {} },
+            { id: "b", tool: "json-format", options: {} },
+        ],
+        edges: [],
+    };
+    const kbHash = btoa(JSON.stringify(kbChain)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+    const tabKb = await newTab(`${BASE}/#/builder/${kbHash}`);
+    const cdpKb = await connect(tabKb.webSocketDebuggerUrl);
+    await waitFor(cdpKb, `document.querySelectorAll("svg g rect").length >= 2`);
+    const press = (selector) => `(() => {
+        const el = ${selector};
+        el.focus();
+        el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    })()`;
+    await evalJs(cdpKb, press(`document.querySelector("circle.out")`)); // output of node a
+    // Svelte applies state to the DOM asynchronously — wait for the port
+    // to show the pending state before completing the connection.
+    await waitFor(cdpKb, `document.querySelector("circle.out").getAttribute("aria-pressed") === "true"`);
+    await evalJs(
+        cdpKb,
+        press(
+            `[...document.querySelectorAll("svg > g:not(.badge)")].at(-1).querySelector("circle:not(.out)")`,
+        ),
+    ); // input of node b
+    await waitFor(cdpKb, `document.querySelectorAll("path.edge").length === 1`);
+    assert(true, "keyboard-only connect creates an edge");
+    cdpKb.close();
+
+    // --- Test 9: wasm integrity — pinned hashes present, and a tampered
     // hash is rejected before instantiation ---
     const tab8 = await newTab(`${BASE}/#/`);
     const cdp8 = await connect(tab8.webSocketDebuggerUrl);
