@@ -78,6 +78,21 @@ curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scri
 irm https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.ps1 | iex
 ```
 
+Or through a package manager — the tap and bucket live in this repo, so
+what you install is exactly what you can read here:
+
+```sh
+# Homebrew (macOS/Linux)
+brew tap koundinyagoparaju/toolkit https://github.com/koundinyagoparaju/toolkit
+brew install koundinyagoparaju/toolkit/toolkit
+```
+
+```powershell
+# Scoop (Windows)
+scoop bucket add toolkit https://github.com/koundinyagoparaju/toolkit
+scoop install toolkit
+```
+
 Piping a script into your shell means trusting it — and this project's
 whole point is that you shouldn't have to. Each script is ~90 auditable
 lines; download and read it first, or build from the audited source

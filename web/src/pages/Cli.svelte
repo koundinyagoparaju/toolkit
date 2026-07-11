@@ -46,7 +46,10 @@
     {/each}
     <p class="dim">
         Updating later is the same one-liner — it compares your installed version to the latest
-        release and only downloads when there's something new.
+        release and only downloads when there's something new. Homebrew and Scoop work too:
+        <code>brew install koundinyagoparaju/toolkit/toolkit</code> /
+        <code>scoop bucket add toolkit https://github.com/koundinyagoparaju/toolkit</code> — the
+        tap and bucket live in the repo itself.
     </p>
     <p class="dim">
         Piping a script into your shell means trusting it — and this project's whole point is

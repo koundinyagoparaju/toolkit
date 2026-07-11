@@ -52,3 +52,20 @@ jobs:
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
             assets/*
+
+      # Keep the Homebrew formula and Scoop manifest pointing at this
+      # release (they live in-repo: Formula/ is a brew tap, bucket/ a
+      # scoop bucket). Fully regenerated from the published checksums.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: repo
+          ref: main
+      - name: Update Homebrew formula and Scoop manifest
+        run: |
+          python3 repo/scripts/update-packaging.py "$GITHUB_REF_NAME" assets/SHA256SUMS repo
+          cd repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula bucket
+          git commit -m "Packaging: point brew/scoop at $GITHUB_REF_NAME"
+          git pull --rebase && git push
