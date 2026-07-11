@@ -7,11 +7,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- Nine developer tools: `number-base` (base 2–36 conversion), `json-diff`
+- Ten developer tools: `number-base` (base 2–36 conversion), `json-diff`
   (structural diff of two JSON values), `json-schema-infer` (JSON Schema
   from a sample), `sql-format` (SQL beautifier), `http-status` (status
   code lookup), `jwt-verify` (HMAC signature verification),
-  `text-to-binary`/`binary-to-text`, `slugify`, and `lorem-ipsum`.
+  `text-to-binary`/`binary-to-text`, `slugify`, `text-stats` (streaming line/word/char/byte counts), and `lorem-ipsum`.
 
 ### Added
 - Tool packs are now mechanically enforced pure: a CI clippy pass bans

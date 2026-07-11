@@ -22,6 +22,7 @@ mod lorem;
 mod number_base;
 mod slugify;
 mod sort_lines;
+mod text_stats;
 mod unicode_escape;
 mod url;
 
@@ -55,6 +56,7 @@ pub fn registry() -> Registry {
         Box::new(binary::BinaryToText),
         Box::new(lorem::LoremIpsum),
         Box::new(slugify::Slugify),
+        Box::new(text_stats::TextStats),
     ])
 }
 
