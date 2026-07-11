@@ -32,6 +32,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   downloads — a multi-GB result never sits in page memory.
 
 ### Fixed
+- Tool pages went stale after the first run: editing the input or
+  changing an option didn't re-run the tool (the auto-run effect only
+  tracked the first empty→filled transition). Now every edit re-runs,
+  debounced, as intended.
 - `color-convert` panicked (instead of erroring) on hex notation
   containing multibyte characters, e.g. `#ééé` — found by the new fuzzer.
 

@@ -124,6 +124,39 @@ try {
     );
     assert(cspBlocked === "blocked", "CSP blocks outbound fetch to other origins");
 
+    // Regression: EDITING an existing input must re-run the tool. The
+    // auto-run effect once tracked only the containers, so it fired on the
+    // first empty→filled transition and then went stale.
+    await evalJs(
+        cdp,
+        `(() => {
+            const ta = document.querySelector("textarea");
+            ta.value = "abcd";
+            ta.dispatchEvent(new Event("input", { bubbles: true }));
+        })()`,
+    );
+    await waitFor(
+        cdp,
+        `(document.querySelector("pre")?.textContent ?? "").trim() === "88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589"`,
+    );
+    assert(true, "editing the input re-runs the tool (sha256 of \"abcd\")");
+
+    // Regression: changing an option must re-run too.
+    await evalJs(
+        cdp,
+        `(() => {
+            const sel = [...document.querySelectorAll("select")].find((s) =>
+                [...s.options].some((o) => o.value === "md5"));
+            sel.value = "md5";
+            sel.dispatchEvent(new Event("change", { bubbles: true }));
+        })()`,
+    );
+    await waitFor(
+        cdp,
+        `(document.querySelector("pre")?.textContent ?? "").trim() === "e2fc714c4727ee9395f324cd2e7f331f"`,
+    );
+    assert(true, "changing an option re-runs the tool (md5 of \"abcd\")");
+
     // --- Test 2: a shared 2-node chain executes in the builder ---
     const chain = {
         version: 1,

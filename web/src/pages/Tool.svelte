@@ -35,9 +35,13 @@
     });
 
     // Auto-run whenever the inputs or options change (debounced).
+    // Deliberately read every value slot and option entry: editing an
+    // existing input *replaces* inputs[port][i] (a deep write), which a
+    // bare `void inputs` would not track — the effect would only fire on
+    // the first empty→filled transition and the output would go stale.
     $effect(() => {
-        void inputs;
-        void options;
+        for (const port of visiblePorts) for (const v of inputs[port.name] ?? []) void v;
+        for (const key of Object.keys(options)) void options[key];
         void name;
         if (!ready) {
             output = null;
