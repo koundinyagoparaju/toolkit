@@ -27,20 +27,6 @@ resize/crop/convert/merge. About 50 of them, and they compose into
 pipelines (chains) you can share as URLs. The URL encodes the chain
 definition, not your data.
 
-## Checking the privacy claims
-
-You shouldn't have to take any of this on faith, so each claim comes with
-a way to check it.
-
-| Claim | How to check |
-| --- | --- |
-| No server receives your data | The site is static files. Open DevTools, watch the Network tab while using any tool: nothing goes out. |
-| Even malicious code would have trouble exfiltrating | The `Content-Security-Policy` (`default-src 'none'; connect-src 'self'`) makes the browser refuse outbound connections. Try `fetch("https://example.com")` in the console. Not an absolute barrier, which is why the rows below matter more. |
-| Works with the network unplugged | It's an offline-capable PWA. Airplane mode is a fine test. |
-| The code is what you audited | Tools are Rust with a small pure-Rust dependency set, compiled to wasm. The wasm modules import nothing from the host and the loader checks each one against a pinned sha256. Community tools and chains enter through reviewed PRs only; the site never loads code from anywhere else. |
-| The binaries match the source | Builds are reproducible (pinned toolchain, locked deps, normalized paths, enforced in CI) and releases carry GitHub provenance attestations. Rebuild one yourself: [docs/architecture.md](docs/architecture.md#reproducing-a-release). |
-| The CLI can't phone home | It contains no network code at all. Build it from source if you prefer: `cargo install --path crates/cli`. |
-
 ## The web app
 
 Live at [koundinyagoparaju.github.io/toolkit](https://koundinyagoparaju.github.io/toolkit/).
