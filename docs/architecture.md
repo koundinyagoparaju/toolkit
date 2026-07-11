@@ -124,7 +124,9 @@ The core is deliberately inert: anything environmental is injected by a
   color parser).
 - Tag `v*`: five-platform static binaries + `SHA256SUMS` published as a
   GitHub Release — the exact artifacts `scripts/install.sh` verifies.
-- Push to `main`: the web app deploys to GitHub Pages. The CSP lives in a
+- Tag `v*` also deploys the web app to GitHub Pages, so the live site
+  tracks releases, not every push (workflow_dispatch for out-of-band
+  fixes). The CSP lives in a
   `<meta>` tag because static hosts can't send headers; hash routing means
   no rewrites; all asset paths are relative so the mount point is
   irrelevant.
