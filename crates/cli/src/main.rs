@@ -262,7 +262,7 @@ fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[
             ] {
                 script = patch_bash_section(script, label, set_kind_arms, name_arms);
             }
-            return script;
+            script
         }
         clap_complete::Shell::Fish => {
             // The fish generator skips positional values: append tool-name
