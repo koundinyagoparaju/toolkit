@@ -119,6 +119,13 @@ update the CLI, re-run the install one-liner (it checks your version) or
 use your package manager. The binary itself never updates itself; it has
 no network code to do it with.
 
+## Use it from an AI agent
+
+`toolkit mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io)
+server over stdio, exposing every tool to an LLM agent — locally, no
+sockets. For Claude Code: `claude mcp add toolkit -- toolkit mcp`. See
+[docs/mcp.md](docs/mcp.md).
+
 ## How it's put together
 
 ```

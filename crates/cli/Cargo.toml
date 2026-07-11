@@ -17,6 +17,7 @@ toolkit-pack-data = { path = "../packs/data" }
 serde_json = { workspace = true }
 clap = { version = "4", features = ["derive", "string"] }
 getrandom = "0.4"
+base64 = "0.22"
 clap_complete = "4.6.7"
 
 [target.'cfg(unix)'.dependencies]

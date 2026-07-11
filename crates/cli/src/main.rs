@@ -2,6 +2,7 @@
 //! network code, data flows stdin -> tools -> stdout.
 
 mod manifests_cmd;
+mod mcp;
 
 include!(concat!(env!("OUT_DIR"), "/builtin_chains.rs"));
 
@@ -102,6 +103,9 @@ enum Command {
     ///   pwsh: toolkit completions powershell > "$env:LOCALAPPDATA\toolkit\completions.ps1"
     ///         (then dot-source that file from $PROFILE)
     Completions { shell: clap_complete::Shell },
+    /// Run a Model Context Protocol server over stdio, exposing every
+    /// tool to an LLM agent (JSON-RPC on stdin/stdout; no network)
+    Mcp,
     /// Emit the full tool catalog as JSON (used by the web build)
     #[command(hide = true)]
     Manifests,
@@ -722,6 +726,7 @@ fn run(cli: Cli) -> Result<(), String> {
             }
             Ok(())
         }
+        Command::Mcp => mcp::serve(&registry),
         Command::Manifests => {
             println!("{}", manifests_cmd::catalog_json());
             Ok(())

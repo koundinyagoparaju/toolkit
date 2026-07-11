@@ -6,6 +6,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `toolkit mcp`: a Model Context Protocol server over stdio, exposing
+  every tool to an LLM agent (no sockets; schemas generated from the
+  manifests). See docs/mcp.md.
+
 ## [0.10.0] - 2026-07-11
 
 ### Added
