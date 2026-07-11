@@ -82,11 +82,13 @@ enum Command {
         #[arg(long, default_value = "chains")]
         chains_dir: PathBuf,
     },
-    /// Generate shell completions (tool names included). To enable:
-    ///   bash: toolkit completions bash >> ~/.bashrc  (or bash-completion dir)
-    ///   zsh:  toolkit completions zsh > "${fpath[1]}/_toolkit"
+    /// Generate shell completions (tool names included). The install
+    /// scripts refresh these paths on every update:
+    ///   zsh:  toolkit completions zsh > ~/.zsh/completions/_toolkit
     ///   fish: toolkit completions fish > ~/.config/fish/completions/toolkit.fish
-    ///   pwsh: toolkit completions powershell >> $PROFILE
+    ///   bash: toolkit completions bash > ~/.local/share/bash-completion/completions/toolkit
+    ///   pwsh: toolkit completions powershell > "$env:LOCALAPPDATA\toolkit\completions.ps1"
+    ///         (then dot-source that file from $PROFILE)
     Completions { shell: clap_complete::Shell },
     /// Emit the full tool catalog as JSON (used by the web build)
     #[command(hide = true)]

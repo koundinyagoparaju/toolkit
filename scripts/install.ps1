@@ -75,6 +75,19 @@ try {
 
 Write-Host "installed $tag to $InstallDir\toolkit.exe"
 
+# Refresh completions if previously set up (never creates new config).
+# To set up once:  toolkit completions powershell > "$env:LOCALAPPDATA\toolkit\completions.ps1"
+#                  Add-Content $PROFILE '. "$env:LOCALAPPDATA\toolkit\completions.ps1"'
+$completionsFile = Join-Path (Split-Path $InstallDir) "completions.ps1"
+if (Test-Path $completionsFile) {
+    try {
+        & (Join-Path $InstallDir "toolkit.exe") completions powershell | Set-Content $completionsFile
+        Write-Host "refreshed PowerShell completions at $completionsFile"
+    } catch {
+        Write-Host "note: could not refresh completions: $_"
+    }
+}
+
 # Add the install dir to the *user* PATH (no admin needed) if missing —
 # unlike ~/.local/bin on Unix, nothing on Windows puts it there for you.
 # (Guarded so the script is also testable on non-Windows PowerShell.)

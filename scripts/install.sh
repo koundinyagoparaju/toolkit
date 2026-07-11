@@ -94,6 +94,22 @@ cp "$tmp/toolkit" "$INSTALL_DIR/toolkit"
 chmod 0755 "$INSTALL_DIR/toolkit"
 
 echo "installed $tag to $INSTALL_DIR/toolkit"
+
+# Refresh shell completions that were previously set up, so they always
+# match the installed version. Never creates new config: only files that
+# already exist are regenerated.
+refresh_completions() {
+    [ -f "$2" ] || return 0
+    if "$INSTALL_DIR/toolkit" completions "$1" > "$2" 2>/dev/null; then
+        echo "refreshed $1 completions at $2"
+    else
+        echo "note: could not refresh $1 completions at $2"
+    fi
+}
+refresh_completions zsh "$HOME/.zsh/completions/_toolkit"
+refresh_completions fish "$HOME/.config/fish/completions/toolkit.fish"
+refresh_completions bash "$HOME/.local/share/bash-completion/completions/toolkit"
+
 case ":$PATH:" in
     *":$INSTALL_DIR:"*) ;;
     *) echo "note: add $INSTALL_DIR to your PATH" ;;

@@ -118,10 +118,18 @@ toolkit chain --name image-web-ready --set width=800 -i photo.png -o photo.jpg
 toolkit chain --file my-chain.json -i input.txt
 ```
 
-Shell completions (with tool names) for bash, zsh, fish, and PowerShell:
+Shell completions (with tool names) for bash, zsh, fish, and PowerShell.
+Put them at these paths and the installer refreshes them on every update:
 
 ```sh
-toolkit completions zsh > "${fpath[1]}/_toolkit"     # or: bash / fish / powershell
+toolkit completions zsh  > ~/.zsh/completions/_toolkit   # + add dir to fpath, run compinit
+toolkit completions fish > ~/.config/fish/completions/toolkit.fish
+toolkit completions bash > ~/.local/share/bash-completion/completions/toolkit
+```
+
+```powershell
+toolkit completions powershell > "$env:LOCALAPPDATA\toolkit\completions.ps1"
+Add-Content $PROFILE '. "$env:LOCALAPPDATA\toolkit\completions.ps1"'
 ```
 
 Drop your own chain files into `~/.config/toolkit/chains/` and run them by
