@@ -27,6 +27,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `old` against `new` (`toolkit chain -n text-compare -i old=a.txt -i
   new=b.txt`; the web builder shows one input panel per declared input).
 
+- Streaming downloads in the browser: when a chain runs over a large file,
+  sink outputs can flow through the service worker straight into file
+  downloads — a multi-GB result never sits in page memory.
+
 ### Fixed
 - `color-convert` panicked (instead of erroring) on hex notation
   containing multibyte characters, e.g. `#ééé` — found by the new fuzzer.

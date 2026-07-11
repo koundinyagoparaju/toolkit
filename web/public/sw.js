@@ -13,9 +13,60 @@ self.addEventListener("activate", (event) => {
     );
 });
 
+// Streaming downloads: the page registers a token + filename and pipes
+// chunks over a MessagePort; fetching stream-download/<token>/<name>
+// returns a Response whose body is that live stream. The browser's
+// download manager writes it to disk incrementally, so a chain sink can
+// produce gigabytes without the page ever holding them in memory.
+const downloads = new Map(); // token -> {stream, filename}
+
+self.addEventListener("message", (event) => {
+    const data = event.data;
+    if (data?.type !== "stream-download") return;
+    const port = data.port;
+    const stream = new ReadableStream({
+        start(controller) {
+            port.onmessage = (m) => {
+                try {
+                    if (m.data.chunk) controller.enqueue(new Uint8Array(m.data.chunk));
+                    if (m.data.done) controller.close();
+                    if (m.data.abort) controller.error(new Error("aborted by the page"));
+                } catch {
+                    // Stream already closed/cancelled (e.g. user cancelled
+                    // the download): drop further chunks silently.
+                }
+                if (m.data.done || m.data.abort) port.onmessage = null;
+            };
+        },
+        cancel() {
+            port.postMessage({ cancelled: true });
+        },
+    });
+    downloads.set(data.token, { stream, filename: data.filename });
+    port.postMessage({ ready: true });
+});
+
 self.addEventListener("fetch", (event) => {
     const url = new URL(event.request.url);
     if (event.request.method !== "GET" || url.origin !== location.origin) return;
+    const segments = url.pathname.split("/");
+    if (segments.length >= 3 && segments[segments.length - 3] === "stream-download") {
+        const token = segments[segments.length - 2];
+        const entry = downloads.get(token);
+        if (entry) {
+            downloads.delete(token);
+            event.respondWith(
+                new Response(entry.stream, {
+                    headers: {
+                        "Content-Type": "application/octet-stream",
+                        "Content-Disposition": `attachment; filename="${entry.filename.replaceAll('"', "")}"`,
+                        "X-Content-Type-Options": "nosniff",
+                    },
+                }),
+            );
+            return;
+        }
+    }
     event.respondWith(
         caches.open(CACHE).then(async (cache) => {
             const cached = await cache.match(event.request);

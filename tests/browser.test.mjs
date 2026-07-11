@@ -370,7 +370,100 @@ try {
     assert(diffOut, "two-input diff chain runs in the browser");
     cdpDi.close();
 
-    // --- Test 10: wasm integrity — pinned hashes present, and a tampered
+    // --- Test 10: streaming download — sink bytes flow through the
+    // service worker's stream-download endpoint ---
+    const tabSd = await newTab(`${BASE}/#/`);
+    const cdpSd = await connect(tabSd.webSocketDebuggerUrl);
+    // clients.claim() makes the SW take control shortly after first load.
+    await waitFor(cdpSd, `!!navigator.serviceWorker?.controller`, 20000);
+    const roundTrip = await evalJs(
+        cdpSd,
+        `(async () => {
+            const token = crypto.randomUUID();
+            const channel = new MessageChannel();
+            const ready = new Promise((r) => (channel.port1.onmessage = (m) => m.data.ready && r()));
+            navigator.serviceWorker.controller.postMessage(
+                { type: "stream-download", token, filename: "t.txt", port: channel.port2 },
+                [channel.port2],
+            );
+            await ready;
+            const enc = new TextEncoder();
+            const responsePromise = fetch("stream-download/" + token + "/t.txt");
+            channel.port1.postMessage({ chunk: enc.encode("hello ").buffer });
+            channel.port1.postMessage({ chunk: enc.encode("stream").buffer });
+            channel.port1.postMessage({ done: true });
+            const response = await responsePromise;
+            return {
+                body: await response.text(),
+                disposition: response.headers.get("Content-Disposition"),
+            };
+        })()`,
+    );
+    assert(
+        roundTrip.body === "hello stream" && roundTrip.disposition.includes('filename="t.txt"'),
+        `SW streams page-fed chunks as a download response (got ${JSON.stringify(roundTrip)})`,
+    );
+    cdpSd.close();
+
+    // --- Test 11: builder streams a 40MB file's sink output to a real
+    // file download, keeping nothing in page memory ---
+    const dlChain = {
+        version: 1,
+        nodes: [{ id: "enc", tool: "base64-encode", options: {} }],
+        edges: [],
+    };
+    const dlHash = btoa(JSON.stringify(dlChain)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+    const tabDl = await newTab(`${BASE}/#/builder/${dlHash}`);
+    const cdpDl = await connect(tabDl.webSocketDebuggerUrl);
+    const downloadDir = `/tmp/toolkit-dl-${process.pid}`;
+    const { mkdirSync, readdirSync, statSync, rmSync } = await import("node:fs");
+    mkdirSync(downloadDir, { recursive: true });
+    await cdpDl.send("Browser.setDownloadBehavior", {
+        behavior: "allow",
+        downloadPath: downloadDir,
+    });
+    await waitFor(cdpDl, `!!navigator.serviceWorker?.controller`, 20000);
+    await waitFor(cdpDl, `!!document.querySelector('input[type="file"]')`);
+    await evalJs(cdpDl, `(() => {
+        const mb = 1024 * 1024;
+        const pattern = new Uint8Array(mb);
+        for (let i = 0; i < mb; i++) pattern[i] = i % 251;
+        const parts = Array.from({ length: 40 }, () => pattern);
+        const file = new File(parts, "big.bin");
+        const inputEl = document.querySelector('input[type="file"]');
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        inputEl.files = dt.files;
+        inputEl.dispatchEvent(new Event("change", { bubbles: true }));
+    })()`);
+    await waitFor(cdpDl, `!!document.querySelector(".stream-toggle input")`);
+    await evalJs(
+        cdpDl,
+        `[...document.querySelectorAll("button")].find((b) => b.textContent.includes("Run chain")).click()`,
+    );
+    await waitFor(cdpDl, `document.body.textContent.includes("Chain ran ✓")`, 60000);
+    // base64 of 40MB, no line breaks: 4 * ceil(40MB / 3) bytes.
+    const expectedSize = 4 * Math.ceil((40 * 1024 * 1024) / 3);
+    let downloaded = null;
+    for (let i = 0; i < 30; i++) {
+        const files = readdirSync(downloadDir).filter((f) => !f.endsWith(".crdownload"));
+        if (files.length) {
+            const size = statSync(`${downloadDir}/${files[0]}`).size;
+            if (size === expectedSize) {
+                downloaded = { name: files[0], size };
+                break;
+            }
+        }
+        await sleep(500);
+    }
+    assert(
+        downloaded !== null,
+        `40MB chain output streamed to a download of ${expectedSize} bytes (got ${JSON.stringify(downloaded)})`,
+    );
+    rmSync(downloadDir, { recursive: true, force: true });
+    cdpDl.close();
+
+    // --- Test 12: wasm integrity — pinned hashes present, and a tampered
     // hash is rejected before instantiation ---
     const tab8 = await newTab(`${BASE}/#/`);
     const cdp8 = await connect(tab8.webSocketDebuggerUrl);

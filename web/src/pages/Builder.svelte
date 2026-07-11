@@ -17,6 +17,7 @@
         executeChainStreaming,
         validateChain,
     } from "../lib/dagRun.js";
+    import { extensionFor, openDownloadStream } from "../lib/streamSave.js";
 
     let { catalog, shared = "" } = $props();
 
@@ -35,9 +36,13 @@
     let results = $state(new Map());
     let notice = $state(null); // {kind: "err"|"ok", text}
     let running = $state(false);
+    let streamToFile = $state(true);
     let counter = 1;
 
     let selected = $derived(nodes.find((n) => n.id === selectedId) ?? null);
+    let hasLargeFile = $derived(
+        Object.values(inputValues).some((v) => v && v.file && !v.bytes),
+    );
     let allTools = $derived([...catalog.tools.values()]);
     let entryTool = $derived.by(() => {
         const withIncoming = new Set(edges.map((e) => e.to));
@@ -257,7 +262,38 @@
                         });
                     }
                 }
-                results = await executeChainStreaming(effective, catalog, sources, false);
+                // Sink output flows straight to disk through the service
+                // worker, so even a multi-GB result never sits in memory.
+                let writers = null;
+                if (streamToFile) {
+                    const sinkIds = effective.nodes
+                        .filter((n) => !(effective.edges ?? []).some((e) => e.from === n.id))
+                        .map((n) => n.id);
+                    for (const id of sinkIds) {
+                        const node = effective.nodes.find((n) => n.id === id);
+                        const ext = extensionFor(catalog.tools.get(node.tool).output);
+                        const writer = await openDownloadStream(`${id}.${ext}`);
+                        if (!writer) {
+                            writers?.forEach((w) => w.abort());
+                            writers = null; // no SW (dev/first visit): buffer instead
+                            break;
+                        }
+                        (writers ??= new Map()).set(id, writer);
+                    }
+                }
+                try {
+                    results = await executeChainStreaming(
+                        effective,
+                        catalog,
+                        sources,
+                        false,
+                        writers ? (id, chunk) => writers.get(id).write(chunk) : null,
+                    );
+                    writers?.forEach((w) => w.close());
+                } catch (e) {
+                    writers?.forEach((w) => w.abort());
+                    throw e;
+                }
             } else if (chainInputs.length) {
                 const values = {};
                 for (const name of declared) values[name] = await ensureBytes(inputValues[name]);
@@ -387,6 +423,13 @@
     </button>
     <button class="btn secondary" onclick={share} disabled={!nodes.length}>Share</button>
 </div>
+
+{#if hasLargeFile}
+    <label class="stream-toggle">
+        <input type="checkbox" bind:checked={streamToFile} />
+        Save outputs as file downloads while streaming (keeps memory flat for huge results)
+    </label>
+{/if}
 
 {#if notice}
     <p class={notice.kind === "err" ? "error" : "ok-note"}>{notice.text}</p>
@@ -598,6 +641,17 @@
     }
     .ok-note {
         color: var(--ok);
+    }
+    .stream-toggle {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 0.8rem;
+        color: var(--text-dim);
+        font-size: 0.9rem;
+    }
+    .stream-toggle input {
+        width: auto;
     }
     .layout {
         display: grid;

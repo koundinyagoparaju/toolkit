@@ -246,8 +246,13 @@ function buildEngine(chain, catalog) {
  * - reservoir nodes and sinks: {ok: true, value}
  * - streaming intermediates (unless retain): {ok: true, streamed: {total, preview}}
  * - failures: {ok: false, error} (downstream nodes are absent)
+ *
+ * With `onSink(nodeId, chunk)`, sink output is delivered to the callback
+ * as it is produced instead of being retained — sinks then report
+ * {ok: true, streamed} like other streaming nodes, and memory stays
+ * bounded no matter how large the output.
  */
-export async function executeChainStreaming(chain, catalog, sources, retain = false) {
+export async function executeChainStreaming(chain, catalog, sources, retain = false, onSink = null) {
     validateChain(chain, catalog);
     const expected = (chain.inputs ?? []).length ? chain.inputs.map((i) => i.name) : [""];
     for (const src of sources) {
@@ -287,7 +292,12 @@ export async function executeChainStreaming(chain, catalog, sources, retain = fa
         const node = nodes[nIdx];
         if (!bytes.length) return;
         node.emitted += bytes.length;
-        if (retain || node.isSink) {
+        if (node.isSink && onSink) {
+            onSink(node.id, bytes);
+            if (node.preview.reduce((n, c) => n + c.length, 0) < PREVIEW_CAP) {
+                node.preview.push(bytes.slice(0, PREVIEW_CAP));
+            }
+        } else if (retain || node.isSink) {
             node.retained.push(bytes);
         } else if (node.preview.reduce((n, c) => n + c.length, 0) < PREVIEW_CAP) {
             node.preview.push(bytes.slice(0, PREVIEW_CAP));
@@ -324,6 +334,7 @@ export async function executeChainStreaming(chain, catalog, sources, retain = fa
             return;
         }
         results.set(node.id, { ok: true, value: output });
+        if (node.isSink && onSink) onSink(node.id, output.bytes);
         node.emitted = output.bytes.length;
         for (const [t, s] of node.outgoing) {
             nodes[t].slots[s].meta = { type: output.type, ...(output.format ? { format: output.format } : {}) };
@@ -402,7 +413,7 @@ export async function executeChainStreaming(chain, catalog, sources, retain = fa
     for (const node of nodes) {
         if (!node.session || results.has(node.id)) continue;
         if (!node.finished) continue; // upstream failed; leave absent
-        if (retain || node.isSink) {
+        if (!(node.isSink && onSink) && (retain || node.isSink)) {
             const value = { type: node.tool.output, bytes: concat(node.retained) };
             results.set(node.id, { ok: true, value });
         } else {
