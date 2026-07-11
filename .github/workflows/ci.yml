@@ -65,6 +65,21 @@ jobs:
       - run: cargo install cargo-audit --locked
       - run: cargo audit
 
+  vet:
+    name: Supply-chain vet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cargo
+          key: vet-${{ runner.os }}-cargo-vet
+      - run: command -v cargo-vet || cargo install cargo-vet --locked
+      # --locked uses the committed imports.lock: deterministic, no network.
+      # A new dependency fails here until it's audited or consciously
+      # exempted in supply-chain/config.toml.
+      - run: cargo vet --locked
+
   repro:
     name: Reproducible build check
     runs-on: ubuntu-latest

@@ -9,6 +9,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Community scaffolding: issue/PR templates and Dependabot for the cargo
   and github-actions ecosystems.
+- `cargo vet` in CI: new dependencies fail until audited or consciously
+  exempted; audits imported from Mozilla, Google, and Bytecode Alliance.
 - Adversarial-input harness: every tool is exercised with arbitrary bytes
   in `cargo test` (no panics; chunk-split-independent streaming), plus
   cargo-fuzz targets per pack running weekly in CI.

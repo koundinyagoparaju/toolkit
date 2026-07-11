@@ -27,7 +27,9 @@ review, and the site never loads code from anywhere but this repo.
 - **Dependencies**: pure-Rust only, well-maintained, genuinely needed —
   hand-roll trivial things (we hand-rolled hex and jwt-decode). New
   dependencies get extra scrutiny; `default-features = false` wherever
-  possible. CI runs `cargo audit` on every PR.
+  possible. CI runs `cargo audit` (advisories) and `cargo vet`
+  (supply-chain audits) on every PR — a new dependency fails CI until
+  it's audited or consciously exempted in `supply-chain/config.toml`.
 - **Input discipline**: be liberal in what you accept (strip whitespace,
   accept common variants), precise in your error messages.
 
