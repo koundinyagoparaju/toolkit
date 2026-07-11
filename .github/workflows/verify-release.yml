@@ -1,0 +1,60 @@
+# Proof the published release actually works: on every OS we ship for,
+# install exactly the way a user would (the install scripts, against the
+# real release assets) and execute the binary. Runs automatically when a
+# release publishes; workflow_dispatch re-checks the latest release.
+#
+# Exists because v0.2.0–v0.4.0 shipped empty macOS archives whose
+# checksums verified fine — only executing the artifact catches that
+# whole class.
+name: Verify release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  unix:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install from the published release and run
+        run: |
+          set -euo pipefail
+          sh scripts/install.sh
+          export PATH="$HOME/.local/bin:$PATH"
+          toolkit --version
+          out="$(toolkit run base64-encode hi)"
+          test "$out" = "aGk=" || { echo "unexpected output: $out"; exit 1; }
+
+      # macos-latest is arm64 with Rosetta 2 — also execute the x86_64
+      # artifact so both mac targets are proven, not just packaged.
+      - name: Run the x86_64 artifact under Rosetta
+        if: matrix.os == 'macos-latest'
+        run: |
+          set -euo pipefail
+          tag="$(curl -fsSL https://api.github.com/repos/${{ github.repository }}/releases/latest | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+          curl -fsSL -o x86.tar.gz "https://github.com/${{ github.repository }}/releases/download/$tag/toolkit-macos-x86_64.tar.gz"
+          tar -xzf x86.tar.gz
+          out="$(./toolkit run base64-encode hi)"
+          test "$out" = "aGk=" || { echo "unexpected output: $out"; exit 1; }
+
+  windows:
+    name: windows-latest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install from the published release and run
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          ./scripts/install.ps1
+          $exe = Join-Path $env:LOCALAPPDATA "toolkit\bin\toolkit.exe"
+          & $exe --version
+          $out = & $exe run base64-encode hi
+          if ($out -ne "aGk=") { throw "unexpected output: $out" }

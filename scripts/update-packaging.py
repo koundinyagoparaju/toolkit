@@ -25,24 +25,22 @@ class Toolkit < Formula
   version "{version}"
   license "Apache-2.0"
 
-  base = "https://github.com/{repo}/releases/download/v{version}"
-
   on_macos do
     if Hardware::CPU.arm?
-      url "#{{base}}/toolkit-macos-aarch64.tar.gz"
+      url "https://github.com/{repo}/releases/download/v{version}/toolkit-macos-aarch64.tar.gz"
       sha256 "{macos_arm}"
     else
-      url "#{{base}}/toolkit-macos-x86_64.tar.gz"
+      url "https://github.com/{repo}/releases/download/v{version}/toolkit-macos-x86_64.tar.gz"
       sha256 "{macos_x86}"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "#{{base}}/toolkit-linux-aarch64.tar.gz"
+      url "https://github.com/{repo}/releases/download/v{version}/toolkit-linux-aarch64.tar.gz"
       sha256 "{linux_arm}"
     else
-      url "#{{base}}/toolkit-linux-x86_64.tar.gz"
+      url "https://github.com/{repo}/releases/download/v{version}/toolkit-linux-x86_64.tar.gz"
       sha256 "{linux_x86}"
     end
   end
