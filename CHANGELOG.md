@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-11
+
 ### Added
 - The install scripts refresh previously set-up shell completions on
   every update, so completions always match the installed version (they
@@ -93,7 +95,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Reproducible builds with provenance attestation; five-platform binaries;
   `curl | sh` installer.
 
-[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/koundinyagoparaju/toolkit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.2.0...v0.3.0
