@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-11
+
 ### Added
 - Completions now cover tool options: `--set <TAB>` offers the selected
   tool's option keys, `--set key=<TAB>` its enum/bool values (bash, zsh,
@@ -101,7 +103,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Reproducible builds with provenance attestation; five-platform binaries;
   `curl | sh` installer.
 
-[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/koundinyagoparaju/toolkit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.3.0...v0.4.0
