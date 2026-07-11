@@ -14,6 +14,7 @@
 pub mod abi;
 mod chain;
 mod data;
+pub mod exercise;
 mod manifest;
 mod options;
 pub mod stream;

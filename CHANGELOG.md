@@ -9,10 +9,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Community scaffolding: issue/PR templates and Dependabot for the cargo
   and github-actions ecosystems.
-- Fuzz targets for the hand-rolled decoders (base64, hex, url, gzip) and
-  the image/QR/XML parsers.
-- Web loader verifies each wasm pack against a sha256 pinned in
-  `manifests.json` before instantiating it.
+- Adversarial-input harness: every tool is exercised with arbitrary bytes
+  in `cargo test` (no panics; chunk-split-independent streaming), plus
+  cargo-fuzz targets per pack running weekly in CI.
+- Web loader verifies each wasm pack against a pinned sha256
+  (`wasm/integrity.json`) before instantiating it.
+
+### Fixed
+- `color-convert` panicked (instead of erroring) on hex notation
+  containing multibyte characters, e.g. `#ééé` — found by the new fuzzer.
 
 ## [0.1.0] - 2026-07-10
 

@@ -1,0 +1,41 @@
+# Coverage-guided fuzzing of every pack. The same harness runs (briefly,
+# deterministically) inside `cargo test` on each PR; this job lets
+# libFuzzer explore for minutes at a time on a schedule, catching what
+# fixed seeds can't. Found inputs are uploaded as artifacts so a failure
+# is reproducible with `cargo +nightly fuzz run <target> <artifact>`.
+name: Fuzz
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "14 4 * * 1" # weekly, Monday 04:14 UTC
+
+jobs:
+  fuzz:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [text, image, crypto, data]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-fuzz
+            fuzz/target
+          key: fuzz-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'fuzz/Cargo.toml') }}
+      - run: rustup toolchain install nightly --profile minimal
+      - run: command -v cargo-fuzz || cargo install cargo-fuzz --locked
+      - name: Fuzz for 5 minutes
+        run: cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=300
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: fuzz/artifacts
+          if-no-files-found: ignore

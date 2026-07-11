@@ -1,0 +1,51 @@
+# Coverage-guided fuzzing (cargo-fuzz / libFuzzer). Not a workspace member:
+# libfuzzer-sys needs nightly, while the workspace pins stable. Run with:
+#   cargo +nightly fuzz run text    # or image / crypto / data
+# The targets drive the same harness (toolkit_core::exercise) that the
+# packs' property tests run on every PR — libFuzzer just explores deeper.
+[package]
+name = "toolkit-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+toolkit-core = { path = "../crates/core" }
+toolkit-pack-text = { path = "../crates/packs/text" }
+toolkit-pack-image = { path = "../crates/packs/image" }
+toolkit-pack-crypto = { path = "../crates/packs/crypto" }
+toolkit-pack-data = { path = "../crates/packs/data" }
+
+[[bin]]
+name = "text"
+path = "fuzz_targets/text.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "image"
+path = "fuzz_targets/image.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "crypto"
+path = "fuzz_targets/crypto.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "data"
+path = "fuzz_targets/data.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

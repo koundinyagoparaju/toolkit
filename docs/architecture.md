@@ -109,9 +109,19 @@ The core is deliberately inert: anything environmental is injected by a
 ## Build & release pipeline
 
 - `scripts/build-web-assets.sh`: packs → wasm, catalog → `manifests.json`,
-  chain library → `web/public/chains/`.
+  chain library → `web/public/chains/`, plus `integrity.json` (sha256 per
+  pack) — the web loader refuses to instantiate a pack whose digest
+  doesn't match its pin.
 - CI (every PR): fmt, clippy `-D warnings`, full tests, wasm+web build,
   `cargo audit` (this gate has caught real RUSTSEC advisories).
+- Adversarial inputs: `toolkit_core::exercise` drives every tool with
+  arbitrary bytes and checks two invariants — no panics (a panic aborts
+  the whole wasm instance in the browser) and streaming output identical
+  under any chunk split. Each pack runs it over a seeded corpus in
+  `cargo test`; the `fuzz/` targets run the same harness under libFuzzer
+  (`cargo +nightly fuzz run text|image|crypto|data`) on a weekly CI
+  schedule. This has already caught a real panic (multibyte input to the
+  color parser).
 - Tag `v*`: five-platform static binaries + `SHA256SUMS` published as a
   GitHub Release — the exact artifacts `scripts/install.sh` verifies.
 - Push to `main`: the web app deploys to GitHub Pages. The CSP lives in a

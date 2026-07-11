@@ -3,5 +3,10 @@
 web/dist
 web/public/wasm
 web/public/chains
+fuzz/target
+fuzz/corpus
+fuzz/artifacts
+fuzz/coverage
+fuzz/Cargo.lock
 .DS_Store
 .idea
