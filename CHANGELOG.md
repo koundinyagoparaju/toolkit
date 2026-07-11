@@ -6,6 +6,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- The chain library is embedded in the CLI binary: `toolkit chains` and
+  `toolkit chain -n <name>` work from any directory, no repo checkout
+  needed. User and project files with the same name override built-ins.
+
 ### Changed
 - `toolkit list` prints an aligned table (name, signature, description)
   with descriptions wrapped to the terminal width, instead of tab-separated

@@ -3,6 +3,17 @@
 
 mod manifests_cmd;
 
+include!(concat!(env!("OUT_DIR"), "/builtin_chains.rs"));
+
+/// A built-in chain's JSON by name (user and project files take priority
+/// at the call sites).
+fn builtin_chain(name: &str) -> Option<&'static str> {
+    BUILTIN_CHAINS
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map(|(_, json)| *json)
+}
+
 use clap::{Parser, Subcommand};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -54,7 +65,7 @@ enum Command {
         #[arg(short, long, conflicts_with = "expression")]
         file: Option<PathBuf>,
         /// Load a named chain from the library (~/.config/toolkit/chains,
-        /// then the --chains-dir)
+        /// then the --chains-dir, then the chains built into this binary)
         #[arg(short, long, conflicts_with_all = ["expression", "file"])]
         name: Option<String>,
         /// Project chain library directory
@@ -156,6 +167,7 @@ fn complete_candidates(
                     (path.extension()? == "json")
                         .then(|| path.file_stem()?.to_str().map(String::from))?
                 })
+                .chain(BUILTIN_CHAINS.iter().map(|(n, _)| n.to_string()))
                 .collect();
             names.sort();
             names.dedup();
@@ -547,12 +559,37 @@ fn run(cli: Cli) -> Result<(), String> {
             run_chain_streaming(&chain, &registry, &input, output.as_deref(), output_dir)
         }
         Command::Chains { chains_dir } => {
+            fn print_chain(slug: &str, origin: &str, chain: &Chain) {
+                println!("{slug}  [{origin}]  {}", chain.description);
+                println!(
+                    "    steps: {}",
+                    chain
+                        .nodes
+                        .iter()
+                        .map(|n| n.tool.as_str())
+                        .collect::<Vec<_>>()
+                        .join(" | ")
+                );
+                for p in &chain.params {
+                    let default = p
+                        .spec
+                        .default
+                        .as_ref()
+                        .map(|d| format!(" (default: {d})"))
+                        .unwrap_or_default();
+                    println!(
+                        "    --set {}=…{default}  {}",
+                        p.spec.name, p.spec.description
+                    );
+                }
+            }
+
             let mut dirs = Vec::new();
             if let Some(user) = user_chains_dir() {
                 dirs.push(("user", user));
             }
             dirs.push(("project", chains_dir));
-            let mut any = false;
+            let mut seen = std::collections::HashSet::new();
             for (origin, dir) in dirs {
                 let Ok(entries) = std::fs::read_dir(&dir) else {
                     continue;
@@ -573,34 +610,19 @@ fn run(cli: Cli) -> Result<(), String> {
                         eprintln!("warning: {} is not a valid chain", path.display());
                         continue;
                     };
-                    any = true;
                     let slug = path.file_stem().unwrap_or_default().to_string_lossy();
-                    println!("{slug}  [{origin}]  {}", chain.description);
-                    println!(
-                        "    steps: {}",
-                        chain
-                            .nodes
-                            .iter()
-                            .map(|n| n.tool.as_str())
-                            .collect::<Vec<_>>()
-                            .join(" | ")
-                    );
-                    for p in &chain.params {
-                        let default = p
-                            .spec
-                            .default
-                            .as_ref()
-                            .map(|d| format!(" (default: {d})"))
-                            .unwrap_or_default();
-                        println!(
-                            "    --set {}=…{default}  {}",
-                            p.spec.name, p.spec.description
-                        );
-                    }
+                    seen.insert(slug.to_string());
+                    print_chain(&slug, origin, &chain);
                 }
             }
-            if !any {
-                println!("no chains found (looked in ~/.config/toolkit/chains and ./chains)");
+            // The library shipped inside the binary, minus anything a
+            // user or project file overrides.
+            for (name, json) in BUILTIN_CHAINS {
+                if seen.contains(*name) {
+                    continue;
+                }
+                let chain: Chain = serde_json::from_str(json).expect("built-in chains are valid");
+                print_chain(name, "built-in", &chain);
             }
             Ok(())
         }
@@ -1112,18 +1134,23 @@ fn load_chain(
             .chain([chains_dir.to_path_buf()])
             .map(|d| d.join(format!("{name}.json")))
             .collect();
-        let path = candidates.iter().find(|p| p.exists()).ok_or_else(|| {
-            format!(
-                "no chain named \"{name}\" (looked for {})",
-                candidates
-                    .iter()
-                    .map(|p| p.display().to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        })?;
-        std::fs::read_to_string(path)
-            .map_err(|e| format!("cannot read chain \"{name}\" from {}: {e}", path.display()))?
+        match candidates.iter().find(|p| p.exists()) {
+            Some(path) => std::fs::read_to_string(path).map_err(|e| {
+                format!("cannot read chain \"{name}\" from {}: {e}", path.display())
+            })?,
+            None => builtin_chain(&name)
+                .ok_or_else(|| {
+                    format!(
+                        "no chain named \"{name}\" (not built in; also looked for {})",
+                        candidates
+                            .iter()
+                            .map(|p| p.display().to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                })?
+                .to_string(),
+        }
     } else if let Some(expr) = expression {
         return Chain::from_pipe_syntax(&expr).map_err(|e| e.to_string());
     } else {
@@ -1224,6 +1251,19 @@ mod tests {
         );
         assert!(keys.contains(&"width=".to_string()), "{keys:?}");
         assert!(keys.contains(&"mode=".to_string()));
+    }
+
+    #[test]
+    fn builtin_chains_are_present_and_valid() {
+        let registry = registry();
+        assert!(!BUILTIN_CHAINS.is_empty());
+        for (name, json) in BUILTIN_CHAINS {
+            let chain: Chain = serde_json::from_str(json)
+                .unwrap_or_else(|e| panic!("built-in chain {name} is not valid JSON: {e}"));
+            chain
+                .validate(&registry)
+                .unwrap_or_else(|e| panic!("built-in chain {name} does not validate: {e}"));
+        }
     }
 
     #[test]

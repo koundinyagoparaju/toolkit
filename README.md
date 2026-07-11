@@ -125,7 +125,9 @@ toolkit completions powershell > "$env:LOCALAPPDATA\toolkit\completions.ps1"
 Add-Content $PROFILE '. "$env:LOCALAPPDATA\toolkit\completions.ps1"'
 ```
 
-Your own chain files go in `~/.config/toolkit/chains/` and run by name.
+The chain library ships inside the binary, so `toolkit chains` works
+anywhere. Your own chain files go in `~/.config/toolkit/chains/` and run
+by name; a file with the same name as a built-in overrides it.
 Chains are pure data, so dropping files there needs no code trust. To
 update the CLI, re-run the install one-liner (it checks your version) or
 use your package manager. The binary itself never updates itself; it has
