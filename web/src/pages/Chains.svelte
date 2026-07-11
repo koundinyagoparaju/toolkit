@@ -9,6 +9,13 @@
     audited tools can't. Open one in the builder to run or remix it, or
     <a href="#/builder">build your own</a>.
 </p>
+<p class="dim">
+    Every chain here also runs in your terminal:
+    <code>toolkit chain -n &lt;name&gt;</code> —
+    <a href="https://github.com/koundinyagoparaju/toolkit#cli" target="_blank" rel="noreferrer"
+        >install the CLI</a
+    >.
+</p>
 
 {#await loadChainLibrary()}
     <p class="dim">Loading chains…</p>

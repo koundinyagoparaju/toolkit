@@ -6,7 +6,15 @@
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh
+
+echo -n "$JWT" | toolkit chain 'jwt-decode | json-format'
+toolkit chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
+toolkit chain -n file-checksum -i backup.iso    # streams: gigabytes in a few MB of RAM
 ```
+
+The CLI is the same 52 tools and every chain as one static binary —
+pipe-friendly, scriptable, offline, and it deliberately contains no
+network code at all ([details](#cli)).
 
 Base64/32/58, URL and hex encoding, JWT inspection, JSON ↔ YAML/TOML/CSV,
 hashing and HMAC, timestamps, regex extraction, diffs, gzip, QR codes,

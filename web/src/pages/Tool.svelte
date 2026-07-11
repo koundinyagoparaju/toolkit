@@ -1,4 +1,5 @@
 <script>
+    import CliCommand from "../components/CliCommand.svelte";
     import OptionsForm from "../components/OptionsForm.svelte";
     import ValueInput from "../components/ValueInput.svelte";
     import ValueOutput from "../components/ValueOutput.svelte";
@@ -53,6 +54,23 @@
     });
 
     let progress = $state(0);
+
+    /** The terminal equivalent of the current tool + option values. */
+    let cliCommand = $derived.by(() => {
+        const quote = (v) => (/^[A-Za-z0-9._-]+$/.test(String(v)) ? String(v) : `'${String(v).replaceAll("'", `'\\''`)}'`);
+        const sets = Object.entries(options)
+            .filter(([, v]) => v !== undefined && v !== "")
+            .map(([k, v]) => ` --set ${k}=${quote(v)}`)
+            .join("");
+        if (!visiblePorts.length) return `toolkit run ${tool.name}${sets}`;
+        if (visiblePorts.length === 1 && !visiblePorts[0].multi) {
+            return `toolkit run ${tool.name}${sets} -i <file>`;
+        }
+        const ins = visiblePorts
+            .map((p) => (p.multi ? " -i <file> -i <file>" : ` -i ${p.name}=<file>`))
+            .join("");
+        return `toolkit run ${tool.name}${sets}${ins}`;
+    });
 
     async function run() {
         if (!ready) return;
@@ -185,6 +203,20 @@
                     <p class="dim">Generating…</p>
                 {/if}
             </section>
+
+            <section class="cli-hint">
+                <h2>Same tool, in your terminal</h2>
+                <CliCommand command={cliCommand} />
+                <p class="dim">
+                    The CLI is one static binary with every tool and chain — pipe-friendly,
+                    offline, and it streams (gigabytes in a few MB of memory).
+                    <a
+                        href="https://github.com/koundinyagoparaju/toolkit#cli"
+                        target="_blank"
+                        rel="noreferrer">Install it</a
+                    >.
+                </p>
+            </section>
         </div>
         {#if tool.options.length}
             <aside class="card">
@@ -196,6 +228,10 @@
 {/if}
 
 <style>
+    .cli-hint p {
+        margin-top: 0.5rem;
+        font-size: 0.82rem;
+    }
     .layout {
         display: grid;
         grid-template-columns: 1fr;
