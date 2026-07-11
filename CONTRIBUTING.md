@@ -64,3 +64,5 @@ hand-roll. Follow [docs/adding-a-tool.md](docs/adding-a-tool.md):
 
 Comment on an issue labelled `good first tool`, or open a
 [tool request](.github/ISSUE_TEMPLATE/tool_request.md) with your idea.
+For open-ended ideas and feedback, use
+[Discussions](https://github.com/koundinyagoparaju/toolkit/discussions).

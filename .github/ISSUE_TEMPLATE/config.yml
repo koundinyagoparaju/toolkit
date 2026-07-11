@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Ideas, suggestions & feedback
+    url: https://github.com/koundinyagoparaju/toolkit/discussions
+    about: Not a bug or a concrete tool request? Start a discussion — ideas and votes live there.
   - name: Concepts & contributor docs
     url: https://github.com/koundinyagoparaju/toolkit/blob/main/docs/concepts.md
     about: The mental model — values, ports, packs, chains, streaming, trust.

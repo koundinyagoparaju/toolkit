@@ -1,0 +1,18 @@
+# Form shown when opening a discussion in the "Ideas" category.
+title: "[Idea] "
+body:
+  - type: textarea
+    attributes:
+      label: What would you like to see?
+      description: >
+        A tool, a chain, a workflow — anything. If it's a tool: what goes
+        in, what comes out? Remember everything here runs on-device, so
+        nothing that needs a server can fly.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What do you use today instead?
+      description: >
+        E.g. "some website I paste sensitive data into" — that's the
+        exact gap this project exists to fill.
