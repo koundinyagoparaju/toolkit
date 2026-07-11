@@ -53,12 +53,25 @@ jobs:
       - name: Package (tar.gz)
         if: ${{ !contains(matrix.asset, '.zip') }}
         run: |
+          set -euo pipefail
           cp "target/${{ matrix.target }}/release/toolkit" toolkit
           # Deterministic archive: fixed mtime/owner/order, gzip without
           # timestamp — so the tarball hash is reproducible, not just the
-          # binary inside it.
-          tar --sort=name --owner=0 --group=0 --numeric-owner \
+          # binary inside it. The flags are GNU-tar-only; macOS ships BSD
+          # tar as `tar` and GNU tar as `gtar` (this once silently
+          # produced empty macOS archives: BSD tar rejected the flags and
+          # without pipefail gzip compressed an empty stream).
+          TAR="$(command -v gtar || command -v tar)"
+          "$TAR" --sort=name --owner=0 --group=0 --numeric-owner \
               --mtime='UTC 2020-01-01' -cf - toolkit | gzip -n > "${{ matrix.asset }}"
+
+      - name: Sanity-check the archive
+        if: ${{ !contains(matrix.asset, '.zip') }}
+        run: |
+          set -euo pipefail
+          tar -tzf "${{ matrix.asset }}" | grep -qx toolkit
+          size=$(wc -c < "${{ matrix.asset }}")
+          test "$size" -gt 1000000 || { echo "archive suspiciously small: $size bytes"; exit 1; }
 
       - name: Package (zip)
         if: contains(matrix.asset, '.zip')

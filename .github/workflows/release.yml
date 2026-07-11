@@ -30,6 +30,10 @@ jobs:
           cd assets
           sha256sum * > SHA256SUMS
           cat SHA256SUMS
+          # Tripwire: no two assets may hash identically — that's how an
+          # empty-archive bug once shipped for three releases running.
+          test "$(cut -d' ' -f1 SHA256SUMS | sort | uniq -d | wc -l)" -eq 0 \
+            || { echo "duplicate asset hashes — something produced identical files"; exit 1; }
 
       # Cryptographic provenance: proves each artifact was built by THIS
       # repository's workflow at this commit (verify with `gh attestation

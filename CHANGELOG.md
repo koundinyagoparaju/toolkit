@@ -6,6 +6,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-11
+
+### Fixed
+- macOS release archives were 20-byte empty files in v0.2.0 through
+  v0.4.0: the deterministic-tar flags are GNU-only, macOS runners run
+  BSD tar, and without pipefail the failure was silent. The build now
+  uses gtar on macOS, sanity-checks every archive, and the release job
+  refuses duplicate asset hashes. Linux and Windows assets were never
+  affected.
+
 ## [0.4.0] - 2026-07-11
 
 ### Added
@@ -75,7 +85,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Reproducible builds with provenance attestation; five-platform binaries;
   `curl | sh` installer.
 
-[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/koundinyagoparaju/toolkit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.1.0...v0.2.0
