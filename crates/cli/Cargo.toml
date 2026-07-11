@@ -18,3 +18,6 @@ serde_json = { workspace = true }
 clap = { version = "4", features = ["derive", "string"] }
 getrandom = "0.4"
 clap_complete = "4.6.7"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

@@ -390,6 +390,14 @@ fn registry() -> Registry {
 }
 
 fn main() {
+    // Rust ignores SIGPIPE at startup, which turns `toolkit list | head`
+    // into a "failed printing to stdout: Broken pipe" panic once the
+    // reader goes away. Restore the default so a closed pipe ends the
+    // process quietly, like every other CLI.
+    #[cfg(unix)]
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
     if let Err(message) = run(Cli::parse()) {
         eprintln!("error: {message}");
         std::process::exit(1);

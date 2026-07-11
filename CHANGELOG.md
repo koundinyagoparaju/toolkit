@@ -6,6 +6,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- Piping into a command that exits early (`toolkit list | head`, or a
+  typo'd pipe target) panicked with "failed printing to stdout: Broken
+  pipe". The CLI now restores default SIGPIPE handling on Unix and dies
+  quietly like other tools.
+
 ## [0.8.0] - 2026-07-11
 
 ### Added
