@@ -9,8 +9,12 @@ use base64::Engine;
 use serde_json::{json, Value};
 use std::io::{BufRead, Write};
 use toolkit_core::{
-    run_tool, DataValue, InputSpec, Inputs, Manifest, OptionKind, Registry, ENTROPY_LEN,
+    run_tool, Chain, DataValue, InputSpec, Inputs, Manifest, NamedSource, OptionKind, Registry,
+    ValueMeta, ENTROPY_LEN,
 };
+
+/// Synthetic tool name for running a whole toolchain in one call.
+const RUN_CHAIN: &str = "run-chain";
 
 const PROTOCOL_VERSION: &str = "2024-11-05";
 
@@ -65,7 +69,7 @@ fn dispatch(registry: &Registry, method: &str, params: &Value) -> Result<Value, 
 fn tool_list(registry: &Registry) -> Vec<Value> {
     let mut manifests = registry.manifests();
     manifests.sort_by(|a, b| a.name.cmp(&b.name));
-    manifests
+    let mut tools: Vec<Value> = manifests
         .iter()
         .map(|m| {
             json!({
@@ -74,7 +78,31 @@ fn tool_list(registry: &Registry) -> Vec<Value> {
                 "inputSchema": input_schema(m),
             })
         })
-        .collect()
+        .collect();
+    tools.push(run_chain_tool());
+    tools
+}
+
+/// The synthetic run-chain tool: compose several tools into one call so
+/// the agent doesn't shuttle intermediate data back and forth.
+fn run_chain_tool() -> Value {
+    json!({
+        "name": RUN_CHAIN,
+        "description": "Run a toolchain in one call. `chain` is either a pipe expression like \"base64-decode | json-format indent=2\" or a chain-definition object ({version, nodes, edges}); `input` is the value fed to the chain. Returns the output(s) of the chain's final step(s).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "chain": {
+                    "description": "a pipe expression string, or a chain-definition object",
+                },
+                "input": {
+                    "type": "string",
+                    "description": "text fed to the chain's entry",
+                },
+            },
+            "required": ["chain", "input"],
+        },
+    })
 }
 
 /// The sole non-entropy input port is exposed as "input"; multiple ports
@@ -167,20 +195,75 @@ fn call_tool(registry: &Registry, params: &Value) -> Result<Value, (i64, String)
         .get("name")
         .and_then(Value::as_str)
         .ok_or((-32602, "missing tool name".into()))?;
-    let tool = registry
-        .find(name)
-        .ok_or((-32602, format!("unknown tool: {name}")))?;
-    let manifest = tool.manifest();
     let args = params.get("arguments").cloned().unwrap_or(json!({}));
 
-    // A tool error is a normal MCP result with isError, not a protocol
-    // error — the agent should see the message and adjust.
-    match run_call(registry, &manifest, &args) {
-        Ok(value) => Ok(json!({ "content": [ output_content(&value) ], "isError": false })),
+    // A tool/chain error is a normal MCP result with isError, not a
+    // protocol error — the agent should see the message and adjust.
+    let outcome = if name == RUN_CHAIN {
+        run_chain_call(registry, &args)
+    } else {
+        match registry.find(name) {
+            Some(tool) => {
+                run_call(registry, &tool.manifest(), &args).map(|v| vec![output_content(&v)])
+            }
+            None => return Err((-32602, format!("unknown tool: {name}"))),
+        }
+    };
+    match outcome {
+        Ok(content) => Ok(json!({ "content": content, "isError": false })),
         Err(message) => Ok(json!({
             "content": [ { "type": "text", "text": message } ],
             "isError": true,
         })),
+    }
+}
+
+fn run_chain_call(registry: &Registry, args: &Value) -> Result<Vec<Value>, String> {
+    let chain = match args.get("chain") {
+        Some(Value::String(expr)) => Chain::from_pipe_syntax(expr).map_err(|e| e.to_string())?,
+        Some(obj @ Value::Object(_)) => serde_json::from_value::<Chain>(obj.clone())
+            .map_err(|e| format!("invalid chain: {e}"))?,
+        _ => return Err("\"chain\" must be a pipe expression or a chain object".into()),
+    };
+    let input = args
+        .get("input")
+        .and_then(Value::as_str)
+        .ok_or("missing string \"input\"")?;
+
+    // Ad-hoc chains take a single input; declared multi-input chains would
+    // need a named-value map (not exposed here yet).
+    let name = chain.sole_input_name().map_err(|e| e.to_string())?;
+    let mut reader = std::io::Cursor::new(input.as_bytes().to_vec());
+    let mut sources = [NamedSource {
+        name,
+        meta: ValueMeta {
+            data_type: toolkit_core::DataType::Bytes,
+            format: String::new(),
+        },
+        reader: &mut reader,
+    }];
+    let mut entropy = |n: usize| crate::os_entropy(n);
+    let outcome = chain
+        .execute_streaming_multi(registry, &mut sources, true, &mut entropy, &mut |_, _| {
+            Ok(())
+        })
+        .map_err(|e| e.to_string())?;
+
+    // One sink -> its value; several -> a labelled block per sink.
+    if outcome.sinks.len() == 1 {
+        let value = &outcome.outputs[&outcome.sinks[0]];
+        Ok(vec![output_content(value)])
+    } else {
+        Ok(outcome
+            .sinks
+            .iter()
+            .filter_map(|id| outcome.outputs.get(id).map(|v| (id, v)))
+            .map(|(id, v)| {
+                let mut c = output_content(v);
+                c["_sink"] = json!(id);
+                c
+            })
+            .collect())
     }
 }
 
@@ -352,6 +435,48 @@ mod tests {
         // Unknown method / tool are protocol errors.
         assert!(dispatch(&reg, "nope", &Value::Null).is_err());
         assert!(call_tool(&reg, &json!({ "name": "nope", "arguments": {} })).is_err());
+    }
+
+    #[test]
+    fn run_chain_pipe_and_inline_json() {
+        let reg = crate::registry();
+        // run-chain is advertised.
+        let list = dispatch(&reg, "tools/list", &Value::Null).unwrap();
+        assert!(list["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["name"] == RUN_CHAIN));
+
+        // Pipe expression.
+        let r = call_tool(
+            &reg,
+            &json!({ "name": RUN_CHAIN, "arguments": {
+                "chain": "base64-decode | json-format", "input": "eyJhIjoxfQ==" } }),
+        )
+        .unwrap();
+        assert_eq!(r["isError"], false);
+        assert!(r["content"][0]["text"].as_str().unwrap().contains("\"a\""));
+
+        // Inline chain object.
+        let r = call_tool(
+            &reg,
+            &json!({ "name": RUN_CHAIN, "arguments": {
+                "chain": { "version": 1,
+                           "nodes": [{"id": "h", "tool": "hex-encode"}],
+                           "edges": [] },
+                "input": "hi" } }),
+        )
+        .unwrap();
+        assert_eq!(r["content"][0]["text"], "6869");
+
+        // A bad chain is an isError result, not a protocol error.
+        let r = call_tool(
+            &reg,
+            &json!({ "name": RUN_CHAIN, "arguments": { "chain": "no-such-tool", "input": "x" } }),
+        )
+        .unwrap();
+        assert_eq!(r["isError"], true);
     }
 
     #[test]

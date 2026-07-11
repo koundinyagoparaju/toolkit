@@ -45,6 +45,32 @@ claude mcp add toolkit -- toolkit mcp
   schema. Randomness for generators (uuid, password-gen) is filled from
   the OS — the agent doesn't provide it.
 
+## Running a whole chain in one call
+
+The `run-chain` tool composes tools without round-trips. `chain` is a
+pipe expression or an inline chain object; `input` is the value fed to
+the chain's entry:
+
+```json
+{"name": "run-chain", "arguments": {
+  "chain": "base64-decode | json-format indent=2",
+  "input": "eyJoZWxsbyI6IndvcmxkIn0="}}
+```
+
+An inline definition works too:
+
+```json
+{"name": "run-chain", "arguments": {
+  "chain": {"version": 1,
+            "nodes": [{"id": "d", "tool": "base64-decode"},
+                      {"id": "s", "tool": "text-stats"}],
+            "edges": [{"from": "d", "to": "s"}]},
+  "input": "aGVsbG8="}}
+```
+
+Single-input chains only for now; the output is the final step's result
+(labelled per sink when a chain has several).
+
 Output comes back as text: strings and JSON directly, byte output as text
 when it's valid UTF-8 (else base64). A tool error is returned as a normal
 result with `isError: true` and the message, so the agent can adjust.
