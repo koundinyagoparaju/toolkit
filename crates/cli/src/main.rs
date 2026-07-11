@@ -389,22 +389,79 @@ fn describe_inputs(m: &toolkit_core::Manifest) -> String {
     }
 }
 
+/// Greedy word-wrap; words longer than the width go on their own line.
+fn wrap(text: &str, width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    for word in text.split_whitespace() {
+        if !line.is_empty() && line.chars().count() + 1 + word.chars().count() > width {
+            lines.push(std::mem::take(&mut line));
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(word);
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+    lines
+}
+
+/// Three aligned columns; the last wraps to the terminal width ($COLUMNS,
+/// defaulting to 100) with a hanging indent.
+fn print_table(header: (&str, &str, &str), rows: &[(String, String, String)]) {
+    let count = |s: &str| s.chars().count();
+    let w1 = rows
+        .iter()
+        .map(|r| count(&r.0))
+        .chain([count(header.0)])
+        .max()
+        .unwrap_or(0);
+    let w2 = rows
+        .iter()
+        .map(|r| count(&r.1))
+        .chain([count(header.1)])
+        .max()
+        .unwrap_or(0);
+    let total: usize = std::env::var("COLUMNS")
+        .ok()
+        .and_then(|c| c.parse().ok())
+        .unwrap_or(100);
+    let desc_width = total.saturating_sub(w1 + w2 + 4).max(30);
+
+    println!("{:<w1$}  {:<w2$}  {}", header.0, header.1, header.2);
+    for (name, sig, desc) in rows {
+        for (i, line) in wrap(desc, desc_width).iter().enumerate() {
+            if i == 0 {
+                println!("{name:<w1$}  {sig:<w2$}  {line}");
+            } else {
+                println!("{:<w1$}  {:<w2$}  {line}", "", "");
+            }
+        }
+    }
+}
+
 fn run(cli: Cli) -> Result<(), String> {
     let registry = registry();
     match cli.command {
         Command::List => {
             let mut manifests = registry.manifests();
             manifests.sort_by(|a, b| a.name.cmp(&b.name));
-            let width = manifests.iter().map(|m| m.name.len()).max().unwrap_or(0);
-            for m in manifests {
-                println!(
-                    "{:width$}  {} -> {}\t{}",
-                    m.name,
-                    describe_inputs(&m),
-                    m.output.name(),
-                    m.description
-                );
-            }
+            let rows: Vec<(String, String, String)> = manifests
+                .iter()
+                .map(|m| {
+                    (
+                        m.name.clone(),
+                        format!("{} -> {}", describe_inputs(m), m.output.name()),
+                        m.description.clone(),
+                    )
+                })
+                .collect();
+            print_table(("NAME", "INPUT -> OUTPUT", "DESCRIPTION"), &rows);
             Ok(())
         }
         Command::Info { tool } => {
@@ -1167,6 +1224,13 @@ mod tests {
         );
         assert!(keys.contains(&"width=".to_string()), "{keys:?}");
         assert!(keys.contains(&"mode=".to_string()));
+    }
+
+    #[test]
+    fn wrap_breaks_on_words_and_handles_long_ones() {
+        assert_eq!(wrap("a bb ccc", 4), vec!["a bb", "ccc"]);
+        assert_eq!(wrap("overlongword ok", 5), vec!["overlongword", "ok"]);
+        assert_eq!(wrap("", 10), vec![""]);
     }
 
     #[test]

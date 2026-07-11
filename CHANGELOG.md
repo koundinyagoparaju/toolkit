@@ -6,6 +6,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- `toolkit list` prints an aligned table (name, signature, description)
+  with descriptions wrapped to the terminal width, instead of tab-separated
+  lines that zigzagged with the signature column.
+
 ## [0.7.0] - 2026-07-11
 
 ### Added
