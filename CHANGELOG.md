@@ -6,6 +6,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Completions now cover tool options: `--set <TAB>` offers the selected
+  tool's option keys, `--set key=<TAB>` its enum/bool values (bash, zsh,
+  fish — the scripts call back into the binary, which knows the
+  manifests). Hidden subcommands no longer leak into suggestions.
+
 ## [0.5.0] - 2026-07-11
 
 ### Added

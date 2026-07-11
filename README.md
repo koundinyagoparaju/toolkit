@@ -118,7 +118,10 @@ toolkit chain --name image-web-ready --set width=800 -i photo.png -o photo.jpg
 toolkit chain --file my-chain.json -i input.txt
 ```
 
-Shell completions (with tool names) for bash, zsh, fish, and PowerShell.
+Shell completions for bash, zsh, fish, and PowerShell — including tool
+names after `run`, and option keys and enum values after `--set`
+(`toolkit run hash --set algorithm=<TAB>` offers the algorithms; bash,
+zsh, and fish).
 Put them at these paths and the installer refreshes them on every update:
 
 ```sh

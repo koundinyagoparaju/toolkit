@@ -93,6 +93,169 @@ enum Command {
     /// Emit the full tool catalog as JSON (used by the web build)
     #[command(hide = true)]
     Manifests,
+    /// Completion callback: candidates for `run --set` given the words
+    /// typed so far (the completion scripts call this; not for humans)
+    #[command(hide = true, name = "__complete")]
+    CompleteCallback {
+        current: String,
+        #[arg(last = true, num_args = 0..)]
+        words: Vec<String>,
+    },
+}
+
+/// Post-process generated completion scripts so `run --set` completes
+/// real option keys and enum/bool values: the scripts call back into the
+/// binary (`toolkit __complete`) at completion time, which knows the
+/// manifests. Static generators can't express context-dependent values.
+fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[String]) -> String {
+    // clap_complete suggests hidden subcommands (hide covers --help, not
+    // completions); scrub them from every shell's suggestion lists. The
+    // dispatch arms stay — they're only reachable by typing the name.
+    const HIDDEN: [&str; 2] = ["manifests", "__complete"];
+    let script: String = match shell {
+        clap_complete::Shell::Zsh | clap_complete::Shell::Fish => {
+            script
+                .lines()
+                .filter(|line| {
+                    !HIDDEN.iter().any(|h| {
+                        line.trim_start().starts_with(&format!("'{h}:"))
+                            || line.contains(&format!("-a \"{h}\""))
+                    })
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+                + "\n"
+        }
+        clap_complete::Shell::Bash => {
+            script
+                .lines()
+                .map(|line| {
+                    if line.trim_start().starts_with("opts=\"") {
+                        let mut l = line.to_string();
+                        for h in HIDDEN {
+                            l = l.replace(&format!(" {h} "), " ");
+                        }
+                        l
+                    } else {
+                        line.to_string()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+                + "\n"
+        }
+        _ => script,
+    };
+    match shell {
+        clap_complete::Shell::Zsh => {
+            // Rewire only the run subcommand's --set/-s (identified by
+            // its help text; chain's --set has different text).
+            let mut script = script
+                .lines()
+                .map(|line| {
+                    if line.contains("Set a tool option") {
+                        line.replace(":KEY=VALUE:_default", ":KEY=VALUE:_toolkit_set_values")
+                    } else {
+                        line.to_string()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            // Inside a subcommand's _arguments, $words is re-based at the
+            // subcommand ("run" ...), so the binary comes from $service.
+            let func = "\n_toolkit_set_values() {\n    local -a candidates\n    candidates=(${(f)\"$(\"${service:-toolkit}\" __complete \"${PREFIX}${SUFFIX}\" -- \"${words[@]}\" 2>/dev/null)\"})\n    (( ${#candidates} )) && compadd -S '' -- \"${candidates[@]}\"\n}\n\n";
+            // Define the function before the trailing dispatch block, so
+            // it exists on the very first completion invocation.
+            match script.find("if [ \"$funcstack[1]\" = \"_toolkit\" ]; then") {
+                Some(pos) => script.insert_str(pos, func),
+                None => script.push_str(func),
+            }
+            script
+        }
+        clap_complete::Shell::Bash => {
+            // Patch the two --set/-s arms inside the run section only.
+            let label = "toolkit__subcmd__run)";
+            let Some(run_start) = script.find(label) else {
+                return script;
+            };
+            // readline breaks words on '=', so `--set key=<cur>` arrives
+            // as prev="=" (or cur="="). Reassemble those shapes into the
+            // canonical prev="--set", cur="key=value" before the case.
+            let prologue = "\n            if [[ ${COMP_WORDS[COMP_CWORD]} == = && ( ${COMP_WORDS[COMP_CWORD-2]:-} == --set || ${COMP_WORDS[COMP_CWORD-2]:-} == -s ) ]]; then\n                prev=\"--set\"; cur=\"${COMP_WORDS[COMP_CWORD-1]}=\"\n            elif [[ ${COMP_WORDS[COMP_CWORD-1]:-} == = && ( ${COMP_WORDS[COMP_CWORD-3]:-} == --set || ${COMP_WORDS[COMP_CWORD-3]:-} == -s ) ]]; then\n                prev=\"--set\"; cur=\"${COMP_WORDS[COMP_CWORD-2]}=${cur}\"\n            fi";
+            let mut script = script;
+            script.insert_str(run_start + label.len(), prologue);
+            let run_end = script[run_start..]
+                .find("\n        toolkit__")
+                .map(|i| run_start + i)
+                .unwrap_or(script.len());
+            let old_arm = "COMPREPLY=($(compgen -f \"${cur}\"))\n                    return 0";
+            // Candidates come back as full key=value; when readline split
+            // at '=', it matches only the part after it, so strip the key.
+            let new_arm = "local setcands\n                    setcands=\"$(\"${COMP_WORDS[0]}\" __complete \"${cur}\" -- \"${COMP_WORDS[@]}\" 2>/dev/null)\"\n                    if [[ ${cur} == *=* ]]; then setcands=\"${setcands//${cur%%=*}=/}\"; fi\n                    COMPREPLY=($(compgen -W \"${setcands}\" -- \"${cur#*=}\"))\n                    [[ ${COMPREPLY-} == *= ]] && compopt -o nospace 2>/dev/null\n                    return 0";
+            let mut section = script[run_start..run_end].to_string();
+            for marker in ["--set)", "-s)"] {
+                if let Some(arm_pos) = section.find(marker) {
+                    if let Some(body_pos) = section[arm_pos..].find(old_arm) {
+                        let at = arm_pos + body_pos;
+                        section.replace_range(at..at + old_arm.len(), new_arm);
+                    }
+                }
+            }
+            format!("{}{}{}", &script[..run_start], section, &script[run_end..])
+        }
+        clap_complete::Shell::Fish => {
+            // The fish generator skips positional values: append tool-name
+            // completion for run, and option key/value completion for --set.
+            format!(
+                "{script}complete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -f -a \"{}\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -s s -l set -x -a \"(toolkit __complete (commandline -ct) -- (commandline -opc))\"\n",
+                tool_names.join(" ")
+            )
+        }
+        _ => script,
+    }
+}
+
+/// Candidates for completing `--set` on `toolkit run`: option names as
+/// "key=" while the key is being typed, enum/bool values once it has one.
+/// `words` is the full command line so far; the tool is the first
+/// non-flag word after `run` that isn't a value of a value-taking flag.
+fn complete_set_candidates(registry: &Registry, current: &str, words: &[String]) -> Vec<String> {
+    let value_flags = ["-i", "--input", "-o", "--output", "-s", "--set"];
+    let mut after_run = words.iter().skip_while(|w| w.as_str() != "run").skip(1);
+    let mut tool_name = None;
+    while let Some(word) = after_run.next() {
+        if value_flags.contains(&word.as_str()) {
+            after_run.next(); // skip the flag's value
+        } else if !word.starts_with('-') {
+            tool_name = Some(word.as_str());
+            break;
+        }
+    }
+    let Some(tool) = tool_name.and_then(|n| registry.find(n)) else {
+        return Vec::new();
+    };
+    let manifest = tool.manifest();
+    match current.split_once('=') {
+        None => manifest
+            .options
+            .iter()
+            .map(|o| format!("{}=", o.name))
+            .collect(),
+        Some((key, _)) => {
+            let Some(spec) = manifest.options.iter().find(|o| o.name == key) else {
+                return Vec::new();
+            };
+            match &spec.kind {
+                toolkit_core::OptionKind::Enum { values } => {
+                    values.iter().map(|v| format!("{key}={v}")).collect()
+                }
+                toolkit_core::OptionKind::Bool => {
+                    vec![format!("{key}=true"), format!("{key}=false")]
+                }
+                _ => Vec::new(),
+            }
+        }
+    }
 }
 
 /// The per-user chain library: $XDG_CONFIG_HOME/toolkit/chains,
@@ -309,14 +472,15 @@ fn run(cli: Cli) -> Result<(), String> {
                     a.value_parser(clap::builder::PossibleValuesParser::new(names.clone()))
                 })
             });
-            clap_complete::generate(shell, &mut cmd.clone(), "toolkit", &mut std::io::stdout());
-            // clap_complete's fish generator skips positional values; one
-            // extra line gives fish users tool-name completion too.
-            if shell == clap_complete::Shell::Fish {
-                println!(
-                    "complete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -f -a \"{}\"",
-                    names.join(" ")
-                );
+            let mut buf = Vec::new();
+            clap_complete::generate(shell, &mut cmd.clone(), "toolkit", &mut buf);
+            let script = String::from_utf8(buf).expect("completion scripts are UTF-8");
+            print!("{}", patch_completions(shell, script, &names));
+            Ok(())
+        }
+        Command::CompleteCallback { current, words } => {
+            for candidate in complete_set_candidates(&registry, &current, &words) {
+                println!("{candidate}");
             }
             Ok(())
         }
@@ -874,4 +1038,54 @@ fn write_single_output(value: DataValue, path: Option<&Path>) -> Result<(), Stri
 fn is_terminal(stdout: &std::io::StdoutLock<'_>) -> bool {
     use std::io::IsTerminal;
     stdout.is_terminal()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn w(parts: &[&str]) -> Vec<String> {
+        parts.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn set_completion_lists_option_keys_then_values() {
+        let registry = registry();
+        let keys = complete_set_candidates(&registry, "", &w(&["toolkit", "run", "hash"]));
+        assert!(keys.contains(&"algorithm=".to_string()), "{keys:?}");
+
+        let values =
+            complete_set_candidates(&registry, "algorithm=", &w(&["toolkit", "run", "hash"]));
+        assert!(values.contains(&"algorithm=md5".to_string()), "{values:?}");
+        assert!(values.contains(&"algorithm=sha256".to_string()));
+    }
+
+    #[test]
+    fn set_completion_finds_tool_past_flags_and_their_values() {
+        let registry = registry();
+        // -i takes a value that must not be mistaken for the tool.
+        let keys = complete_set_candidates(
+            &registry,
+            "",
+            &w(&["toolkit", "run", "-i", "photo.png", "image-resize", "--set"]),
+        );
+        assert!(keys.contains(&"width=".to_string()), "{keys:?}");
+        assert!(keys.contains(&"mode=".to_string()));
+    }
+
+    #[test]
+    fn set_completion_is_quiet_on_unknown_tool_or_key() {
+        let registry = registry();
+        assert!(complete_set_candidates(&registry, "", &w(&["toolkit", "run"])).is_empty());
+        assert!(
+            complete_set_candidates(&registry, "nope=", &w(&["toolkit", "run", "hash"])).is_empty()
+        );
+        // integer options offer no value candidates
+        assert!(complete_set_candidates(
+            &registry,
+            "width=",
+            &w(&["toolkit", "run", "image-resize"])
+        )
+        .is_empty());
+    }
 }
