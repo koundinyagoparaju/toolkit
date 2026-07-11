@@ -55,24 +55,42 @@
 
     let progress = $state(0);
 
-    /** The terminal equivalent of the current tool + option values. */
-    let cliCommand = $derived.by(() => {
+    /** Terminal equivalents of the current tool + option values, most
+     *  idiomatic first: stdin pipe, input as an argument, file input. */
+    let cliCommands = $derived.by(() => {
         const quote = (v) => (/^[A-Za-z0-9._-]+$/.test(String(v)) ? String(v) : `'${String(v).replaceAll("'", `'\\''`)}'`);
         const sets = Object.entries(options)
             .filter(([, v]) => v !== undefined && v !== "")
             .map(([k, v]) => ` --set ${k}=${quote(v)}`)
             .join("");
-        if (!visiblePorts.length) return `toolkit run ${tool.name}${sets}`;
+        const base = `toolkit run ${tool.name}${sets}`;
+        if (!visiblePorts.length) return [base];
+
+        // The page's typed input, when it's short and single-line, makes
+        // the commands concrete (same live spirit as the options).
+        const typed = (() => {
+            const v = inputs[visiblePorts[0].name]?.[0];
+            if (!v || v.file || !v.bytes || v.type !== "text") return null;
+            const text = new TextDecoder().decode(v.bytes);
+            return text.length > 0 && text.length <= 40 && !text.includes("\n") ? text : null;
+        })();
+        const value = quote(typed ?? "<text>");
+
         if (visiblePorts.length === 1 && !visiblePorts[0].multi) {
             const port = visiblePorts[0];
-            return port.type === "text" || port.type === "json"
-                ? `toolkit run ${tool.name}${sets} '<${port.type}>'`
-                : `toolkit run ${tool.name}${sets} -i <file>`;
+            if (port.type === "image") {
+                return [`cat <file> | ${base}`, `${base} -i <file>`];
+            }
+            return [`echo -n ${value} | ${base}`, `${base} ${value}`, `${base} -i <file>`];
+        }
+        if (visiblePorts.length === 1) {
+            // one variable-arity port
+            return [`${base} ${value} ${value}`, `${base} -i <file> -i <file>`];
         }
         const ins = visiblePorts
             .map((p) => (p.multi ? " -i <file> -i <file>" : ` -i ${p.name}=<file>`))
             .join("");
-        return `toolkit run ${tool.name}${sets}${ins}`;
+        return [`${base}${ins}`];
     });
 
     async function run() {
@@ -209,7 +227,11 @@
 
             <section class="cli-hint">
                 <h2>Same tool, in your terminal</h2>
-                <CliCommand command={cliCommand} />
+                <div class="variants">
+                    {#each cliCommands as command (command)}
+                        <CliCommand {command} />
+                    {/each}
+                </div>
                 <p class="dim">
                     The CLI is one static binary with every tool and chain — pipe-friendly,
                     offline, and it streams (gigabytes in a few MB of memory).
@@ -227,6 +249,11 @@
 {/if}
 
 <style>
+    .cli-hint .variants {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
     .cli-hint p {
         margin-top: 0.5rem;
         font-size: 0.82rem;
