@@ -27,6 +27,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `old` against `new` (`toolkit chain -n text-compare -i old=a.txt -i
   new=b.txt`; the web builder shows one input panel per declared input).
 
+- Windows installer: `irm …/install.ps1 | iex` downloads the latest
+  release, verifies its SHA-256 checksum, installs to
+  `%LOCALAPPDATA%\toolkit\bin`, and adds it to the user PATH. The user
+  chain library now also resolves via `%USERPROFILE%` on Windows.
 - Streaming downloads in the browser: when a chain runs over a large file,
   sink outputs can flow through the service worker straight into file
   downloads — a multi-GB result never sits in page memory.

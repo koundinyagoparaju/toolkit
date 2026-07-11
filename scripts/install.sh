@@ -49,7 +49,7 @@ fi
 case "$(uname -s)" in
     Linux)  os="linux" ;;
     Darwin) os="macos" ;;
-    *) echo "error: unsupported OS: $(uname -s) (build from source: cargo install --path crates/cli)" >&2; exit 1 ;;
+    *) echo "error: unsupported OS: $(uname -s) — on Windows use scripts/install.ps1 (PowerShell), or build from source: cargo install --path crates/cli" >&2; exit 1 ;;
 esac
 case "$(uname -m)" in
     x86_64|amd64)  arch="x86_64" ;;

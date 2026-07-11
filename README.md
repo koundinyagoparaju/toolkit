@@ -5,7 +5,10 @@
 **Use it now: [koundinyagoparaju.github.io/toolkit](https://koundinyagoparaju.github.io/toolkit/)** — or install the CLI:
 
 ```sh
+# Linux / macOS
 curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.ps1 | iex
 
 echo -n "$JWT" | toolkit chain 'jwt-decode | json-format'
 toolkit chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
@@ -61,16 +64,22 @@ cd web && npm install && npm run dev
 
 ### CLI
 
-One-line install (Linux and macOS; downloads the latest release and
-verifies its SHA-256 checksum):
+One-line install — downloads the latest release for your platform and
+verifies its SHA-256 checksum:
 
 ```sh
+# Linux / macOS
 curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh
 # or:  wget -qO- https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh
 ```
 
+```powershell
+# Windows (PowerShell; installs to %LOCALAPPDATA%\toolkit\bin and adds it to your user PATH)
+irm https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.ps1 | iex
+```
+
 Piping a script into your shell means trusting it — and this project's
-whole point is that you shouldn't have to. The script is ~90 auditable
+whole point is that you shouldn't have to. Each script is ~90 auditable
 lines; download and read it first, or build from the audited source
 instead:
 

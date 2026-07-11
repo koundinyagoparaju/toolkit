@@ -58,6 +58,10 @@
     <CliCommand
         command="curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh"
     />
+    <p class="dim os-note">Windows (PowerShell):</p>
+    <CliCommand
+        command="irm https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.ps1 | iex"
+    />
     <pre class="dim">echo -n $JWT | toolkit chain 'jwt-decode | json-format'
 toolkit chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
 toolkit chain -n file-checksum -i backup.iso</pre>
@@ -84,6 +88,10 @@ toolkit chain -n file-checksum -i backup.iso</pre>
     }
     .cli-callout h2 {
         margin-top: 0;
+    }
+    .cli-callout .os-note {
+        margin: 0.6rem 0 0.3rem;
+        font-size: 0.8rem;
     }
     .cli-callout pre {
         margin: 0.8rem 0 0.4rem;
