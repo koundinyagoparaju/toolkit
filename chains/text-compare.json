@@ -1,0 +1,31 @@
+{
+    "version": 1,
+    "name": "Text compare",
+    "description": "Unified diff of two texts or files — without pasting either into someone's website. Give each side by name: -i old=a.txt -i new=b.txt.",
+    "params": [
+        {
+            "name": "context",
+            "label": "Context lines",
+            "description": "Unchanged lines shown around each change.",
+            "kind": "integer",
+            "min": 0,
+            "max": 100,
+            "default": 3,
+            "maps": [{ "node": "diff", "option": "context" }]
+        }
+    ],
+    "inputs": [
+        {
+            "name": "old",
+            "description": "The original text",
+            "binds": [{ "node": "diff", "port": "old" }]
+        },
+        {
+            "name": "new",
+            "description": "The changed text",
+            "binds": [{ "node": "diff", "port": "new" }]
+        }
+    ],
+    "nodes": [{ "id": "diff", "tool": "text-diff" }],
+    "edges": []
+}

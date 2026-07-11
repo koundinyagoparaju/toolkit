@@ -54,9 +54,11 @@ enum Command {
         /// Project chain library directory
         #[arg(long, default_value = "chains")]
         chains_dir: PathBuf,
-        /// Read input from a file instead of stdin
-        #[arg(short, long)]
-        input: Option<PathBuf>,
+        /// Input file. For chains with declared inputs, repeat as
+        /// -i name=path (e.g. -i old=a.txt -i new=b.txt). Chains with
+        /// one input default to stdin.
+        #[arg(short, long, value_name = "[NAME=]PATH")]
+        input: Vec<String>,
         /// Write output to a file (single sink) instead of stdout
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -212,13 +214,7 @@ fn run(cli: Cli) -> Result<(), String> {
             let chain = load_chain(expression, file, name, &chains_dir)?;
             let chain = apply_chain_sets(&chain, &set)?;
             chain.validate(&registry).map_err(|e| e.to_string())?;
-            run_chain_streaming(
-                &chain,
-                &registry,
-                input.as_deref(),
-                output.as_deref(),
-                output_dir,
-            )
+            run_chain_streaming(&chain, &registry, &input, output.as_deref(), output_dir)
         }
         Command::Chains { chains_dir } => {
             let mut dirs = Vec::new();
@@ -487,10 +483,78 @@ fn sink_extension(output: DataType, first_bytes: &[u8]) -> &'static str {
 /// Run a chain through the push engine: input read in chunks, sink output
 /// written incrementally. Memory is bounded by the reservoirs (nodes whose
 /// tools cannot stream); an all-streaming chain runs in constant memory.
+/// One opened chain input: its declared name and its reader.
+type ChainSource = (String, Box<dyn Read>);
+
+/// Open one reader per chain input from `-i [name=]path` specs. Chains
+/// without declared inputs (or with exactly one) accept a bare path or
+/// default to stdin; multiple declared inputs must each be named.
+fn open_chain_sources(chain: &Chain, input: &[String]) -> Result<Vec<ChainSource>, String> {
+    let declared: Vec<&str> = chain.inputs.iter().map(|i| i.name.as_str()).collect();
+    let open = |path: &str| -> Result<Box<dyn Read>, String> {
+        Ok(Box::new(
+            std::fs::File::open(path).map_err(|e| format!("cannot read {path}: {e}"))?,
+        ))
+    };
+
+    if declared.len() <= 1 {
+        let name = chain
+            .sole_input_name()
+            .map_err(|e| e.to_string())?
+            .to_string();
+        return match input {
+            [] => Ok(vec![(name, Box::new(std::io::stdin().lock()))]),
+            [path] if !path.contains('=') || declared.is_empty() => Ok(vec![(name, open(path)?)]),
+            [spec] => {
+                let (key, path) = spec.split_once('=').expect("checked");
+                if key == declared[0] {
+                    Ok(vec![(name, open(path)?)])
+                } else {
+                    Err(format!(
+                        "chain has no input named \"{key}\" (its input is \"{}\")",
+                        declared[0]
+                    ))
+                }
+            }
+            _ => Err("this chain takes a single input; give at most one -i".into()),
+        };
+    }
+
+    let mut sources: Vec<ChainSource> = Vec::new();
+    for spec in input {
+        let (name, path) = spec.split_once('=').ok_or_else(|| {
+            format!(
+                "this chain has {} inputs; use -i name=path (inputs: {})",
+                declared.len(),
+                declared.join(", ")
+            )
+        })?;
+        if !declared.contains(&name) {
+            return Err(format!(
+                "chain has no input named \"{name}\" (inputs: {})",
+                declared.join(", ")
+            ));
+        }
+        if sources.iter().any(|(n, _)| n == name) {
+            return Err(format!("input \"{name}\" given more than once"));
+        }
+        sources.push((name.to_string(), open(path)?));
+    }
+    let missing: Vec<&str> = declared
+        .iter()
+        .filter(|d| !sources.iter().any(|(n, _)| n == *d))
+        .copied()
+        .collect();
+    if !missing.is_empty() {
+        return Err(format!("missing chain input(s): {}", missing.join(", ")));
+    }
+    Ok(sources)
+}
+
 fn run_chain_streaming(
     chain: &Chain,
     registry: &Registry,
-    input: Option<&Path>,
+    input: &[String],
     output: Option<&Path>,
     output_dir: Option<PathBuf>,
 ) -> Result<(), String> {
@@ -512,26 +576,28 @@ fn run_chain_streaming(
         })
         .collect();
 
-    let mut reader: Box<dyn Read> = match input {
-        Some(p) => Box::new(
-            std::fs::File::open(p).map_err(|e| format!("cannot read {}: {e}", p.display()))?,
-        ),
-        None => Box::new(std::io::stdin().lock()),
-    };
+    let mut readers = open_chain_sources(chain, input)?;
     let meta = toolkit_core::ValueMeta {
         data_type: DataType::Bytes,
         format: String::new(),
     };
+    let mut sources: Vec<toolkit_core::NamedSource<'_>> = readers
+        .iter_mut()
+        .map(|(name, reader)| toolkit_core::NamedSource {
+            name: name.clone(),
+            meta: meta.clone(),
+            reader: reader.as_mut(),
+        })
+        .collect();
 
     if let Some(dir) = output_dir {
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let mut writers: std::collections::HashMap<String, (PathBuf, std::fs::File)> =
             Default::default();
         chain
-            .execute_streaming(
+            .execute_streaming_multi(
                 registry,
-                &meta,
-                &mut reader,
+                &mut sources,
                 false,
                 &mut os_entropy,
                 &mut |id, bytes| {
@@ -559,10 +625,9 @@ fn run_chain_streaming(
             None => Box::new(std::io::stdout().lock()),
         };
         chain
-            .execute_streaming(
+            .execute_streaming_multi(
                 registry,
-                &meta,
-                &mut reader,
+                &mut sources,
                 false,
                 &mut os_entropy,
                 &mut |_, bytes| writer.write_all(bytes).map_err(|e| e.to_string()),

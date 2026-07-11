@@ -21,7 +21,8 @@ pub mod stream;
 mod tool;
 
 pub use chain::{
-    Chain, ChainError, ChainParam, ChainResult, Edge, Node, OnSink, ParamTarget, StreamOutcome,
+    Chain, ChainError, ChainInput, ChainParam, ChainResult, Edge, NamedSource, Node, OnSink,
+    ParamTarget, PortTarget, StreamOutcome,
 };
 pub use data::{DataType, DataValue, ValueMeta};
 pub use manifest::{InputSpec, Manifest, OptionKind, OptionSpec};

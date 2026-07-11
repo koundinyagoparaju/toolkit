@@ -330,7 +330,47 @@ try {
     assert(true, "keyboard-only connect creates an edge");
     cdpKb.close();
 
-    // --- Test 9: wasm integrity — pinned hashes present, and a tampered
+    // --- Test 9: chain with declared inputs — two named input panels,
+    // each fed separately, produce a diff ---
+    const tabDi = await newTab(`${BASE}/#/chains`);
+    const cdpDi = await connect(tabDi.webSocketDebuggerUrl);
+    await waitFor(cdpDi, `document.body.textContent.includes("Text compare")`);
+    await evalJs(
+        cdpDi,
+        `[...document.querySelectorAll("a")].find((a) => a.textContent.includes("Text compare")).click()`,
+    );
+    await waitFor(cdpDi, `document.querySelectorAll("textarea").length >= 2`);
+    const inputPanels = await evalJs(
+        cdpDi,
+        `[...document.querySelectorAll("h2")].filter((h) => h.textContent.includes("Input “")).map((h) => h.textContent.trim())`,
+    );
+    assert(
+        inputPanels.length === 2 && inputPanels[0].includes("old") && inputPanels[1].includes("new"),
+        `text-compare shows two named input panels (got ${JSON.stringify(inputPanels)})`,
+    );
+    await evalJs(
+        cdpDi,
+        `(() => {
+            const tas = [...document.querySelectorAll(".input-panel textarea")];
+            tas[0].value = "alpha\\nbeta\\n";
+            tas[0].dispatchEvent(new Event("input", { bubbles: true }));
+            tas[1].value = "alpha\\ngamma\\n";
+            tas[1].dispatchEvent(new Event("input", { bubbles: true }));
+        })()`,
+    );
+    await sleep(300);
+    await evalJs(
+        cdpDi,
+        `[...document.querySelectorAll("button")].find((b) => b.textContent.includes("Run chain")).click()`,
+    );
+    await waitFor(cdpDi, `document.body.textContent.includes("Chain ran ✓")`);
+    await evalJs(cdpDi, `document.querySelector("svg g rect").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))`);
+    await waitFor(cdpDi, `document.body.textContent.includes("-beta")`);
+    const diffOut = await evalJs(cdpDi, `document.body.textContent.includes("-beta") && document.body.textContent.includes("+gamma")`);
+    assert(diffOut, "two-input diff chain runs in the browser");
+    cdpDi.close();
+
+    // --- Test 10: wasm integrity — pinned hashes present, and a tampered
     // hash is rejected before instantiation ---
     const tab8 = await newTab(`${BASE}/#/`);
     const cdp8 = await connect(tab8.webSocketDebuggerUrl);

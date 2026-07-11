@@ -20,6 +20,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - PNG app icons (192/512 + apple-touch-icon) so installing to an iOS or
   Android home screen shows the lock icon instead of a blank tile.
 
+- Chains can declare named inputs (`inputs` with port `binds`), so a chain
+  can take several distinct values — the new `text-compare` chain diffs
+  `old` against `new` (`toolkit chain -n text-compare -i old=a.txt -i
+  new=b.txt`; the web builder shows one input panel per declared input).
+
 ### Fixed
 - `color-convert` panicked (instead of erroring) on hex notation
   containing multibyte characters, e.g. `#ééé` — found by the new fuzzer.

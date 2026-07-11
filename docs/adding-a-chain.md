@@ -17,6 +17,7 @@ fragment (it's base64url of the JSON), tidy it up, save to `chains/`.
     "name": "Human-friendly name",
     "description": "What it does and when you'd reach for it.",
     "params": [ /* optional, see below */ ],
+    "inputs": [ /* optional, see below */ ],
     "nodes": [
         { "id": "decode", "tool": "base64-decode", "options": {} },
         { "id": "pretty", "tool": "json-format", "options": { "indent": 2 } }
@@ -56,6 +57,32 @@ internal. Each param is an option spec plus `maps`:
 The CLI accepts them (`toolkit chain --name x --set quality=70`), the web
 builder renders a settings form, and `toolkit chains` lists them.
 Precedence: invocation > chain file > tool defaults.
+
+## Inputs: chains that take more than one value
+
+By default a chain has one implicit input, delivered to every port of its
+entry nodes. When the chain genuinely needs *distinct* values — a diff
+takes an `old` and a `new` — declare `inputs`. Each is a name plus
+`binds`, the data analogue of a param's `maps`:
+
+```jsonc
+"inputs": [
+    { "name": "old", "description": "The original text",
+      "binds": [{ "node": "diff", "port": "old" }] },
+    { "name": "new", "description": "The changed text",
+      "binds": [{ "node": "diff", "port": "new" }] }
+]
+```
+
+Rules: with declared inputs there is no implicit entry — every non-entropy
+port must be fed by exactly one source, an edge **or** a binding, never
+both. One input may bind several ports (fan-out); a multi port may take
+several bindings, ordered by input declaration.
+
+The CLI takes each by name (`toolkit chain -n text-compare -i old=a.txt
+-i new=b.txt`; single-input chains still default to stdin), and the web
+builder renders one input panel per declared input. Streaming works the
+same as ever: inputs are fed in declaration order, chunk by chunk.
 
 ## Test it, then submit
 

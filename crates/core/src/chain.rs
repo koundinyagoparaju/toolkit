@@ -16,13 +16,19 @@ pub const CHAIN_SCHEMA_VERSION: u32 = 1;
 /// - node ids unique; edges reference existing nodes and input ports; no cycles
 /// - fan-out is allowed (a node's output may feed several nodes)
 /// - each *input port* accepts at most one incoming edge
-/// - a node is either fully wired (every input port has an edge) or an
-///   entry node (no incoming edges at all) — entry nodes receive the
-///   chain's input on every port
+/// - without declared `inputs`: a node is either fully wired (every input
+///   port has an edge) or an entry node (no incoming edges at all) —
+///   entry nodes receive the chain's single input on every port
+/// - with declared `inputs`: every non-entropy port is fed by exactly one
+///   source — an edge or an input binding, never both — and every
+///   declared input binds at least one port
 ///
 /// Declared `params` make a chain a first-class, callable unit: named,
 /// typed knobs (same spec format as tool options) that map onto node
 /// options. Apply invocation values with [`Chain::with_params`].
+/// Declared `inputs` do the same for data: named values that bind onto
+/// node ports, so a chain can take several distinct inputs (a diff takes
+/// `old` and `new`) instead of one value fanned to every entry port.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chain {
     pub version: u32,
@@ -32,6 +38,8 @@ pub struct Chain {
     pub description: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub params: Vec<ChainParam>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inputs: Vec<ChainInput>,
     pub nodes: Vec<Node>,
     #[serde(default)]
     pub edges: Vec<Edge>,
@@ -71,6 +79,33 @@ pub struct ParamTarget {
     pub option: String,
 }
 
+/// A declared chain input: a named value the caller provides, delivered to
+/// one or more node ports. The data analogue of [`ChainParam`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChainInput {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub description: String,
+    pub binds: Vec<PortTarget>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortTarget {
+    pub node: String,
+    /// May be omitted when the target tool has exactly one input port.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<String>,
+}
+
+/// One named data source for a streamed execution.
+pub struct NamedSource<'a> {
+    /// Declared input name; empty for the implicit single input of a chain
+    /// without declared `inputs`.
+    pub name: String,
+    pub meta: ValueMeta,
+    pub reader: &'a mut dyn std::io::Read,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChainError {
     pub message: String,
@@ -106,6 +141,7 @@ impl std::error::Error for ChainError {}
 
 /// All node outputs, keyed by node id. Sinks (no outgoing edge) are the
 /// chain's results; intermediate outputs are kept for step-by-step preview.
+#[derive(Debug)]
 pub struct ChainResult {
     pub outputs: BTreeMap<String, DataValue>,
     pub sinks: Vec<String>,
@@ -158,6 +194,7 @@ impl Chain {
             name: String::new(),
             description: String::new(),
             params: Vec::new(),
+            inputs: Vec::new(),
             nodes,
             edges,
         })
@@ -259,8 +296,66 @@ impl Chain {
             }
         }
 
-        // Port coverage: a node with any incoming edge must have all its
-        // input ports wired; nodes with none are entry nodes.
+        // Declared inputs: unique names, resolvable binds, each port fed by
+        // at most one kind of source.
+        let mut input_bound: HashSet<(&str, String)> = HashSet::new();
+        let mut input_names = HashSet::new();
+        for input in &self.inputs {
+            if input.name.is_empty() {
+                return Err(ChainError::new("chain input with an empty name"));
+            }
+            if !input_names.insert(input.name.as_str()) {
+                return Err(ChainError::new(format!(
+                    "duplicate chain input \"{}\"",
+                    input.name
+                )));
+            }
+            if input.binds.is_empty() {
+                return Err(ChainError::new(format!(
+                    "chain input \"{}\" binds no ports",
+                    input.name
+                )));
+            }
+            for bind in &input.binds {
+                let m = manifests.get(bind.node.as_str()).ok_or_else(|| {
+                    ChainError::new(format!(
+                        "input \"{}\" binds unknown node \"{}\"",
+                        input.name, bind.node
+                    ))
+                })?;
+                let port = resolve_named_port(&bind.node, &bind.port, m)?;
+                if port.entropy {
+                    return Err(ChainError::at(
+                        &bind.node,
+                        format!(
+                            "input \"{}\" binds entropy port \"{}\" — the driver fills entropy",
+                            input.name, port.name
+                        ),
+                    ));
+                }
+                if wired.contains(&(bind.node.as_str(), port.name.clone())) {
+                    return Err(ChainError::at(
+                        &bind.node,
+                        format!(
+                            "port \"{}\" is fed by both an edge and input \"{}\"",
+                            port.name, input.name
+                        ),
+                    ));
+                }
+                if !input_bound.insert((bind.node.as_str(), port.name.clone())) && !port.multi {
+                    return Err(ChainError::at(
+                        &bind.node,
+                        format!("input port \"{}\" is bound more than once", port.name),
+                    ));
+                }
+            }
+        }
+
+        // Port coverage. Without declared inputs: a node with any incoming
+        // edge must have all its input ports wired; nodes with none are
+        // entry nodes (the chain input feeds every port). With declared
+        // inputs there is no implicit entry — every non-entropy port needs
+        // an edge or a binding.
         for node in &self.nodes {
             let m = &manifests[node.id.as_str()];
             let wired_count = m
@@ -268,16 +363,20 @@ impl Chain {
                 .iter()
                 .filter(|p| wired.contains(&(node.id.as_str(), p.name.clone())))
                 .count();
-            if wired_count != 0 && wired_count != m.inputs.len() {
-                let missing: Vec<&str> = m
-                    .inputs
-                    .iter()
-                    .filter(|p| !p.entropy && !wired.contains(&(node.id.as_str(), p.name.clone())))
-                    .map(|p| p.name.as_str())
-                    .collect();
-                if missing.is_empty() {
-                    continue; // only entropy ports unwired: driver fills them
-                }
+            if self.inputs.is_empty() && wired_count == 0 {
+                continue; // entry node
+            }
+            let missing: Vec<&str> = m
+                .inputs
+                .iter()
+                .filter(|p| {
+                    !p.entropy
+                        && !wired.contains(&(node.id.as_str(), p.name.clone()))
+                        && !input_bound.contains(&(node.id.as_str(), p.name.clone()))
+                })
+                .map(|p| p.name.as_str())
+                .collect();
+            if !missing.is_empty() {
                 return Err(ChainError::at(
                     &node.id,
                     format!("input port(s) not connected: {}", missing.join(", ")),
@@ -307,21 +406,48 @@ impl Chain {
         Ok(())
     }
 
-    /// Execute the chain on a complete input value. A thin wrapper over the
-    /// push engine ([`Chain::execute_streaming`]) that feeds the value as a
-    /// single chunk and retains every node's output — so buffered and
-    /// streamed execution share one engine and cannot diverge.
+    /// Execute the chain on a complete input value. Only for chains with at
+    /// most one declared input; use [`Chain::execute_with_inputs`] to
+    /// provide several.
     pub fn execute(
         &self,
         registry: &Registry,
         input: DataValue,
     ) -> Result<ChainResult, ChainError> {
-        let (meta, bytes) = input.into_payload();
-        let mut source = std::io::Cursor::new(bytes);
-        let outcome = self.execute_streaming(
+        let name = self.sole_input_name()?;
+        let mut inputs = BTreeMap::new();
+        inputs.insert(name, input);
+        self.execute_with_inputs(registry, inputs)
+    }
+
+    /// Execute the chain on complete values, one per declared input (or the
+    /// key "" for a chain without declared inputs). A thin wrapper over the
+    /// push engine ([`Chain::execute_streaming_multi`]) that feeds each
+    /// value as a single chunk and retains every node's output — so
+    /// buffered and streamed execution share one engine and cannot diverge.
+    pub fn execute_with_inputs(
+        &self,
+        registry: &Registry,
+        inputs: BTreeMap<String, DataValue>,
+    ) -> Result<ChainResult, ChainError> {
+        let mut payloads: Vec<(String, ValueMeta, std::io::Cursor<Vec<u8>>)> = inputs
+            .into_iter()
+            .map(|(name, value)| {
+                let (meta, bytes) = value.into_payload();
+                (name, meta, std::io::Cursor::new(bytes))
+            })
+            .collect();
+        let mut sources: Vec<NamedSource<'_>> = payloads
+            .iter_mut()
+            .map(|(name, meta, cursor)| NamedSource {
+                name: name.clone(),
+                meta: meta.clone(),
+                reader: cursor,
+            })
+            .collect();
+        let outcome = self.execute_streaming_multi(
             registry,
-            &meta,
-            &mut source,
+            &mut sources,
             true,
             &mut |_| Err("this chain needs an entropy source; run via the CLI or web".into()),
             &mut |_, _| Ok(()),
@@ -332,15 +458,26 @@ impl Chain {
         })
     }
 
-    /// Execute the chain as a push-based dataflow: the source is read in
-    /// chunks, streaming nodes transform chunk-by-chunk, non-streaming
-    /// nodes buffer at their inputs ("reservoirs") and run once complete.
-    /// Sink output is delivered incrementally through `on_sink`.
-    ///
-    /// Memory is bounded by the reservoirs' working sets — an all-streaming
-    /// chain runs in O(chunk) memory regardless of input size. With
-    /// `retain_all`, every node's full output is additionally kept (used by
-    /// [`Chain::execute`] and previews); leave it off for large inputs.
+    /// The name of this chain's single input: "" when no inputs are
+    /// declared, the declared name when there is exactly one, an error
+    /// otherwise.
+    pub fn sole_input_name(&self) -> Result<String, ChainError> {
+        match self.inputs.len() {
+            0 => Ok(String::new()),
+            1 => Ok(self.inputs[0].name.clone()),
+            n => Err(ChainError::new(format!(
+                "chain declares {n} inputs ({}); provide each by name",
+                self.inputs
+                    .iter()
+                    .map(|i| i.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ))),
+        }
+    }
+
+    /// Streamed execution with a single input source. Only for chains with
+    /// at most one declared input.
     pub fn execute_streaming<R: std::io::Read>(
         &self,
         registry: &Registry,
@@ -350,21 +487,79 @@ impl Chain {
         entropy: &mut OnEntropy,
         on_sink: &mut OnSink,
     ) -> Result<StreamOutcome, ChainError> {
+        let name = self.sole_input_name()?;
+        self.execute_streaming_multi(
+            registry,
+            &mut [NamedSource {
+                name,
+                meta: input_meta.clone(),
+                reader: source,
+            }],
+            retain_all,
+            entropy,
+            on_sink,
+        )
+    }
+
+    /// Execute the chain as a push-based dataflow: sources are read in
+    /// chunks (one source per declared input, fed in declaration order),
+    /// streaming nodes transform chunk-by-chunk, non-streaming nodes buffer
+    /// at their inputs ("reservoirs") and run once complete. Sink output is
+    /// delivered incrementally through `on_sink`.
+    ///
+    /// Memory is bounded by the reservoirs' working sets — an all-streaming
+    /// chain runs in O(chunk) memory regardless of input size. With
+    /// `retain_all`, every node's full output is additionally kept (used by
+    /// [`Chain::execute_with_inputs`] and previews); leave it off for large
+    /// inputs.
+    pub fn execute_streaming_multi(
+        &self,
+        registry: &Registry,
+        sources: &mut [NamedSource<'_>],
+        retain_all: bool,
+        entropy: &mut OnEntropy,
+        on_sink: &mut OnSink,
+    ) -> Result<StreamOutcome, ChainError> {
         self.validate(registry)?;
-        let mut engine = Engine::build(self, registry, input_meta, retain_all)?;
+        let expected: Vec<String> = if self.inputs.is_empty() {
+            vec![String::new()]
+        } else {
+            self.inputs.iter().map(|i| i.name.clone()).collect()
+        };
+        for source in sources.iter() {
+            if !expected.contains(&source.name) {
+                return Err(ChainError::new(format!(
+                    "chain has no input named \"{}\"",
+                    source.name
+                )));
+            }
+        }
+
+        let metas: BTreeMap<String, ValueMeta> = sources
+            .iter()
+            .map(|s| (s.name.clone(), s.meta.clone()))
+            .collect();
+        let mut engine = Engine::build(self, registry, &metas, retain_all)?;
         engine.prime_entropy(registry, entropy, on_sink)?;
 
         let mut buf = vec![0u8; 1 << 20];
-        loop {
-            let n = source
-                .read(&mut buf)
-                .map_err(|e| ChainError::new(format!("failed to read chain input: {e}")))?;
-            if n == 0 {
-                break;
+        for name in &expected {
+            let source = sources
+                .iter_mut()
+                .find(|s| &s.name == name)
+                .ok_or_else(|| ChainError::new(format!("missing chain input \"{name}\"")))?;
+            loop {
+                let n = source
+                    .reader
+                    .read(&mut buf)
+                    .map_err(|e| ChainError::new(format!("failed to read chain input: {e}")))?;
+                if n == 0 {
+                    break;
+                }
+                engine.push_input(registry, name, &buf[..n], on_sink)?;
             }
-            engine.push_input(registry, &buf[..n], on_sink)?;
+            engine.end_input(registry, name, on_sink)?;
         }
-        engine.end_input(registry, on_sink)?;
         engine.into_outcome(registry)
     }
 
@@ -373,24 +568,7 @@ impl Chain {
         edge: &Edge,
         to_manifest: &crate::manifest::Manifest,
     ) -> Result<crate::manifest::InputSpec, ChainError> {
-        match &edge.to_port {
-            Some(name) => to_manifest.input_port(name).cloned().ok_or_else(|| {
-                ChainError::at(
-                    &edge.to,
-                    format!("tool \"{}\" has no input port \"{name}\"", to_manifest.name),
-                )
-            }),
-            None => to_manifest.sole_input().cloned().ok_or_else(|| {
-                ChainError::at(
-                    &edge.to,
-                    format!(
-                        "tool \"{}\" has {} input ports; the edge must name one (to_port)",
-                        to_manifest.name,
-                        to_manifest.inputs.len()
-                    ),
-                )
-            }),
-        }
+        resolve_named_port(&edge.to, &edge.to_port, to_manifest)
     }
 
     /// Successor slots of `node_idx`'s output, in edge-declaration order.
@@ -413,29 +591,44 @@ impl Chain {
             let manifest = registry.find(&node.tool).expect("validated").manifest();
             let wired = self.edges.iter().any(|e| e.to == node.id);
             for port in &manifest.inputs {
-                if wired {
-                    let mut value_index = 0;
-                    for (e_idx, edge) in self.edges.iter().enumerate() {
-                        if edge.to != node.id
-                            || self.resolve_port(edge, &manifest)?.name != port.name
+                let mut value_index = 0;
+                for (e_idx, edge) in self.edges.iter().enumerate() {
+                    if edge.to != node.id || self.resolve_port(edge, &manifest)?.name != port.name {
+                        continue;
+                    }
+                    edge_slot.insert(e_idx, (n_idx, slots[n_idx].len()));
+                    slots[n_idx].push(Slot::new(&port.name, value_index));
+                    value_index += 1;
+                }
+                // Declared-input bindings, in input-declaration order (this
+                // order defines value order on multi ports).
+                for input in &self.inputs {
+                    for bind in &input.binds {
+                        if bind.node != node.id
+                            || resolve_named_port(&bind.node, &bind.port, &manifest)?.name
+                                != port.name
                         {
                             continue;
                         }
-                        edge_slot.insert(e_idx, (n_idx, slots[n_idx].len()));
-                        slots[n_idx].push(Slot::new(&port.name, value_index));
+                        let mut slot = Slot::new(&port.name, value_index);
+                        slot.input = Some(input.name.clone());
+                        slots[n_idx].push(slot);
                         value_index += 1;
                     }
-                    if value_index == 0 && port.entropy {
-                        // Wired node with an unwired entropy port: the
-                        // driver fills it.
+                }
+                if value_index == 0 {
+                    if port.entropy {
+                        // Unwired entropy port: the driver fills it.
                         let mut slot = Slot::new(&port.name, 0);
                         slot.entropy = true;
                         slots[n_idx].push(slot);
+                    } else if !wired && self.inputs.is_empty() {
+                        // Entry node of a chain without declared inputs:
+                        // the implicit input ("") feeds every port.
+                        let mut slot = Slot::new(&port.name, 0);
+                        slot.input = Some(String::new());
+                        slots[n_idx].push(slot);
                     }
-                } else {
-                    let mut slot = Slot::new(&port.name, 0);
-                    slot.entropy = port.entropy;
-                    slots[n_idx].push(slot);
                 }
             }
         }
@@ -483,6 +676,32 @@ impl Chain {
     }
 }
 
+/// Resolve a possibly-omitted port name against a tool's manifest.
+fn resolve_named_port(
+    node_id: &str,
+    port: &Option<String>,
+    manifest: &crate::manifest::Manifest,
+) -> Result<crate::manifest::InputSpec, ChainError> {
+    match port {
+        Some(name) => manifest.input_port(name).cloned().ok_or_else(|| {
+            ChainError::at(
+                node_id,
+                format!("tool \"{}\" has no input port \"{name}\"", manifest.name),
+            )
+        }),
+        None => manifest.sole_input().cloned().ok_or_else(|| {
+            ChainError::at(
+                node_id,
+                format!(
+                    "tool \"{}\" has {} input ports; the port must be named",
+                    manifest.name,
+                    manifest.inputs.len()
+                ),
+            )
+        }),
+    }
+}
+
 /// Incremental consumer of sink output: (node id, chunk).
 pub type OnSink<'a> = dyn FnMut(&str, &[u8]) -> Result<(), String> + 'a;
 
@@ -493,6 +712,7 @@ pub type OnEntropy<'a> = dyn FnMut(usize) -> Result<Vec<u8>, String> + 'a;
 type Wiring = (Vec<Vec<Slot>>, Vec<Vec<(usize, usize)>>);
 
 /// Result of a streamed execution.
+#[derive(Debug)]
 pub struct StreamOutcome {
     /// Full output values: reservoir nodes always; streaming nodes only
     /// when `retain_all` was requested.
@@ -511,6 +731,10 @@ struct Slot {
     buffer: Vec<u8>,
     ended: bool,
     entropy: bool,
+    /// Chain input feeding this slot: `Some(name)` for a declared input,
+    /// `Some("")` for the implicit input of a chain without declared
+    /// inputs, `None` for slots fed by edges or entropy.
+    input: Option<String>,
 }
 
 impl Slot {
@@ -525,6 +749,7 @@ impl Slot {
             buffer: Vec::new(),
             ended: false,
             entropy: false,
+            input: None,
         }
     }
 }
@@ -565,21 +790,22 @@ impl Engine {
     fn build(
         chain: &Chain,
         registry: &Registry,
-        input_meta: &ValueMeta,
+        input_metas: &BTreeMap<String, ValueMeta>,
         retain_all: bool,
     ) -> Result<Engine, ChainError> {
         let (mut slots, outgoing) = chain.build_engine_wiring(registry)?;
-        let has_incoming: HashSet<&str> = chain.edges.iter().map(|e| e.to.as_str()).collect();
         let has_outgoing: HashSet<&str> = chain.edges.iter().map(|e| e.from.as_str()).collect();
 
-        // Slot metas known statically: chain input for entry slots, the
+        // Slot metas known statically: chain input for input-fed slots, the
         // source tool's declared output for streaming sources. Reservoir
         // sources overwrite the meta at delivery time (e.g. image format).
         let mut nodes = Vec::with_capacity(chain.nodes.len());
         for (n_idx, node) in chain.nodes.iter().enumerate() {
-            if !has_incoming.contains(node.id.as_str()) {
-                for slot in &mut slots[n_idx] {
-                    slot.meta = input_meta.clone();
+            for slot in &mut slots[n_idx] {
+                if let Some(input) = &slot.input {
+                    if let Some(meta) = input_metas.get(input) {
+                        slot.meta = meta.clone();
+                    }
                 }
             }
             let tool = registry.find(&node.tool).expect("validated");
@@ -624,16 +850,12 @@ impl Engine {
         })
     }
 
-    fn entry_slots(&self) -> Vec<(usize, usize)> {
-        let fed: HashSet<(usize, usize)> = self
-            .nodes
-            .iter()
-            .flat_map(|n| n.outgoing.iter().copied())
-            .collect();
+    /// Slots fed by the named chain input ("" = the implicit single input).
+    fn input_slots(&self, name: &str) -> Vec<(usize, usize)> {
         let mut entries = Vec::new();
         for (n, node) in self.nodes.iter().enumerate() {
             for s in 0..node.slots.len() {
-                if !fed.contains(&(n, s)) && !node.slots[s].entropy {
+                if node.slots[s].input.as_deref() == Some(name) {
                     entries.push((n, s));
                 }
             }
@@ -671,20 +893,26 @@ impl Engine {
     fn push_input(
         &mut self,
         registry: &Registry,
+        input: &str,
         chunk: &[u8],
         on_sink: &mut OnSink,
     ) -> Result<(), ChainError> {
         let mut queue: VecDeque<Ev> = self
-            .entry_slots()
+            .input_slots(input)
             .into_iter()
             .map(|(n, s)| Ev::Chunk(n, s, chunk.to_vec()))
             .collect();
         self.process(registry, &mut queue, on_sink)
     }
 
-    fn end_input(&mut self, registry: &Registry, on_sink: &mut OnSink) -> Result<(), ChainError> {
+    fn end_input(
+        &mut self,
+        registry: &Registry,
+        input: &str,
+        on_sink: &mut OnSink,
+    ) -> Result<(), ChainError> {
         let mut queue: VecDeque<Ev> = self
-            .entry_slots()
+            .input_slots(input)
             .into_iter()
             .map(|(n, s)| Ev::End(n, s))
             .collect();
@@ -1060,6 +1288,7 @@ mod tests {
             name: String::new(),
             description: String::new(),
             params: Vec::new(),
+            inputs: Vec::new(),
             nodes: nodes
                 .iter()
                 .map(|(id, tool)| Node {
@@ -1245,6 +1474,174 @@ mod tests {
         let mut bad = Options::new();
         bad.insert("nope".into(), serde_json::json!(1));
         assert!(c.with_params(&bad).is_err());
+    }
+
+    fn bind(input: &str, node: &str, port: Option<&str>) -> ChainInput {
+        ChainInput {
+            name: input.into(),
+            description: String::new(),
+            binds: vec![PortTarget {
+                node: node.into(),
+                port: port.map(String::from),
+            }],
+        }
+    }
+
+    #[test]
+    fn declared_inputs_feed_distinct_ports() {
+        let mut c = chain(&[("j", "join")], &[]);
+        c.inputs = vec![
+            bind("first", "j", Some("left")),
+            bind("second", "j", Some("right")),
+        ];
+        c.validate(&registry()).unwrap();
+
+        let mut inputs = BTreeMap::new();
+        inputs.insert("first".to_string(), DataValue::Text("a".into()));
+        inputs.insert("second".to_string(), DataValue::Text("b".into()));
+        let result = c.execute_with_inputs(&registry(), inputs).unwrap();
+        assert_eq!(result.outputs["j"], DataValue::Text("a+b".into()));
+    }
+
+    #[test]
+    fn declared_inputs_stream_in_declaration_order() {
+        // Two streamed sources into a streaming node downstream of a join.
+        let mut c = chain(&[("j", "join"), ("u", "supper")], &[("j", "u", None)]);
+        c.inputs = vec![
+            bind("first", "j", Some("left")),
+            bind("second", "j", Some("right")),
+        ];
+        let meta = ValueMeta {
+            data_type: DataType::Text,
+            format: String::new(),
+        };
+        let mut a = Trickle(b"hello");
+        let mut b = Trickle(b"world");
+        let mut sources = [
+            NamedSource {
+                name: "second".into(),
+                meta: meta.clone(),
+                reader: &mut b,
+            },
+            NamedSource {
+                name: "first".into(),
+                meta: meta.clone(),
+                reader: &mut a,
+            },
+        ];
+        let outcome = c
+            .execute_streaming_multi(
+                &registry(),
+                &mut sources,
+                true,
+                &mut |_| Err("no entropy".into()),
+                &mut |_, _| Ok(()),
+            )
+            .unwrap();
+        assert_eq!(outcome.outputs["u"], DataValue::Text("HELLO+WORLD".into()));
+    }
+
+    #[test]
+    fn declared_input_can_fan_out_to_multiple_ports() {
+        let mut c = chain(&[("j", "join")], &[]);
+        c.inputs = vec![ChainInput {
+            name: "both".into(),
+            description: String::new(),
+            binds: vec![
+                PortTarget {
+                    node: "j".into(),
+                    port: Some("left".into()),
+                },
+                PortTarget {
+                    node: "j".into(),
+                    port: Some("right".into()),
+                },
+            ],
+        }];
+        let mut inputs = BTreeMap::new();
+        inputs.insert("both".to_string(), DataValue::Text("x".into()));
+        let result = c.execute_with_inputs(&registry(), inputs).unwrap();
+        assert_eq!(result.outputs["j"], DataValue::Text("x+x".into()));
+    }
+
+    #[test]
+    fn declared_inputs_validation_rules() {
+        // Duplicate input name.
+        let mut c = chain(&[("j", "join")], &[]);
+        c.inputs = vec![bind("x", "j", Some("left")), bind("x", "j", Some("right"))];
+        assert!(c
+            .validate(&registry())
+            .unwrap_err()
+            .message
+            .contains("duplicate"));
+
+        // Port fed by both an edge and an input.
+        let mut c = chain(
+            &[("u", "upper"), ("j", "join")],
+            &[("u", "j", Some("left"))],
+        );
+        c.inputs = vec![
+            bind("a", "j", Some("left")),
+            bind("b", "j", Some("right")),
+            bind("c", "u", None),
+        ];
+        assert!(c
+            .validate(&registry())
+            .unwrap_err()
+            .message
+            .contains("both an edge and input"));
+
+        // With declared inputs there is no implicit entry: uncovered port.
+        let mut c = chain(&[("j", "join")], &[]);
+        c.inputs = vec![bind("only", "j", Some("left"))];
+        assert!(c
+            .validate(&registry())
+            .unwrap_err()
+            .message
+            .contains("not connected"));
+
+        // Single port bound twice.
+        let mut c = chain(&[("u", "upper")], &[]);
+        c.inputs = vec![bind("a", "u", None), bind("b", "u", None)];
+        assert!(c
+            .validate(&registry())
+            .unwrap_err()
+            .message
+            .contains("bound more than once"));
+    }
+
+    #[test]
+    fn multi_input_chain_rejects_single_input_entrypoints() {
+        let mut c = chain(&[("j", "join")], &[]);
+        c.inputs = vec![
+            bind("first", "j", Some("left")),
+            bind("second", "j", Some("right")),
+        ];
+        let err = c
+            .execute(&registry(), DataValue::Text("x".into()))
+            .unwrap_err();
+        assert!(err.message.contains("provide each by name"), "{err}");
+
+        // Unknown source name rejected.
+        let mut extra = Trickle(b"x");
+        let mut sources = [NamedSource {
+            name: "nope".into(),
+            meta: ValueMeta {
+                data_type: DataType::Text,
+                format: String::new(),
+            },
+            reader: &mut extra,
+        }];
+        let err = c
+            .execute_streaming_multi(
+                &registry(),
+                &mut sources,
+                true,
+                &mut |_| Err("no entropy".into()),
+                &mut |_, _| Ok(()),
+            )
+            .unwrap_err();
+        assert!(err.message.contains("no input named"), "{err}");
     }
 
     #[test]

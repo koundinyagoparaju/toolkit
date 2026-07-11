@@ -27,10 +27,11 @@
     let edges = $state([]); // {from, to, to_port?}
     let params = $state([]); // declared chain params (from loaded chains)
     let paramValues = $state({});
+    let chainInputs = $state([]); // declared chain inputs (from loaded chains)
     let selectedId = $state(null);
     let pendingFrom = $state(null); // output port a connection starts from
     let paletteTool = $state("");
-    let input = $state(null);
+    let inputValues = $state({}); // input name ("" = implicit) -> value
     let results = $state(new Map());
     let notice = $state(null); // {kind: "err"|"ok", text}
     let running = $state(false);
@@ -54,7 +55,9 @@
             nodes = layout(chain);
             edges = chain.edges ?? [];
             params = chain.params ?? [];
+            chainInputs = chain.inputs ?? [];
             paramValues = {};
+            inputValues = {};
             counter = chain.nodes.length + 1;
             selectedId = null;
             results = new Map();
@@ -83,7 +86,7 @@
     }
 
     function chainData() {
-        return {
+        const data = {
             version: 1,
             params: $state.snapshot(params),
             nodes: nodes.map(({ id, tool, options }) => ({
@@ -93,6 +96,8 @@
             })),
             edges: $state.snapshot(edges),
         };
+        if (chainInputs.length) data.inputs = $state.snapshot(chainInputs);
+        return data;
     }
 
     function flash(kind, text) {
@@ -192,7 +197,10 @@
         if (toTool.inputs.length > 1) edge.to_port = portName;
         const candidate = [...$state.snapshot(edges), edge];
         try {
-            validateChain({ version: 1, nodes, edges: candidate }, catalog);
+            validateChain(
+                { version: 1, inputs: $state.snapshot(chainInputs), nodes, edges: candidate },
+                catalog,
+            );
         } catch (e) {
             flash("err", e.message);
             return;
@@ -202,8 +210,15 @@
     }
 
     async function run() {
-        if (!input) {
-            flash("err", "Provide an input first.");
+        const declared = chainInputs.length ? chainInputs.map((i) => i.name) : [""];
+        const missing = declared.filter((name) => !inputValues[name]);
+        if (missing.length) {
+            flash(
+                "err",
+                chainInputs.length
+                    ? `Provide input(s): ${missing.join(", ")}.`
+                    : "Provide an input first.",
+            );
             return;
         }
         let effective;
@@ -216,18 +231,39 @@
         }
         running = true;
         try {
-            if (input.file && !input.bytes) {
-                // Large file: push it through chunk-by-chunk. Streaming
+            const anyLargeFile = declared.some(
+                (name) => inputValues[name].file && !inputValues[name].bytes,
+            );
+            if (anyLargeFile) {
+                // Large file(s): push through chunk-by-chunk. Streaming
                 // intermediates keep a capped preview instead of the value.
-                results = await executeChainStreaming(
-                    effective,
-                    catalog,
-                    fileChunks(input.file),
-                    { type: input.type },
-                    false,
-                );
+                const sources = [];
+                for (const name of declared) {
+                    const v = inputValues[name];
+                    if (v.file && !v.bytes) {
+                        sources.push({ name, meta: { type: v.type }, chunks: fileChunks(v.file) });
+                    } else {
+                        const whole = await ensureBytes(v);
+                        async function* once() {
+                            yield whole.bytes;
+                        }
+                        sources.push({
+                            name,
+                            meta: {
+                                type: whole.type,
+                                ...(whole.format ? { format: whole.format } : {}),
+                            },
+                            chunks: once(),
+                        });
+                    }
+                }
+                results = await executeChainStreaming(effective, catalog, sources, false);
+            } else if (chainInputs.length) {
+                const values = {};
+                for (const name of declared) values[name] = await ensureBytes(inputValues[name]);
+                results = await executeChain(effective, catalog, values);
             } else {
-                results = await executeChain(effective, catalog, await ensureBytes(input));
+                results = await executeChain(effective, catalog, await ensureBytes(inputValues[""]));
             }
             const failed = [...results.values()].filter((r) => !r.ok).length;
             flash(failed ? "err" : "ok", failed ? `${failed} step(s) failed` : "Chain ran ✓");
@@ -242,6 +278,16 @@
         location.hash = `#/builder/${hash}`;
         await navigator.clipboard.writeText(location.href);
         flash("ok", "Share link copied — it contains the chain definition, never your data.");
+    }
+
+    /** Type hint for a declared input: its first bound port's type. */
+    function inputHint(chainInput) {
+        const bind = chainInput.binds?.[0];
+        const node = nodes.find((n) => n.id === bind?.node);
+        if (!node) return "text";
+        const tool = catalog.tools.get(node.tool);
+        const port = bind.port ? tool.inputs.find((p) => p.name === bind.port) : tool.inputs[0];
+        return port?.type ?? "text";
     }
 
     // ---- geometry ----
@@ -355,14 +401,28 @@
             </section>
         {/if}
 
-        <section class="card input-panel">
-            <h2>
-                Chain input {#if entryTool}<span class="mono dim"
-                        >({entryTool.inputs.map((p) => p.type + (p.multi ? "…" : "")).join(" + ")})</span
-                    >{/if}
-            </h2>
-            <ValueInput bind:value={input} hint={entryTool?.inputs[0]?.type ?? "text"} />
-        </section>
+        {#if chainInputs.length}
+            {#each chainInputs as chainInput (chainInput.name)}
+                <section class="card input-panel">
+                    <h2>
+                        Input “{chainInput.name}” <span class="mono dim">({inputHint(chainInput)})</span>
+                    </h2>
+                    {#if chainInput.description}
+                        <p class="dim">{chainInput.description}</p>
+                    {/if}
+                    <ValueInput bind:value={inputValues[chainInput.name]} hint={inputHint(chainInput)} />
+                </section>
+            {/each}
+        {:else}
+            <section class="card input-panel">
+                <h2>
+                    Chain input {#if entryTool}<span class="mono dim"
+                            >({entryTool.inputs.map((p) => p.type + (p.multi ? "…" : "")).join(" + ")})</span
+                        >{/if}
+                </h2>
+                <ValueInput bind:value={inputValues[""]} hint={entryTool?.inputs[0]?.type ?? "text"} />
+            </section>
+        {/if}
 
         <!-- The pointer listeners implement mouse dragging and click-away;
              every action has a keyboard path (Tab + Enter/arrows on nodes,

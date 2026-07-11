@@ -23,6 +23,19 @@ export function edgePort(edge, toTool) {
     return toTool.inputs[0];
 }
 
+/** Resolve which port an input binding feeds (mirrors core). */
+export function bindPort(bind, tool) {
+    if (bind.port) {
+        const port = tool.inputs.find((p) => p.name === bind.port);
+        if (!port) throw new Error(`"${tool.name}" has no input port "${bind.port}"`);
+        return port;
+    }
+    if (tool.inputs.length !== 1) {
+        throw new Error(`"${tool.name}" has ${tool.inputs.length} input ports; the binding must name one`);
+    }
+    return tool.inputs[0];
+}
+
 /** Apply declared chain params (mirrors core's with_params, minus deep
  *  validation — the Rust side re-validates every option before running). */
 export function applyParams(chain, values) {
@@ -71,12 +84,42 @@ export function validateChain(chain, catalog) {
         incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
     }
 
-    // A node with any incoming edge must have every port wired.
+    // Declared inputs: unique names, resolvable binds, each port fed by at
+    // most one kind of source (mirrors core's rules).
+    const inputBound = new Set(); // "node port"
+    const inputNames = new Set();
+    for (const input of chain.inputs ?? []) {
+        if (!input.name) throw new Error("chain input with an empty name");
+        if (inputNames.has(input.name)) throw new Error(`duplicate chain input "${input.name}"`);
+        inputNames.add(input.name);
+        if (!input.binds?.length) throw new Error(`chain input "${input.name}" binds no ports`);
+        for (const bind of input.binds) {
+            const node = chain.nodes.find((n) => n.id === bind.node);
+            if (!node) throw new Error(`input "${input.name}" binds unknown node "${bind.node}"`);
+            const port = bindPort(bind, catalog.tools.get(node.tool));
+            if (port.entropy) {
+                throw new Error(`input "${input.name}" binds entropy port "${port.name}" — the driver fills entropy`);
+            }
+            const key = `${bind.node} ${port.name}`;
+            if (wired.has(key)) {
+                throw new Error(`port "${port.name}" of "${bind.node}" is fed by both an edge and input "${input.name}"`);
+            }
+            if (inputBound.has(key) && !port.multi) {
+                throw new Error(`input port "${port.name}" of "${bind.node}" is bound more than once`);
+            }
+            inputBound.add(key);
+        }
+    }
+
+    // Port coverage: without declared inputs, a node with any incoming edge
+    // must have every port wired (nodes with none are entries); with them,
+    // every non-entropy port needs an edge or a binding.
+    const declared = (chain.inputs ?? []).length > 0;
     for (const node of chain.nodes) {
-        if (!incoming.get(node.id)) continue;
+        if (!declared && !incoming.get(node.id)) continue;
         const tool = catalog.tools.get(node.tool);
         const missing = tool.inputs.filter(
-            (p) => !p.entropy && !wired.has(`${node.id} ${p.name}`),
+            (p) => !p.entropy && !wired.has(`${node.id} ${p.name}`) && !inputBound.has(`${node.id} ${p.name}`),
         );
         if (missing.length) {
             throw new Error(
@@ -133,23 +176,39 @@ function buildEngine(chain, catalog) {
         };
     });
     const edgeSlot = new Map();
+    const declared = (chain.inputs ?? []).length > 0;
     for (const node of nodes) {
         const wired = (chain.edges ?? []).some((e) => e.to === node.id);
         for (const port of node.tool.inputs) {
-            if (wired) {
-                let valueIndex = 0;
-                (chain.edges ?? []).forEach((edge, eIdx) => {
-                    if (edge.to !== node.id || edgePort(edge, node.tool).name !== port.name) return;
-                    edgeSlot.set(eIdx, [idx.get(node.id), node.slots.length]);
+            let valueIndex = 0;
+            (chain.edges ?? []).forEach((edge, eIdx) => {
+                if (edge.to !== node.id || edgePort(edge, node.tool).name !== port.name) return;
+                edgeSlot.set(eIdx, [idx.get(node.id), node.slots.length]);
+                node.slots.push({
+                    port: port.name,
+                    index: valueIndex++,
+                    meta: { type: "bytes" },
+                    buffer: [],
+                    ended: false,
+                });
+            });
+            // Declared-input bindings, in input-declaration order (defines
+            // value order on multi ports).
+            for (const input of chain.inputs ?? []) {
+                for (const bind of input.binds ?? []) {
+                    if (bind.node !== node.id || bindPort(bind, node.tool).name !== port.name) continue;
                     node.slots.push({
                         port: port.name,
                         index: valueIndex++,
                         meta: { type: "bytes" },
                         buffer: [],
                         ended: false,
+                        input: input.name,
                     });
-                });
-                if (valueIndex === 0 && port.entropy) {
+                }
+            }
+            if (valueIndex === 0) {
+                if (port.entropy) {
                     node.slots.push({
                         port: port.name,
                         index: 0,
@@ -158,16 +217,18 @@ function buildEngine(chain, catalog) {
                         ended: false,
                         entropy: true,
                     });
+                } else if (!wired && !declared) {
+                    // Entry node of a chain without declared inputs: the
+                    // implicit input ("") feeds every port.
+                    node.slots.push({
+                        port: port.name,
+                        index: 0,
+                        meta: { type: "bytes" },
+                        buffer: [],
+                        ended: false,
+                        input: "",
+                    });
                 }
-            } else {
-                node.slots.push({
-                    port: port.name,
-                    index: 0,
-                    meta: { type: "bytes" },
-                    buffer: [],
-                    ended: false,
-                    entropy: port.entropy,
-                });
             }
         }
     }
@@ -178,24 +239,32 @@ function buildEngine(chain, catalog) {
 }
 
 /**
- * Execute a chain over a source of chunks (an async iterable of
- * Uint8Array). Returns Map<nodeId, result>:
+ * Execute a chain over named chunk sources: an array of
+ * {name, meta, chunks} where chunks is an async iterable of Uint8Array
+ * (name "" = the implicit input of a chain without declared inputs).
+ * Returns Map<nodeId, result>:
  * - reservoir nodes and sinks: {ok: true, value}
  * - streaming intermediates (unless retain): {ok: true, streamed: {total, preview}}
  * - failures: {ok: false, error} (downstream nodes are absent)
  */
-export async function executeChainStreaming(chain, catalog, chunkSource, inputMeta, retain = false) {
+export async function executeChainStreaming(chain, catalog, sources, retain = false) {
     validateChain(chain, catalog);
+    const expected = (chain.inputs ?? []).length ? chain.inputs.map((i) => i.name) : [""];
+    for (const src of sources) {
+        if (!expected.includes(src.name)) throw new Error(`chain has no input named "${src.name}"`);
+    }
     const nodes = buildEngine(chain, catalog);
     const results = new Map();
 
-    // Static metas: chain input for entry slots, declared output type for
-    // slots fed by streaming sources; reservoir sources overwrite at
+    // Static metas: source meta for input-fed slots, declared output type
+    // for slots fed by streaming sources; reservoir sources overwrite at
     // delivery time (e.g. the actual image format).
-    const fed = new Set(nodes.flatMap((n) => n.outgoing.map(([t, s]) => `${t} ${s}`)));
-    nodes.forEach((node, nIdx) => {
-        node.slots.forEach((slot, sIdx) => {
-            if (!fed.has(`${nIdx} ${sIdx}`)) slot.meta = { ...inputMeta };
+    nodes.forEach((node) => {
+        node.slots.forEach((slot) => {
+            if (slot.input !== undefined) {
+                const src = sources.find((s) => s.name === slot.input);
+                if (src) slot.meta = { ...src.meta };
+            }
         });
         if (node.tool.streaming) {
             for (const [t, s] of node.outgoing) {
@@ -300,27 +369,34 @@ export async function executeChainStreaming(chain, catalog, chunkSource, inputMe
         }
     };
 
-    const entrySlots = [];
+    // Driver-filled randomness first: one chunk from the browser CSPRNG,
+    // visible in the ABI request like any other input.
     nodes.forEach((node, nIdx) =>
         node.slots.forEach((slot, sIdx) => {
-            if (fed.has(`${nIdx} ${sIdx}`)) return;
-            if (slot.entropy) {
-                // Driver-filled randomness: one chunk from the browser
-                // CSPRNG, visible in the ABI request like any other input.
-                queue.push(["chunk", nIdx, sIdx, crypto.getRandomValues(new Uint8Array(ENTROPY_LEN))]);
-                queue.push(["end", nIdx, sIdx]);
-            } else {
-                entrySlots.push([nIdx, sIdx]);
-            }
+            if (!slot.entropy) return;
+            queue.push(["chunk", nIdx, sIdx, crypto.getRandomValues(new Uint8Array(ENTROPY_LEN))]);
+            queue.push(["end", nIdx, sIdx]);
         }),
     );
     await process();
-    for await (const chunk of chunkSource) {
-        for (const [n, s] of entrySlots) queue.push(["chunk", n, s, chunk]);
+
+    // Feed each input in declaration order (mirrors core).
+    for (const name of expected) {
+        const src = sources.find((s) => s.name === name);
+        if (!src) throw new Error(`missing chain input "${name}"`);
+        const slots = [];
+        nodes.forEach((node, nIdx) =>
+            node.slots.forEach((slot, sIdx) => {
+                if (slot.input === name) slots.push([nIdx, sIdx]);
+            }),
+        );
+        for await (const chunk of src.chunks) {
+            for (const [n, s] of slots) queue.push(["chunk", n, s, chunk]);
+            await process();
+        }
+        for (const [n, s] of slots) queue.push(["end", n, s]);
         await process();
     }
-    for (const [n, s] of entrySlots) queue.push(["end", n, s]);
-    await process();
 
     // Assemble results for streaming nodes.
     for (const node of nodes) {
@@ -345,13 +421,25 @@ export async function executeChainStreaming(chain, catalog, chunkSource, inputMe
 }
 
 /**
- * Execute a chain on a complete in-memory value — the same push engine fed
- * a single chunk, with every node's output retained (per-node previews).
+ * Execute a chain on complete in-memory values — the same push engine fed
+ * single chunks, with every node's output retained (per-node previews).
+ * `inputs` is one value ({type, bytes, format?}) for single-input chains,
+ * or an object of name -> value for chains with declared inputs.
  */
-export async function executeChain(chain, catalog, input) {
-    const meta = { type: input.type, ...(input.format ? { format: input.format } : {}) };
-    async function* once() {
-        yield input.bytes;
-    }
-    return executeChainStreaming(chain, catalog, once(), meta, true);
+export async function executeChain(chain, catalog, inputs) {
+    const byName = inputs.bytes !== undefined ? { "": inputs } : inputs;
+    const declared = (chain.inputs ?? []).length ? chain.inputs.map((i) => i.name) : [""];
+    const sources = Object.entries(byName).map(([name, value]) => {
+        // A single unnamed value feeds a chain whose one input is named.
+        const resolved = name === "" && declared.length === 1 ? declared[0] : name;
+        async function* once() {
+            yield value.bytes;
+        }
+        return {
+            name: resolved,
+            meta: { type: value.type, ...(value.format ? { format: value.format } : {}) },
+            chunks: once(),
+        };
+    });
+    return executeChainStreaming(chain, catalog, sources, true);
 }
