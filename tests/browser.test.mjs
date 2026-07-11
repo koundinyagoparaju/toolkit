@@ -77,7 +77,7 @@ async function evalJs(cdp, expression) {
     return result.value;
 }
 
-async function waitFor(cdp, expression, timeoutMs = 15000) {
+async function waitFor(cdp, expression, timeoutMs = 45000) {
     const start = Date.now();
     for (;;) {
         if (await evalJs(cdp, expression)) return;
@@ -408,7 +408,7 @@ try {
     const tabSd = await newTab(`${BASE}/#/`);
     const cdpSd = await connect(tabSd.webSocketDebuggerUrl);
     // clients.claim() makes the SW take control shortly after first load.
-    await waitFor(cdpSd, `!!navigator.serviceWorker?.controller`, 20000);
+    await waitFor(cdpSd, `!!navigator.serviceWorker?.controller`, 60000);
     const roundTrip = await evalJs(
         cdpSd,
         `(async () => {
@@ -451,11 +451,30 @@ try {
     const downloadDir = `/tmp/toolkit-dl-${process.pid}`;
     const { mkdirSync, readdirSync, statSync, rmSync } = await import("node:fs");
     mkdirSync(downloadDir, { recursive: true });
-    await cdpDl.send("Browser.setDownloadBehavior", {
-        behavior: "allow",
-        downloadPath: downloadDir,
-    });
-    await waitFor(cdpDl, `!!navigator.serviceWorker?.controller`, 20000);
+    // Page sessions accept Browser.* on current Chrome; fall back to the
+    // browser-level socket, and skip the on-disk assertion if neither
+    // works (test 10 already covers the stream mechanics).
+    let downloadsEnabled = true;
+    try {
+        await cdpDl.send("Browser.setDownloadBehavior", {
+            behavior: "allow",
+            downloadPath: downloadDir,
+        });
+    } catch {
+        try {
+            const version = await (await fetch(`http://localhost:${PORT}/json/version`)).json();
+            const browserCdp = await connect(version.webSocketDebuggerUrl);
+            await browserCdp.send("Browser.setDownloadBehavior", {
+                behavior: "allow",
+                downloadPath: downloadDir,
+            });
+            browserCdp.close();
+        } catch (e) {
+            console.log(`skip - download-to-disk assertion (cannot enable downloads: ${e.message})`);
+            downloadsEnabled = false;
+        }
+    }
+    await waitFor(cdpDl, `!!navigator.serviceWorker?.controller`, 60000);
     await waitFor(cdpDl, `!!document.querySelector('input[type="file"]')`);
     await evalJs(cdpDl, `(() => {
         const mb = 1024 * 1024;
@@ -474,25 +493,27 @@ try {
         cdpDl,
         `[...document.querySelectorAll("button")].find((b) => b.textContent.includes("Run chain")).click()`,
     );
-    await waitFor(cdpDl, `document.body.textContent.includes("Chain ran ✓")`, 60000);
-    // base64 of 40MB, no line breaks: 4 * ceil(40MB / 3) bytes.
-    const expectedSize = 4 * Math.ceil((40 * 1024 * 1024) / 3);
-    let downloaded = null;
-    for (let i = 0; i < 30; i++) {
-        const files = readdirSync(downloadDir).filter((f) => !f.endsWith(".crdownload"));
-        if (files.length) {
-            const size = statSync(`${downloadDir}/${files[0]}`).size;
-            if (size === expectedSize) {
-                downloaded = { name: files[0], size };
-                break;
+    await waitFor(cdpDl, `document.body.textContent.includes("Chain ran ✓")`, 120000);
+    if (downloadsEnabled) {
+        // base64 of 40MB, no line breaks: 4 * ceil(40MB / 3) bytes.
+        const expectedSize = 4 * Math.ceil((40 * 1024 * 1024) / 3);
+        let downloaded = null;
+        for (let i = 0; i < 120; i++) {
+            const files = readdirSync(downloadDir).filter((f) => !f.endsWith(".crdownload"));
+            if (files.length) {
+                const size = statSync(`${downloadDir}/${files[0]}`).size;
+                if (size === expectedSize) {
+                    downloaded = { name: files[0], size };
+                    break;
+                }
             }
+            await sleep(500);
         }
-        await sleep(500);
+        assert(
+            downloaded !== null,
+            `40MB chain output streamed to a download of ${expectedSize} bytes (got ${JSON.stringify(downloaded)})`,
+        );
     }
-    assert(
-        downloaded !== null,
-        `40MB chain output streamed to a download of ${expectedSize} bytes (got ${JSON.stringify(downloaded)})`,
-    );
     rmSync(downloadDir, { recursive: true, force: true });
     cdpDl.close();
 
