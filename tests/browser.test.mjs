@@ -388,15 +388,33 @@ try {
     assert(true, "keyboard-only connect creates an edge");
     cdpKb.close();
 
-    // --- Test 9: chain with declared inputs — two named input panels,
-    // each fed separately, produce a diff ---
-    const tabDi = await newTab(`${BASE}/#/chains`);
-    const cdpDi = await connect(tabDi.webSocketDebuggerUrl);
-    await waitFor(cdpDi, `document.body.textContent.includes("Text compare")`);
+    // --- Test 9a: the chain library page lists chains and opens one in
+    // the builder ---
+    const tabLib = await newTab(`${BASE}/#/chains`);
+    const cdpLib = await connect(tabLib.webSocketDebuggerUrl);
+    await waitFor(cdpLib, `document.body.textContent.includes("JWT claims")`);
     await evalJs(
-        cdpDi,
-        `[...document.querySelectorAll("a")].find((a) => a.textContent.includes("Text compare")).click()`,
+        cdpLib,
+        `[...document.querySelectorAll("a")].find((a) => a.textContent.includes("JWT claims")).click()`,
     );
+    await waitFor(cdpLib, `document.querySelectorAll("svg g rect").length >= 3`);
+    assert(true, "library chain opens in the builder with its nodes rendered");
+    cdpLib.close();
+
+    // --- Test 9b: chain with declared inputs — two named input panels,
+    // each fed separately, produce a diff ---
+    const diChain = {
+        version: 1,
+        inputs: [
+            { name: "old", binds: [{ node: "diff", port: "old" }] },
+            { name: "new", binds: [{ node: "diff", port: "new" }] },
+        ],
+        nodes: [{ id: "diff", tool: "text-diff", options: {} }],
+        edges: [],
+    };
+    const diHash = btoa(JSON.stringify(diChain)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+    const tabDi = await newTab(`${BASE}/#/builder/${diHash}`);
+    const cdpDi = await connect(tabDi.webSocketDebuggerUrl);
     await waitFor(cdpDi, `document.querySelectorAll("textarea").length >= 2`);
     const inputPanels = await evalJs(
         cdpDi,
@@ -404,7 +422,7 @@ try {
     );
     assert(
         inputPanels.length === 2 && inputPanels[0].includes("old") && inputPanels[1].includes("new"),
-        `text-compare shows two named input panels (got ${JSON.stringify(inputPanels)})`,
+        `declared-inputs chain shows two named input panels (got ${JSON.stringify(inputPanels)})`,
     );
     await evalJs(
         cdpDi,

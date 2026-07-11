@@ -6,6 +6,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed
+- The `file-checksum` and `text-compare` chains: each wrapped a single
+  tool and exposed nothing beyond it, so `toolkit run hash` and
+  `toolkit run text-diff` do the same job directly (same options, same
+  named inputs, same streaming).
+
 ## [0.6.0] - 2026-07-11
 
 ### Added

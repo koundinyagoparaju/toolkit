@@ -17,7 +17,7 @@ irm https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/ins
 
 echo -n "$JWT" | toolkit chain 'jwt-decode | json-format'
 toolkit chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
-toolkit chain -n file-checksum -i backup.iso    # streams, gigabytes in a few MB of RAM
+toolkit run hash -i backup.iso                  # streams, gigabytes in a few MB of RAM
 ```
 
 The tools: base64/32/58, URL and hex encoding, JWT inspection, JSON to and

@@ -76,8 +76,8 @@ toolkit run base64-encode 'hello world'       # input as an argument, or stdin
 echo -n "$JWT" | toolkit chain 'jwt-decode | json-format'
 toolkit run image-resize --set width=800 -i photo.png -o small.png
 toolkit chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
-toolkit chain -n text-compare -i old=a.txt -i new=b.txt
-toolkit chain -n file-checksum -i backup.iso  # streams: GBs in a few MB of RAM</pre>
+toolkit run text-diff -i old=a.txt -i new=b.txt
+toolkit run hash -i backup.iso                # streams: GBs in a few MB of RAM</pre>
     <p class="dim">
         Every tool page here shows its own terminal equivalent — options included — and every
         chain in the <a href="#/chains">library</a> runs as

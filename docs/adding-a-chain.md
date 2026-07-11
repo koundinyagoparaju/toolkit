@@ -79,7 +79,7 @@ port must be fed by exactly one source, an edge **or** a binding, never
 both. One input may bind several ports (fan-out); a multi port may take
 several bindings, ordered by input declaration.
 
-The CLI takes each by name (`toolkit chain -n text-compare -i old=a.txt
+The CLI takes each by name (`toolkit chain -n your-chain -i old=a.txt
 -i new=b.txt`; single-input chains still default to stdin), and the web
 builder renders one input panel per declared input. Streaming works the
 same as ever: inputs are fed in declaration order, chunk by chunk.
