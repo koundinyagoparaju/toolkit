@@ -2,6 +2,7 @@
 //! through an explicit entropy input port filled by the driver, so every
 //! tool here remains a pure function of its inputs.
 
+#![deny(unsafe_code)]
 mod base32_tools;
 mod base58_tools;
 mod generators;

@@ -276,6 +276,8 @@ pub fn encode_error_response(message: &str) -> Vec<u8> {
 macro_rules! export_pack_abi {
     ($registry_fn:path) => {
         #[cfg(target_arch = "wasm32")]
+        #[allow(unsafe_code)] // the hand-rolled ABI is the one sanctioned
+                              // unsafe boundary; author code stays safe.
         mod __toolkit_pack_abi {
             fn pack(ptr: *const u8, len: usize) -> u64 {
                 ((ptr as u64) << 32) | (len as u64)

@@ -5,6 +5,7 @@
 //! whole integration — the CLI, the web catalog, forms, and chains pick it
 //! up from the manifest.
 
+#![deny(unsafe_code)]
 mod base64_tools;
 mod case_convert;
 mod diff;

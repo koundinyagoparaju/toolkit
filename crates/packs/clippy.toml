@@ -1,0 +1,27 @@
+# Purity enforcement for tool packs (see CONTRIBUTING: tools are pure
+# functions of their inputs). Applies to every crate under crates/packs/;
+# the CLI and core are not governed by this file and may do I/O.
+disallowed-types = [
+    { path = "std::fs::File", reason = "tools are pure: no filesystem (CONTRIBUTING)" },
+    { path = "std::fs::OpenOptions", reason = "tools are pure: no filesystem" },
+    { path = "std::net::TcpStream", reason = "tools are pure: no network" },
+    { path = "std::net::TcpListener", reason = "tools are pure: no network" },
+    { path = "std::net::UdpSocket", reason = "tools are pure: no network" },
+    { path = "std::process::Command", reason = "tools are pure: no subprocesses" },
+    { path = "std::time::SystemTime", reason = "tools are pure: no clock" },
+    { path = "std::time::Instant", reason = "tools are pure: no clock" },
+]
+disallowed-methods = [
+    { path = "std::fs::read", reason = "tools are pure: no filesystem" },
+    { path = "std::fs::read_to_string", reason = "tools are pure: no filesystem" },
+    { path = "std::fs::write", reason = "tools are pure: no filesystem" },
+    { path = "std::fs::read_dir", reason = "tools are pure: no filesystem" },
+    { path = "std::fs::copy", reason = "tools are pure: no filesystem" },
+    { path = "std::fs::rename", reason = "tools are pure: no filesystem" },
+    { path = "std::fs::remove_file", reason = "tools are pure: no filesystem" },
+    { path = "std::fs::create_dir_all", reason = "tools are pure: no filesystem" },
+    { path = "std::env::var", reason = "tools are pure: no environment" },
+    { path = "std::env::var_os", reason = "tools are pure: no environment" },
+    { path = "std::env::vars", reason = "tools are pure: no environment" },
+    { path = "std::thread::spawn", reason = "tools are single-threaded; acceleration must be an additive fast path" },
+]

@@ -6,6 +6,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Tool packs are now mechanically enforced pure: a CI clippy pass bans
+  filesystem, network, subprocess, clock, and environment APIs, and every
+  pack denies `unsafe`. Accidental impurity fails the build; deliberate
+  impurity is conspicuous in review.
+- Fuzz target for the chain schema (parse, validate, execute) and real
+  image seeds for the image target; the harness now probes integer/float
+  options at their bounds and covers color/JWT-shaped inputs.
+
+### Fixed
+- On Windows (no SIGPIPE), piping into a command that exits early no
+  longer panics: a narrow panic hook exits quietly for broken-pipe print
+  failures only, so genuine write errors still surface.
+
 ## [0.9.0] - 2026-07-11
 
 ### Added

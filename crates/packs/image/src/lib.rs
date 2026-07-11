@@ -1,6 +1,7 @@
 //! Image tools. All operate on encoded images (png/jpeg/gif/bmp; webp
 //! decode-only) and re-encode on output.
 
+#![deny(unsafe_code)]
 mod clean;
 mod codec;
 mod compress;

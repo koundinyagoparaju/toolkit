@@ -1,5 +1,6 @@
 //! Data-format tools: converters, parsers, and formatters.
 
+#![deny(unsafe_code)]
 mod color;
 mod csv_tools;
 mod filetype;
