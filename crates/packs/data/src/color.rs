@@ -40,6 +40,11 @@ fn parse_color(s: &str) -> Result<(u8, u8, u8), ToolError> {
     let invalid = || ToolError::new("expected #rgb, #rrggbb, rgb(r, g, b) or hsl(h, s%, l%)");
     if let Some(hex) = s.strip_prefix('#') {
         let hex: String = hex.chars().filter(|c| !c.is_whitespace()).collect();
+        // Byte-sliced below — a multibyte char would make those slices
+        // panic mid-character (found by fuzzing), and can't be hex anyway.
+        if !hex.is_ascii() {
+            return Err(invalid());
+        }
         let expand = |c: char| u8::from_str_radix(&format!("{c}{c}"), 16);
         return match hex.len() {
             3 => {
@@ -165,5 +170,19 @@ mod tests {
             &Options::new()
         )
         .is_err());
+    }
+
+    #[test]
+    fn multibyte_hex_errors_instead_of_panicking() {
+        // Fuzzer-found: "<\u{feff}2_" is 6 bytes after '#', and the old
+        // byte slicing cut the BOM mid-character.
+        for input in ["#<\u{feff}2_", "#\u{e9}\u{e9}\u{e9}", "#ééé"] {
+            assert!(run_single(
+                &ColorConvert,
+                DataValue::Text(input.into()),
+                &Options::new()
+            )
+            .is_err());
+        }
     }
 }
