@@ -41,6 +41,22 @@ pub fn option_variants(tool: &dyn Tool) -> Vec<Options> {
                     variants.push(opts);
                 }
             }
+            // Integers and floats: probe the declared bounds — the values
+            // most likely to hit edge behavior that validation lets through.
+            OptionKind::Integer { min, max } => {
+                for value in [*min, *max].into_iter().flatten() {
+                    let mut opts = Options::new();
+                    opts.insert(spec.name.clone(), value.into());
+                    variants.push(opts);
+                }
+            }
+            OptionKind::Float { min, max } => {
+                for value in [*min, *max].into_iter().flatten() {
+                    let mut opts = Options::new();
+                    opts.insert(spec.name.clone(), value.into());
+                    variants.push(opts);
+                }
+            }
             _ => {}
         }
     }
@@ -64,16 +80,20 @@ pub fn corpus_entry(seed: u64, round: u32) -> Vec<u8> {
     const BASE64ISH: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef0123456789+/=_-";
     const HEXISH: &[u8] = b"0123456789abcdefABCDEF \n";
     const JSONISH: &[u8] = b"{}[]\",:0123456789.eE+-truefalsnu \n";
+    const COLORISH: &[u8] = b"#rgbhsl(),%0123456789abcdef. ";
+    const DOTTED: &[u8] = b"abcXYZ019+/=._-";
     let mut state = seed.wrapping_add(u64::from(round).wrapping_mul(0x9E3779B97F4A7C15));
     let len = (xorshift(&mut state) % 2048) as usize;
     let mut data = Vec::with_capacity(len);
     for _ in 0..len {
         let byte = (xorshift(&mut state) >> 32) as u8;
-        data.push(match round % 5 {
+        data.push(match round % 7 {
             0 => byte,        // raw bytes
             1 => byte % 0x80, // ASCII
             2 => BASE64ISH[byte as usize % BASE64ISH.len()],
             3 => HEXISH[byte as usize % HEXISH.len()],
+            4 => COLORISH[byte as usize % COLORISH.len()],
+            5 => DOTTED[byte as usize % DOTTED.len()], // JWT-ish segments
             _ => JSONISH[byte as usize % JSONISH.len()],
         });
     }

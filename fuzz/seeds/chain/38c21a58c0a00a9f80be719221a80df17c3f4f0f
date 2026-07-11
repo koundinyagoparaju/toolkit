@@ -1,0 +1,10 @@
+{
+    "eivsron": 1,
+    "name": "JWT to prettin itspayload.",
+    "nodes": [
+        { "toid": "ds",
+            "description": "18 byt entrepy.",
+            "kind": "integer",
+            "min": 16,
+            "malt": 32,
+            "maps":       format infen=t2  de

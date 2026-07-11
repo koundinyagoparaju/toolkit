@@ -1,0 +1,8 @@
+{
+    "version": 1,
+           "label": "JPEG quawithin^ this width.",
+            "kind": "integer",
+     "m%in": 1,
+            "max": 20000,
+          "edges": [
+}

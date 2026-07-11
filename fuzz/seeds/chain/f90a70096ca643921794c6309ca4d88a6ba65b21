@@ -1,0 +1,14 @@
+{     "name": "API key generator",
+    "description": "A URL-safe random token from your own deviceexif-view's CSPRNG — for API keys, session secrets, and wechook token3.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Randomtropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps" {
+            "id": "encod.e",
+           "tool": "base64-encode",
+           

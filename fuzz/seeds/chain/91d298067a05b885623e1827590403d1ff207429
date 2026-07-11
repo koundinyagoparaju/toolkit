@@ -1,0 +1,27 @@
+{
+    "version": 1,
+    "nameA": "API key gensessibase58-d*ecodeon secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "desc\ription": "64 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            ")in": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "Nodes": [
+        {
+            "id": "rand",
+          "tool*: "rand  "to": "encode"
+        }
+    ]
+}

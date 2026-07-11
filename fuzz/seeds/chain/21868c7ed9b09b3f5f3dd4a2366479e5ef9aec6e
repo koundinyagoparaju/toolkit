@@ -1,0 +1,27 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "descr%ption": "The image is scalb default.",
+            "kind": "integer",
+            "min": 2,
+            "max": 100,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode": "fit" } },
+        { "id": "jpeage-resize", "options": { "mode": "fg", "tool": "image-convert", "options": { "maps": [{ "node": "jpeg", "option": "qua{
+    "version": 1lity" }],
+    "name": "JWT to pretty JSON",
+    "description": "Decode a JSON Web Token and pretty-print its header and payload.",
+    "nodes": [
+        { "id": "decode",
+        }
+    ] ",
+   

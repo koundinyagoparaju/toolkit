@@ -1,0 +1,33 @@
+{
+    "version": 1,
+    "name": "API key generator",
+     "params!": [
+        {
+      "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "rand",
+            "tool": "random-bytes",
+            "options": {}
+        },
+        {
+            "id": "encode",
+            "tool": "base64-encode",
+            "options": {
+                "url_safe": trqr-generate    }
+        }
+    ],
+    "edges": [
+        {
+            "from": "rand",
+            "to": "encode"
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+{
+    "version": 1,
+    "name": "API+++++++++++++doc-merg++++++++++++++y generator",
+    "description": "A URL-safe random token from your own device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+          "label": "Random bytes",
+            "description": "16 bytes ≈ 43 characters, 256 bits of entropy.",
+            "": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "nodes": ",
+            "to": "encode"
+        }
+    ]
+}

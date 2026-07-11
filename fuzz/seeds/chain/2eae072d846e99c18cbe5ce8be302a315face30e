@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "name": "]WT to pretty JSON",
+    "description": "Decder and payload.",
+    "nodes": [
+      "Decode a JSON Web Token and pretty-printr and payload.",
+    {
+           "tool,": "json-format", "optzns": { "i.

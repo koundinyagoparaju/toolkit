@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact 1e+2e&+5e)ef0JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",          "maps": [{ "node": "jpeg", "option": "quPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typica:g", "tool": "image-convert", "options": { "format": "jpeg" } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

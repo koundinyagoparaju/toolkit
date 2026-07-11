@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode": "fit" } },
+        { "id": "jpeg", "tool": "image-convert", "options": { "ofrmat": "jqeg" } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

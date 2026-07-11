@@ -1,0 +1,26 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe random token from your own device's CSPRNG — for API keys, seokens.",
+    "params": [
+        {
+            "name": "by",
+   "min": 16,
+            "max": 512,
+            "don": 1,
+    "n`&e":
+
+
+
+
+
+
+ [[[[[[[[[[[[[[[[[[[[[{
+         {
+                    }
+        }
+    ],
+    "edges": [
+        {
+            "from": "rand",
+           

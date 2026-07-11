@@ -1,0 +1,8 @@
+{
+ 
+           "label": "JPEG quality",
+                "name": "width",
+            "label": "Max width (px)",
+            "description": "The imthis width.",
+            "kind": "intege\\\\^dth",
+            

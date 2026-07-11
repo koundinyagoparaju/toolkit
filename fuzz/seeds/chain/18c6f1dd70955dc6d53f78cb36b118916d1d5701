@@ -1,0 +1,138 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max  session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+         "description": "16 bytes ≈  256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+         ind": "integer"   ],
+    "notions": { "format": "jpeg" } }
+    ],
+    "edges": [{ "from": "resize", "to" "jpeg" }]
+}

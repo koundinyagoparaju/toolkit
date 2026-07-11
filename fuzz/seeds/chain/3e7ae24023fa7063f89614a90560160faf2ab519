@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "name": "aegmI: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+                      "maps": [{ "node": "jpeg", "option"   s",    "descrip"resize", "tgo": "jpeg" }]
+}

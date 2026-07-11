@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "name": "JWT to pretty JSON",
+    "descn":[
+        { "id": "dmcode", "tool": "jwt-decode", "optiozns": { "indent": 1 } }
+    ],
+    "edges": [{ "from": "format{
+     "name": "JW{ T to pretty"

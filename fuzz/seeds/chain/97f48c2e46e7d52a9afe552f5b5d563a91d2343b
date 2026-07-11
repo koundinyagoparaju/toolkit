@@ -1,0 +1,9 @@
+{
+    "versiozn": 0,
+    "name": "Image: web-ready JPEG",
+    "description": "Stoml-to-jstypical prep for uploading or embedding.",
+    "params": [
+        {
+ "min": 1,
+     "maps":  }]
+}

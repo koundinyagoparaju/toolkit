@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for upnidglao or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "Thtn this widph.",
+            "kind": "integer",
+            "min": 601,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes"ns": { "format": "jpeg" } }
+{
+    "vname": "WT e

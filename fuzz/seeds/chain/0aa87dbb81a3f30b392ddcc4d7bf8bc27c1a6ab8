@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "name": "JWT to pretty JSON",
+    "nodes": [
+      "Decode a JSON Web Tn#oken and pretty-printr and,": "json-format", "optzns":JSON Web Tn { "indent"    
+ "format" }]
+}

@@ -1,0 +1,8 @@
+{   "kind": "integer",
+            "min": 1,
+            "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "idwth" }]
+        },
+        {
+   ?  

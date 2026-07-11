@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shriage and convert it to a compact JPEG — typicapel  base64;-decodeprfor uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "d to fit within this width.",
+            "kind": "integer",
+                 "default": 16e0,
+            "maps": [{ "node": "resize", "option": "idwth" }]
+        },
+        {ert", "o]
+}

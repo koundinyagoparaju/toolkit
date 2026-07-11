@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "name": " prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+             "defaul4": 1600,             "min": 1,
+            "max": 100,
+            "default": 80,
+            "maps"

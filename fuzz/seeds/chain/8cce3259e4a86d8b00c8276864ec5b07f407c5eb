@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "name": "API key gener0ator",
+    "description": "A URL-safe s3ndom tokenom your own device's CSPRNG — for API keses,y ssion secrets, and webhook tokens.",
+    "params!": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 256,
+            "default" }
+    ],
+    "edges": [
+        {
+            "from":s7 "rXnd",
+            "to": "enc

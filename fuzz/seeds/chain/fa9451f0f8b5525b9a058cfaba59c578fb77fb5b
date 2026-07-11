@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "name": "API key generator",
+     "params": [
+        {
+            "name": "bytes",
+           "default": 32,
+            "maps": [
+               
+   {                  "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "     }
+    ]
+}

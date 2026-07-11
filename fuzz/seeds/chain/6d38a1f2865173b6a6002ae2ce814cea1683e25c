@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "name": "Image:",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "inteeer",
+            "min":  
+0,           "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+            "name": "quality",tion": "Lower is smaller; 80 is a good web default.",
+            "kind": "integer",
+        qua"l

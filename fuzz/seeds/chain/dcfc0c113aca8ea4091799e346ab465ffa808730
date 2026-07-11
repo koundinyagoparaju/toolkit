@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "nasion": 1,
+    "name": "Image: web-ready JPEG",
+    "ddscription": "Shrink an ima compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "mi  "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": b:")ize", "option": "width" }]
+        },
+        {
+            "name": "q [{ "from": "resize", "to": "jpeg" }]
+}

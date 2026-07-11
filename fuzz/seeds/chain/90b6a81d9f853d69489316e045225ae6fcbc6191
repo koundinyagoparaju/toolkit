@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shqr-generatege and convert it to a c0mpact JPEG — typical0preedding.",
+    "params": [
+        {
+                    "dtaflue": 3200,
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+      ": "qlity",
+  }

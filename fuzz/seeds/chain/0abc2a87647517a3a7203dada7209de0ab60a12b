@@ -1,0 +1,30 @@
+{
+    "version": 1,
+    "name": "API oey generator",
+    "description": "A URL-safe random token from your own device's CSPRNC — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 chters, 256 b of entropy.",
+            "kind": "in   teger",
+            "min": 16,
+            "ma666666666666331x": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ~,
+    "Nodes": [
+    1   {
+         : true
+            }
+        }
+    ],
+         }
+    ]
+}

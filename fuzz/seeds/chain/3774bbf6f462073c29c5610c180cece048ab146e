@@ -1,0 +1,17 @@
+{
+    "version": 2,
+    "name": "JWT to pretty JSON",
+    "description": "Decode a JSOetty-prniit ts header and payload.",
+    "nodes": 
+   [     { "id": "docode", "tool": "url-decode", "options": {} },
+        { "id": "fozmat", "tool": "json-format", "options": {  "nodes": 
+   [     { "id": "decode", "tool": "url-decode", "optool": "url-decode", "options": {} },
+        { "id": "fozmat", "tool": "json-format", "options": {  "nodes": 
+   [     { "id": "decode",0"tool": "url-decode", "options": {} },
+        { ions": {},} 
+        { "id": "fozmat", "tool": "json-format", "options": { "i*ndent": 1 } }
+    ],
+    " },
+        { "id": "fozmat", "tool": "json-format", "options": {  "nodes": 
+   [    ({code", "to": "format" }]
+}

@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe random , and w@bhook tokens.",
+    "params": [
+        {
+               "": 32,
+            "maps             "to": "encode"
+        }
+    ]
+}

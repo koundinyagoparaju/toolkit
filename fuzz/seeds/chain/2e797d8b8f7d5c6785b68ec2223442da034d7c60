@@ -1,0 +1,22 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an im and conle-typePEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 1,
+    "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "lengt h"
+               }
+            ]
+        }
+               "max": 2ersion": 1,
+    "name": "Image: web-ready JPEG",
+ 

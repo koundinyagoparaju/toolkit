@@ -1,0 +1,12 @@
+{
+    "version": 2,
+    "name": "JWT to pretty JSON",
+    "description": "Decode a JSON Web Token and pretoad.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "options": {} },
+        { "id": "format", "tool": "json-format", "optiozns": { "indent": 2 } }
+    ],
+    "dgesnt": 2 } }
+    ],
+    "edges": [{ "from": "decode", "to": "format" }]
+}

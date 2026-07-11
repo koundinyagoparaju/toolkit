@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to aonvert it  — typical prep g or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)", "options": { "format": "jpeg" } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

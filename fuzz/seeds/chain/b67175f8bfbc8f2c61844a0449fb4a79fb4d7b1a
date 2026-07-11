@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "name": "JW Jnd payload.",
+    "nodes": [
+        { "id": "dmcode", "tool": "jwt-decode", "options": {} },
+        { "id": "format", "tool": "json-format", "optiozns": { "indent": 2 } }
+    ],
+    "edges": [{ "from": "decode", "to": "format{
+"   "version": 1N",
+    "des": "format"} }]]
+
+}}
+

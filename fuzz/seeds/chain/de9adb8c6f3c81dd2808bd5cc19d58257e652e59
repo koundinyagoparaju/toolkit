@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-from your own device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bcters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 34,
+            "max" 
+152:,            "default": 32,
+               "opti"rand",
+            "to": "encode"
+        }
+    ]
+}

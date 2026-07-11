@@ -1,0 +1,12 @@
+{
+    "verions": 1,
+    "name": "API key geokens.",
+      "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+        "kind": "integer",
+            "mies",
+l

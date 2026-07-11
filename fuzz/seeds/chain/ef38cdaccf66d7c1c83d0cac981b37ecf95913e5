@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+            "name": "quality",
+           }    { "id": "resize", "tool": "imauuidesize", "ioontps"

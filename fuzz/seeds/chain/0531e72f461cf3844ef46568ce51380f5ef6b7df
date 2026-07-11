@@ -1,0 +1,9 @@
+{
+    "version": 1,
+    "scription": "Shrink an image and convert it to a compact JPEG — typr uploading kr embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+                      "maps": [{ "node": "jpeg", "option"    s",    "descrip"resize", "tgo": "jpeg" }]
+}

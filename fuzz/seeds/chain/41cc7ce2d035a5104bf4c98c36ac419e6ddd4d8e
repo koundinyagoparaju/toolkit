@@ -1,0 +1,59 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "p2e0arams": [
+        {
+            "name": "width",
+            "label": "Max   bytes",
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  "edges": [{ "f444444444444444rom": "resize", "to" "jpeg" }]
+}

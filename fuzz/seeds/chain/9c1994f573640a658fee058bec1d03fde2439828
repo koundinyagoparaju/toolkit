@@ -1,0 +1,10 @@
+ {
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert itcal prep fornpu  idlogaor embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+          "default": 1600,
+            "maps": [{ "node": "resize", "option": 

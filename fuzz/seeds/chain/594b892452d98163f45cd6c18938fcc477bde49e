@@ -1,0 +1,30 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe random token fron secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "rs, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 512,
+            "default": 32,
+          "  maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+     }
+            ]
+        }
+    ],
+    "nod
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "rand",
+            "to": "e@ncode"
+        }
+    ]
+}

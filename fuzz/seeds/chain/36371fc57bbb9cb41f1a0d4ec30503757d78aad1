@@ -1,0 +1,9 @@
+{
+    "version": 1,
+    "name": "JWT to pretty JSeb Token and pretty-print its header and payload.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "options": {} },
+        { "id": "format", "tool": "j3on-format", "options": { "indent": 1 } }
+    ],
+    "edges": [{ "from": "decode", "tn": "format" }]
+}

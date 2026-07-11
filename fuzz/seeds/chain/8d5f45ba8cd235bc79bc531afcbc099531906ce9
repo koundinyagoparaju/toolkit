@@ -1,0 +1,21 @@
+{
+    "version": 1,
+    "name": "Image:r embedding.",
+    "params": [
+        {
+            "name": "width",
+             "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "Nodes": [
+        {
+            "id": "rand",
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

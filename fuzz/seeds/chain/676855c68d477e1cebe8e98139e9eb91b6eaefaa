@@ -1,0 +1,6 @@
+{
+    "version":1 ,
+    "name": "Image and convertfr uploading or embedding.",  "default": 1600,
+            "maps":   {
+            "id": "encode",
+        }

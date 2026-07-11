@@ -1,0 +1,22 @@
+{         "max": 512,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                       "min": 16,
+            "max": 512  ,
+          "default": 32,
+            "maps": [
+                {
+                          "tool": "random-bytes",
+       "options": {
+                }
+        }
+    ],
+    "edges": [
+        {
+            "from": "rand",
+            "to":[[--code"
+   }
+    ]
+}

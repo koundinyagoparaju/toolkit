@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "name": "embedding.",
+ "pa   rams": [
+  {
+            "name": "width",
+            "label": "Max winteger",
+          "  : in": 1,

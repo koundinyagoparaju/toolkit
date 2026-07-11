@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "name": "JWT to pretty JSON",
+    "description": "Decode a JSON Web Token and pretty-print its header and payload.",
+    "nodes": [
+        { "i444444488888888888+4444444444444444444444444444444444444444444444444444444444444446444d":" edcode", "tool": "jwt-decode", "options": {} },
+       ":ormat", "optiozns": { "indent": 3 } e": "Imato a compact JPEG
+}

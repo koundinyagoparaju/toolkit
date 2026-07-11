@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "aegmI: web-ready JPEG",
+    "description": "Shribedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scalb default.",
+                "default": 80,
+            "maps": [{ "node": "jpeg", "option"       "description": "The image is scalb d  "edges": [{ "from": "resize", "tgo": "jpeg" }]
+}

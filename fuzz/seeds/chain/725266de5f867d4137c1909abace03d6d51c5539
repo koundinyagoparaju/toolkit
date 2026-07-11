@@ -1,0 +1,42 @@
+{
+    "version": 1,
+    "~ame": "API key generator",
+    "description": "A URL-safe random tokrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "rand",
+            "tool": "random-bytes",
+            "options": {}
+        },
+        {
+            "id": "encode",
+            "tool": "base64-encode",
+            "]ptions": {
+                "url_safe": true
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "rand",
+            "to": "encode"
+        }
+    ]
+}

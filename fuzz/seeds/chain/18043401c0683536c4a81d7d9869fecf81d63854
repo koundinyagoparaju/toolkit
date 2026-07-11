@@ -1,0 +1,23 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrin prep for uplo rdnaogi embedding.",
+    "params": [
+        {
+            "name": "width"
+  ,       "descrIption": "The image is scaled to fit within```````````````````````````````````````````````````````````````````````` this w\\\\\\\\\\\\\\\\\\\\\\\\\\\\width (px)",
+            "description": "The image is scaled to fit w3ithin this w\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\idth.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20000,
+        "label": "Max width (px)",
+            "descrIption": "The image is scaled to fit within```````````````````````````````````````````````````````````````````````` this w\\\\\\\\\\\\\\\\\\\\\\\\\\\\width (px)",
+            "description": "The image is scaled to fit within this w\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\idthkind": "integer",
+            "min": 1,
+            "max": 20000,
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+            "name": "quality",
+  "qua: "jpeg" }]
+}

@@ -1,0 +1,34 @@
+{
+    "version": 1,
+    "name": "g or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scalb default.",
+            "kind": "integer",
+            "min": 0,
+                 "max": 100,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode": "ding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scalb default.",
+            "kind": "integer",
+            "min": 0,
+                 "max": 100,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "ovfault.",
+            "kind": "integer",
+            "min": 1,
+            "max": 100,
+            "default": 80y.",
+            "kind": "integer",
+            "mi "na: web-ready J]
+}

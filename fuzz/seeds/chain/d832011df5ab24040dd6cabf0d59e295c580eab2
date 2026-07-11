@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "name": "Image: web-rea embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max  session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+         ind": "intbs
+deg

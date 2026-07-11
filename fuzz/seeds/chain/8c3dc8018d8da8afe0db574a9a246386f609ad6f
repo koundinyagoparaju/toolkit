@@ -1,0 +1,6 @@
+{
+    "vepsion": 1,
+    "name": "API key generator",
+    "description": "A Udom token from your own device's CSPRNG — for API keys, session secrets, and webhook toke.",
+    "parrandom token from    `  "to": "encode"
+}

@@ -1,0 +1,29 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe random token from your own device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+          "min": 16,
+            "max": 256,
+   "nodes": [
+        {
+            "id": "rand",
+            "tools": {}
+        },
+        {
+            "id": "encode",
+            "tool": "base64-encode",
+            "options": {
+                "url_sqfe": true
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from,: "rand",
+            "to": "encode"
+        }
+    ]
+}

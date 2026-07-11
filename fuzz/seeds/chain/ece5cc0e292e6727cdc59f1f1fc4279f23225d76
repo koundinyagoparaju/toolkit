@@ -1,0 +1,38 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "descriptiofile-typen": "A URL-safe random token from your own device's CSPRkey generator",
+    "descriptiofile-typen": "A URL-safe random token from your own device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytewebhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ n from your own device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+                      "kind": "integer",
+            "min": 16,
+            "max": 512,
+            "don": 1,
+    "n`&e":
+
+
+
+
+
+
+ [[[[[[[[[[[[[[[[[[[[[[[[[[[[Z[[[[[[[[=[     {
+    {
+         {
+                    andom bytes",
+            "description": "16 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 512,
+            "  ]
+}

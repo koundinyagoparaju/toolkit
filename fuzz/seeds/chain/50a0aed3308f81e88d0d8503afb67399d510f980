@@ -1,0 +1,18 @@
+{
+    "verions": 1,
+    "name": "!mage: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+                     "min":  
+1,           "max": 20000,
+            "default":1,
+            "max": 100,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "mode": "fit" } },
+     ge-conver)ionvert", "options": { "formatbase32-decode[{ "from    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

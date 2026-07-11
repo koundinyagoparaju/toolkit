@@ -1,0 +1,34 @@
+{
+    "version": 1,
+    "name": " prep for uploading or embedding.",
+    "params": [
+ {
+    "version": 1,
+    "name": "Image: web-react J to fit within :this width.",
+            "kind": "integer",
+            "min": 0,
+            "max": 20.00,
+   "max": 20.00,
+   "label": "Max width (pAx)",
+            "description": "The image is scaled to fit within :this width.",
+            "kind": "integer",
+   "version": 1,
+    "name": "Image: web-react J to frt within :this width.",
+            "kind": "integer",
+            "min": 2,
+  "max": 20.00,
+   "label": "Max width (pAx)",
+            "description": "The image is scaled to fit within :this width.",
+            "kind": "integer",
+   "version": 1,
+    "name": "Image: web-react J to frt within :this width.",
+            "kind": "integer",
+            "min": 2,
+            "max": 20.00,
+   "max": 20.00,
+   "la "l           "max": 20.00,
+   "max": 20.00,
+   "la "label": "Max width (px)",
+            "description": "The image is scaled to fit within :this width.",
+      "edges":
+   imageis scaled )tp fit within this wide "vth.

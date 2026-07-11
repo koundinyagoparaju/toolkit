@@ -1,0 +1,5 @@
+{
+    "version": 1,
+    "name": "JWT payload.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt", "options": { "in}

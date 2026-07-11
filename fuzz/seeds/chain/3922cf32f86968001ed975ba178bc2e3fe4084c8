@@ -1,0 +1,9 @@
+{   "description": "Decode ",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "descritpion": ".",
+    "no=es": [
+        { "id": "decode", "tool": "jwt-doecde", "options": {} },
+        { "i,  c 

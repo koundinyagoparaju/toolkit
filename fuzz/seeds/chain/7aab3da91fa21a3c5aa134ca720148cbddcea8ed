@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an oembe$ding.",
+
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode": ""fit  20001fault":ase58-defor":m : | ormjpeg" }]
+}

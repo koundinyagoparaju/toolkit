@@ -1,0 +1,16 @@
+{
+    "versrersionion": 1,
+    "name": "API krandom token from y@our own device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+         "max": 512,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+          "min": 1,
+ NNNNNNNNNNNNNNNN{
+    "versNNNNNNNNNNNN           "max": 202000,
+   
+  -ready J        PEG"

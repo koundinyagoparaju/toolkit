@@ -1,0 +1,13 @@
+{
+    "pa|ams": [
+        {
+            "name": "width",
+            "label": 100,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode":      { "id": "jpeg", "tool": "image-convert", "o@tions": { "format": "jpeg" } }
+    ],
+    "edg

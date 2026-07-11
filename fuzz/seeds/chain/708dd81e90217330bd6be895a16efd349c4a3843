@@ -1,0 +1,8 @@
+{
+    "version": 1,
+           "label": "JPEG quality",
+              "max": 20000,
+            "default":  
+1600,
+            "maps": [{ "node": "resize", "option": "width" }]
+escription": "Decode a JSON Web Tond pretty-print its header an}

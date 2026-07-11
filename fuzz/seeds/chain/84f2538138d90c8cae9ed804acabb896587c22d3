@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "namion": "Decode a JSON Web Token and pretty-print its header and payload.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "options": 
+ ,}{}        { "id": "format", "tool": "json-format", "options": { "indmat" }]
+}

@@ -1,0 +1,16 @@
+{
+    "version": 1,     "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within thjs width.",
+            "kind": "integer",
+               "kind": "integer",
+            "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+       "default"           "default": 32,
+            "maps": [
+          ",
+    "description": 

@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe random token from your own device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Ranom bytes",
+            "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "iretgen",
+            "nodesmin": 16,
+            "max": 512,
+            "default": fas3

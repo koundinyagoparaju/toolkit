@@ -1,0 +1,22 @@
+{
+    "version": 1,
+  "inputs": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within qhis width.",
+   
+            "label": "Random bytes",
+       "    kind": "integer",
+            "min": 16,
+            "max": 256,
+            "default": 32,
+         "label":
+
+
+
+
+ hrink an image and co
+{ "nvert itm too
+  ac
+ompact

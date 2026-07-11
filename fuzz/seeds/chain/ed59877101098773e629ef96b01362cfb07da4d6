@@ -1,0 +1,25 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "descript=ion": "The image is scaled to fit within this width.",
+            "kind": "inteage: web-ready JPEG",
+    "description": "Shrink an image and cojvert it to a compaGJc EtP — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 2,
+            "max": 20000,
+            "don": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compor embedding.",
+    "params": [
+ it"  "fojpeg" }]
+}

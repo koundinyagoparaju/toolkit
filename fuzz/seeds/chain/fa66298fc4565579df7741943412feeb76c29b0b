@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "n~me": "JWT eader and lodod1e=4.oad.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "opt'ons": {} },
+    at", "t  at" }]
+}

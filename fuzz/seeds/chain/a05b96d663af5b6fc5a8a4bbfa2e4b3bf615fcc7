@@ -1,0 +1,9 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "descrip,tion": "Shrinkr uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+              "desjoeg", "option": "to": "jpeg" }]
+}

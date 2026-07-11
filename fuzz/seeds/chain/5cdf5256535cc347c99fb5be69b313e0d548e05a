@@ -1,0 +1,22 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A Us, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 baracters, 256 bits of entropy.",
+            "kind": "integer",
+            "mi~": 16,
+            "max": 512,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                 "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 512,
+            "defates",
+         "description": "32 bytes ≈ 43 c?haracters, 256 bits of entropy."  

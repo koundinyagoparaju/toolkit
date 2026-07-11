@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "name": "JWT to prettycode a  Web Token and pretty-print its header and payload.",
+    "nodes": [
+        { "id": "decode", "tool": "jw(-decode", "options": {} },
+        { "id": "format", "tol": "json-form: [{ "from": "decode", "to": "format" }]
+}

@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "name": "JWT to pretty JSON",
+    "description": "Decode a JSON -print its header and payload.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "options" 
+,} :}{        { "id": "format", "\\\\\iozns": { "indent": 2 } }
+    ],
+    "edges": [{ "from": "decode", "to": "formaY" }]
+}

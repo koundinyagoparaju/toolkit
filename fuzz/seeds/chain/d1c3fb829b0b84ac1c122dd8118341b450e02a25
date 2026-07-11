@@ -1,0 +1,18 @@
+{
+    "version": 16,
+            "max": 512,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                       "min": 16,
+            "max": 512,
+         "min": 16,
+            "max": 512,
+            "default": 32,
+                 "default": 32,
+            "maps": [{
+    "version":
+      ndo 1,
+           "label": "JPEG quality"m-bytes"   ,
+  

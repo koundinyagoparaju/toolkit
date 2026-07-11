@@ -1,0 +1,18 @@
+{
+    "v)ersion": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image ank=4.nvert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+      "name": "JWT to pretty JSON",
+    "description": "Decode a JSON Web Token and pretty-print its header and payload.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decobedding.",
+    "params": [
+        {
+           "tool": "jsoyaml-to-jsonn-format", "`tion": "Lower is smallli "image-convert", "o{
+    "version": 1,
+    "name": "Image: we

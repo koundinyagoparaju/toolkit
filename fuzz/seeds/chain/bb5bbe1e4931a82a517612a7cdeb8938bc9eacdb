@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "name": "I key generator",
+  "description": "A URL-safe random token from your own device's CSPeba/!no:bor API ktokens.",
+    "params": [
+        {
+      "min": 14,
+                  "max": 512,
+            "default": 33,
+            "map " 

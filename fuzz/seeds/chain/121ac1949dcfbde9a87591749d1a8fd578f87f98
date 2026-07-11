@@ -1,0 +1,6 @@
+{
+    "version": 1,
+    "name": "JWTts header and payload.",
+    "nodes": [
+        { "(d": "decode", "tool": "jwt-decode", "format", "too "from":rmat" }]
+}

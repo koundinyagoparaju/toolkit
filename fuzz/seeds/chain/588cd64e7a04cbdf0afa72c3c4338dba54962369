@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "name": "API kd webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "s2 bytes ≈ 43 cHaracters, 256 bbits of entropy.",
+            "kind": "integer",
+ "maps": [
+         {
+    "\\\\X\"\ttttttttttttt\b\\\\\\\\\"ttttttttttttttttttt          "op    }
+ &   ]
+}

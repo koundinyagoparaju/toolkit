@@ -1,0 +1,33 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and cknvert it to ao.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 0,
+            "maxion": "Shrink an image and cknvert it to ao.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 0,
+            "max": 20000,
+            "default": 1600,
+            "maps":[ { "node": "resize", "option": "idwth" }]
+        },
+        {
+            "n": 20000,
+            "default": 1600,
+            "maps":[ { "node": "resize", "option": "idwth" }]
+        },
+        {
+            "name": "qu-convert", "options": { "format": "jpeg" } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

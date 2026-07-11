@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "name": "JWT-print its header and payload.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decobedding.",
+    "params": [
+        {
+           "tool": "json-format", "optzns": { "indent": 0 } }
+    ],
+    "edges": [{"format" }]
+}

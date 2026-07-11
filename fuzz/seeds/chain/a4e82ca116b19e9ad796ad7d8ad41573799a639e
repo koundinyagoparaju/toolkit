@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+                    "description": "The image is scaG — typical prep for uploading or embedding.",
+    "params": [
+ it" } },
+        { "id": "jpeg", "tool": "image-convert", "option],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

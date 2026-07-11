@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [text, image, crypto, data]
+        target: [text, image, crypto, data, chain]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -31,7 +31,10 @@ jobs:
       - run: rustup toolchain install nightly --profile minimal
       - run: command -v cargo-fuzz || cargo install cargo-fuzz --locked
       - name: Fuzz for 5 minutes
-        run: cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=300
+        run: |
+          seeds=""
+          [ -d "fuzz/seeds/${{ matrix.target }}" ] && seeds="fuzz/seeds/${{ matrix.target }}"
+          cargo +nightly fuzz run ${{ matrix.target }} fuzz/corpus/${{ matrix.target }} $seeds -- -max_total_time=300
       - name: Upload crash artifacts
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

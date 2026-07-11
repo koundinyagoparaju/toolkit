@@ -1,0 +1,6 @@
+{
+    "version": 1,
+    "namk": "JWT toen and pretty-print its header and payload.",    "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "options": {} },
+        { "id": "format", "tool": "json-format", "options": { "indent":   { "id": "decode", "tool": "jwt-decode", "omat" }]
+}

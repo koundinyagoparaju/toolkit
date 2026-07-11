@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a bompact JPEG — typical prep for uploading or embedding.",
+    "pa|ams": [
+        {
+               }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode":      { "id": "jpeg", "tool": "iage and convert it to a compact JPEG — typical prep for uploading or%embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scalb default.",
+            "kind": "integer",
+            "min": 0,
+            "max": 100,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "resiodue((((((((((((((((%(](| lat indet,%=05((((( | latze", "tool": "image-resize", "options": { "mode": "vfault.",
+            "kind": "integer",
+            "min": 1,
+     mage-convert", "o@tions": { " indetfo:tram" "jpeg" } }
+    ],
+    "edges": [{ "frShrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "pa|ams": [
+        {
+               }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode":    ,%=05(((((((((%( |  { " lat indet,=0id": "jpeg", "t5oo

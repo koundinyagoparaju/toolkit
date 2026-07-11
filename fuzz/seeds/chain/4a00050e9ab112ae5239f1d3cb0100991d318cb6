@@ -1,0 +1,22 @@
+{
+    "default": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max wd p(htix)",
+            "description": "The image is scaled to",
+           "label": "JPEG quality",
+            "descri`tion": "Lower is smaller.",
+            "kind": "integer",
+            "min": 1,
+            "max": 200,
+            "default": 40,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", 77-decode: { "mode": "fit" } },
+          g", "to,ol"
+}

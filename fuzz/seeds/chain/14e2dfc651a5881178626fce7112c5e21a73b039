@@ -1,0 +1,15 @@
+{
+    "version": 1,
+           "label": "JPEG quality",
+                "name": "width",
+            "label": "Max width (px)",
+            "descrintoip": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+ {y",
+ ys  

@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "name": "JWT to p Web Token and pretty-print its header and payload.",
+    "nodes": [
+        { "id": "decoXde", "tool": "jwt-decode", "options": {} },
+  ]
+}

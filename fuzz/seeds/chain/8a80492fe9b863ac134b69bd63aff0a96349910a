@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "name": "Image: web-readding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max widage iult.",
+            "kind": "~odesinteger",
+            "min": 1,
+            ""
+  hmac17 
+   : "randity" }]
+  " } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

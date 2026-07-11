@@ -1,0 +1,8 @@
+{
+    
+    "n~me": "JWT to p Web Token anloadimage-compr",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "opt'ons": {} },
+    {
+    "version": 1,
+ } 

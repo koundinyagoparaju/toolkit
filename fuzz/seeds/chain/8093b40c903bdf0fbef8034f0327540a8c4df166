@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe random token from your ownl prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within t device's CSPRNG — for API keys, session secretnd webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "16 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+         ,,,,,,,,,,,,,,,,,,,,,,,,{
+    "nodes"  	 
+
+
+ma{
+      "version":,,, true
+            }
+        }
+    ],
+    ps"
+edges":
+b [
+        {

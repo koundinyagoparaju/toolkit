@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe random token from your oDDDDDDDDDDDDDD API keys, session secrets, and webohok tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 characters, 25
+        }
+    ],
+6 bits of entropqua            "mapl

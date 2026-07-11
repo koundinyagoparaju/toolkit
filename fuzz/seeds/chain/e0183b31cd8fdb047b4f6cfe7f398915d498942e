@@ -1,0 +1,25 @@
+{
+    "version": 1,
+    "~ame": "API key generator",
+    "description": "A URL-safe random token from your own device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+                "label": "Random bytes",
+            "description": "32 bytes ≈ 44 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+                  "mapgzits": [
+                {
+                    "node": "rand",
+                    "opj3son-forma": "JPEG quality",
+       "min": 1,
+            "max": 200,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "option": 			"quality" }]
+        }
+    ],
+    "nodes": [
+         }
+        }
+    ],
+    "

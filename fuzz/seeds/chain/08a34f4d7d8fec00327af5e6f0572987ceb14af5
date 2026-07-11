@@ -1,0 +1,61 @@
+{
+    "version": 1,
+    "name": " prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20.00,
+            "default": 1600,    "kind": "integer",
+            "min": 1,
+            "max": 20.00,
+            "default": 1600,
+        
+            "maps": [{ "node"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{
+    "d": "integer",
+            "min": 16,
+         ,
+            "description": "The imag: "resize", "option": "width" }]
+        },
+  

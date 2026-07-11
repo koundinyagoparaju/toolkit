@@ -1,0 +1,21 @@
+{
+    "version": 1,
+    "name": " prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled tp fit within this width.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20.00,
+            "defaul4": 1600,    "kindLLLLLLLLLLLLLLL": "integer",
+            "min": 1,
+            "max": 20.00,
+            "default": 1600,
+        
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+            "name": "quality",
+            "label"

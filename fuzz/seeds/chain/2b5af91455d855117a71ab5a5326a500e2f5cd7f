@@ -1,0 +1,28 @@
+{
+    "verefault": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                       "min": 16,
+            "max": 512,
+            "default": 32,
+            "maps": [
+                {
+                          "tool": "random-bytes",
+            "options": {}
+        },
+        {
+            "id": "encode",
+            "tool": "base64-encode",
+            "options": {
+                "url_safe": true
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "rand",
+            "to": "encode"
+        }
+    ]
+}

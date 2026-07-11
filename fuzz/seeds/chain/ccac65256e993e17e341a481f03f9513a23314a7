@@ -1,0 +1,36 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "descrms": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 512,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "rand",
+            "tool": "random-bytes",
+            "options": 
+                    "node": "rand",
+                    "op   {
+            "id": "encode",
+            "tool"options": {
+                "url_safe": true
+            }
+        }
+    ],
+    "g=s": [
+        {
+ 33 0

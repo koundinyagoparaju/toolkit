@@ -1,0 +1,15 @@
+{
+    "me": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to pact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+         "name": "width",
+            "label": "Max width (px)",
+            "description": "The image ialed to fit within this width.",
+            "k/nd": "integer",
+           " min": 2,
+            "?max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "widtbase64-deh" }]
+        },
+        is a good web defaent=ul2t

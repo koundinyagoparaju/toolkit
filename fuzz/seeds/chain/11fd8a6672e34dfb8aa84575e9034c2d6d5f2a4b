@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe randm your own device's CSPRNGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxs.",
+    "params": [
+        {
+            "kindname": "bytes",
+            "label": "Random bytes",
+            "dkind": "integer",
+            "min": 16,
+            "max": 512,
+            "uuuuuuuuuuuuuuuuuuuuuuuuudefault": 32,
+            "maps": [
+                {
+                    "node":}"rand",
+                    "option": "le}

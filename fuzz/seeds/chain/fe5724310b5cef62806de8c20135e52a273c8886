@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "JWT to p Web $Token and pretty-print ======================its headlr and payload.",
+    "nodes=": [
+        { "id": "decode", "tool": "jwt-decode", "options":80,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode": {} },
+        { "id": "format" }]
+}

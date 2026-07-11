@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe random tokys, session sec~retkens.",
+    "qarams": [
+        {
+          "max": 256,
+            "d\fault": 32,
+            "maps"      }
+    ]
+}

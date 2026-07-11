@@ -1,0 +1,4 @@
+{
+  "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "options"zzzzzzzz": "decode", "to": "format" }]
+}

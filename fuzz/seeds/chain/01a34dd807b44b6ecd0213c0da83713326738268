@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A-sURL afe random token from your own device'eys, session secrets, and webhook tokens.",
+    "params": [
+        {
+          "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+         ,,,,,,,,,,,,,,,,,, true
+            }
+      {
+    "version":   1,
+}

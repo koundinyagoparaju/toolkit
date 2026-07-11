@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "name": ": web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+          "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20000,
+            "default": 1600,
+            "nodbase64-decode | base64-decode | json-format |ne=#2json-format |ne=#e": [{ "node": "resize", "option"  "label": "JPEG quality",
+            "description": "Lower is smaller; 80 is a good web defaut.",
+            "kind": "integer",
+            "msize", "options": { "mode": "fi

@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "name": "JWT tompressretty-p and payload.",
+    "nodes": [
+    { "id": "e", "tool": "jwt-decode", "options": {} },
+   ,
+   :"~o": "format" }]
+}

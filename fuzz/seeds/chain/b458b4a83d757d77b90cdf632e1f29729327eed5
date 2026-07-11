@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "namk": "JWT to pretty JSON",
+    "description": "Decody-print its header and payload.",    "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "options": {} },
+        { "id": "format", "tool": "json-format", "options": { "indent": 2 } }
+-decode", "omat" }]
+}

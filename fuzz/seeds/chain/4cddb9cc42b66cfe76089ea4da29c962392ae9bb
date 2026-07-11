@@ -1,0 +1,12 @@
+{
+    "version": 2,
+    "name": "JWT to pretty JSON",
+    "description": "Decode ",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 ayload.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-doecde", "options": {} },
+        { "\ttttttttttt"i,  c 

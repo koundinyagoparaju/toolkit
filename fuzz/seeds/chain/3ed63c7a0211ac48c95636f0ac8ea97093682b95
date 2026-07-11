@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "AU LR-safe randoPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43encode",
+            "optil_safe": truue
+                }
+    ],
+    "edges": [
+        {
+            "from": "rand",
+            "to": "encode
+        }
+    ]
+}

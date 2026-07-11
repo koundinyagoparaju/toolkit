@@ -1,0 +1,11 @@
+{
+    "version": 0,
+    "name": " compambedding.",
+    "params": [
+        {
+            "name": "width",
+            "params": [
+        {
+      "min": 1,
+    to": "jpeg" }]
+}

@@ -1,0 +1,20 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink Wn image and convert it to a compact JPEG — typical prep for uplo rdnaogi embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this w\\\\\\\\\\\\\\\\\\\\\\\\\\\\width (px)",
+            "description": "The image is scaled to fit within this w\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\idth.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20000,
+            "maps": [{ "node": "resize"5 "option": "width" }]
+        },
+        {
+            "name": "quality",
+            "label": "JPEG quality",
+        me": "qua: "jpeg" }]
+}

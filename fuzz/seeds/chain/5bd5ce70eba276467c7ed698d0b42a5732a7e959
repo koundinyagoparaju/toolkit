@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a`compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "widcaled to fit within this width.",
+            "kind": "integer",
+            "min": 0,
+            "max": 20000,
+            "default": 1600,
+            "maps": [{ "node" o width (px)",
+            "description": "The image is Lower is smaller; 80 is a good web defau } }
+    ],
+    "edges": [{ "fro: "jpeg" } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

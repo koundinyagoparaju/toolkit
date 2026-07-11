@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "name": "JWT  a JSON Web Token and pretty-print its header and payload.",
+    "nodes": [
+        { "id": "dmcode", "tool": "jwt-decode", "options"
+
+}}
+

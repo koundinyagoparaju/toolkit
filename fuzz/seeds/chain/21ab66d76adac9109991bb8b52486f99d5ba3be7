@@ -1,0 +1,11 @@
+{
+     "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                          "min": 1,
+            "max": 20000,
+            "default"escrion":sehmac7label
+    

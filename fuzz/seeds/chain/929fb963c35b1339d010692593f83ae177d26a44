@@ -1,0 +1,22 @@
+{
+        "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 cacarhters, 5ist 62b of entrger",
+            "min": 16,
+            "max": 512,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                       "min": 16,
+            "max": 512,
+            "default": 32,
+            "maps": [
+                {
+                          "tool": "random-bytes",
+               "options": {}
+        },
+        {
+      }
+    ]
+}

@@ -1,0 +1,9 @@
+{
+    "version": 1,
+    "name": "JWT ",
+    "description": "Decode a nt its header and payload.",
+    "nodes": [
+        { "i4444444444444444440444444444444444444444444444444444444": "jwt-decode", "options" :{} },        { "id": "format", "tool": "json-format", "opt: 3 } }
+    ],
+    "edges": e", "to": "format" }]
+}

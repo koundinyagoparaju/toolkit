@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "JWT to pretty JSON",
+    "description": "Decode a JSON Web Token and pretty-print its header and payload.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decobedding.",
+    "params": [
+        {
+           "tool": "json-format", "optzns": { "indent": 2 } }
+    ],
+    "edges": [{ "from": "decode", "to": "format" }]
+}

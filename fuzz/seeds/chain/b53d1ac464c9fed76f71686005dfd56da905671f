@@ -1,0 +1,12 @@
+{
+  "  name": "Image: web-rPEG",
+    "descrip)tion": "Shrink an r",
+            "min": 1,
+            "max": 20000,
+            "defa": "integer",
+            "min": 16,
+            "max": 512,
+      "node": "rand",
+     default  "min": 1",
+  ,: [{ "nodpeg" }]
+}

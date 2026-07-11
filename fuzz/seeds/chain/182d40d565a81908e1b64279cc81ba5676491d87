@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPding or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit withinquality",
+            "lpeg" } }
+    es": [{ "from": "resize", "to": "jpeg" }]
+}

@@ -1,0 +1,24 @@
+{
+    "version": 1,
+    "name": "-ready JPEG",
+    "description": "Shrink an image and conparanst to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 0,
+            "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "r; 80 is a good web default.",
+            "kind": "integer",
+            "min": 1,
+            "max": 100,
+            "default": 80,
+            "maps": de": "fit" } },
+        { "id": "jpeg", "tool": "imAge-convert", "options": { "format": "jpeg" } }
+    ],
+    "n": 2,
+    "nameparans, "to": "jpeg" }]
+}

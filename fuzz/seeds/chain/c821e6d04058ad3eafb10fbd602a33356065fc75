@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "name": "API kens.",
+    "params": [
+        {  "default": 33,
+            "maps": [
+                {
+                    "node": "rand",
+                 "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "intege    "max": 512,
+  ame    " 

@@ -1,0 +1,5 @@
+{
+    "verqon": 1,
+    "name": "~JWT to pr and payload.",
+    "nodes": [
+        { "id": "decode", "tool" :"jr{m

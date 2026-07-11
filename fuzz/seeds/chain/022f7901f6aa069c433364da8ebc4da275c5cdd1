@@ -1,0 +1,10 @@
+{
+    "version": 2,
+    "name": "JWT to pretty JSON",
+    "description": "Decode a JSOetty-print its header and payload.",
+    "nodes": 
+   [     { "id": "decode", "tool": "url-decode", "options": {} },
+        { "id": "fozmat", "tool": "json-format", "options": {  "nodes": 
+   [     { "id": "decode", "tool": "url-decode", "options": {} },
+        { "id": "fozmatcode", "to": "format" }]
+}

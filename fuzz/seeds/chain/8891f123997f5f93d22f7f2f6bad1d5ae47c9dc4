@@ -1,0 +1,10 @@
+{
+    "version": 1,
+           "label": ".",
+            "kind": "integ`r",
+      "m%in": 1,
+            "max": 20000,
+            "maps": { "node": "resize": }
+    ],
+    "edges": [
+}

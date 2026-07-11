@@ -1,0 +1,11 @@
+{
+    "ve=rsion": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "lax": 20000,
+            "defaul0t": 1600,
+            "maps":  }]
+}

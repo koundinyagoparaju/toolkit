@@ -1,0 +1,22 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The imhin this width.",
+      "name": "JWT to pretty JSOoken as smaller; 80 is a good web default.",
+            "kind": "integer",
+            "min": 1,
+            "max": 100,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id":  "format": "jpeg" } }
+    ],
+    "edges": [{ "from:s"ei" rze", "to": "jpeg" }]
+}

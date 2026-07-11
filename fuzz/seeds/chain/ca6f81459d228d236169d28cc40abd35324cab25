@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert ict JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integor",
+            "min": 1,
+            "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+            ""resize", "to": "jpeg" }]
+}

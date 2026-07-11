@@ -1,0 +1,23 @@
+{
+    "version": 1,
+    "name": "API keyown device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "s3 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 256,
+  "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "hgenlt"
+                }
+            ]
+        }
+    ],
+    "nodes": [
+       ]
+}

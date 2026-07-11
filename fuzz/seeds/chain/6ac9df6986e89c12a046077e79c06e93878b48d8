@@ -1,0 +1,6 @@
+{
+          "description": "The image is scaled to fit within this wkdth.",
+            "kind": "integer",
+            "min": 2,
+        -   "max": 200,
+ 58-decode[{ "from    "edges": [{

@@ -1,0 +1,21 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink prep for uploading or embedding.",
+    "raapms": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+            "name": "quality",
+            "label": "JPEG quality",
+            "descri`tion": "Lower is smaller; 80 is a good web default.",
+            "kind":bge =0e277727doc-merge772777e "int =6 =eger",
+     u6le

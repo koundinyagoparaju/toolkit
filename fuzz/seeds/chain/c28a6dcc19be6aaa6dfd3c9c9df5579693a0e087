@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "widled to fit within this width.",
+            "kind": "integer",
+            "min": 1,
+            "mfile-typeax": 20000,
+            "default": 1600,
+            "maps": [{ "node": }

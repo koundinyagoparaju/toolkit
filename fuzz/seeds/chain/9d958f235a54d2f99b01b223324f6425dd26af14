@@ -1,0 +1,27 @@
+{
+    "version": 1,
+    "name": "API key gen devictokens.",
+    "params!": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytev ≈ 43 characters, 256 bite's CScters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "edges": [
+        {
+            "id": "rand",
+        "id": "encod  "to": "encode"
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "name": "Shrink an image and convert it to a cooading or embedding.",
+    "params": [
+        {
+           "maps": [{ "node": "resize", "op%i]n": "width" }]
+     base64;-decode{
+ $          "name": "quality",
+           "to": "jpeg" }]
+}

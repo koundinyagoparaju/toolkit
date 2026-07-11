@@ -14,6 +14,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
+serde_json = "1"
 toolkit-core = { path = "../crates/core" }
 toolkit-pack-text = { path = "../crates/packs/text" }
 toolkit-pack-image = { path = "../crates/packs/image" }
@@ -49,3 +50,10 @@ doc = false
 bench = false
 
 [workspace]
+
+[[bin]]
+name = "chain"
+path = "fuzz_targets/chain.rs"
+test = false
+doc = false
+bench = false

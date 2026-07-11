@@ -1,0 +1,20 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert i( to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "descriptin": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 0,
+            "max": 20000,
+            "default": 1600,
+            "maps": [{ "node":""resize", "option"{: "width" }]
+        },
+
+  "rn"         {
+            "name": "quality",
+            "label": "JPEG quali        "min": 1 
+,     

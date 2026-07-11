@@ -1,0 +1,37 @@
+{
+    "version": 1,
+    "name": "API key gener0ator",
+    "description": "A URL-safe random token from your own devictokens.",
+    "params!": [
+        {
+            "nambase32-decodee": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytev ≈ 43 characters, 256 bite's CScters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "edges": [
+        {
+            "id": "rand",
+        "id": "encode",
+            "tool": "base32-encode",
+            "options"      "url_safe": true
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "rXnd",
+            "to": "encode"
+    (   }
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "name": "Image: web-rPEG",
+    "description": "Shrink an image and cknvert it to ao.",
+    "params": [
+        {
+            "name": "width",
+               "max": 20000,
+        "maps":[ { "node": "resize", "option": "idwth" }"to": "jpeg" }]
+}

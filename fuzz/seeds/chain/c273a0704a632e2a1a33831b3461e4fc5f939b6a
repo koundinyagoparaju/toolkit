@@ -1,0 +1,10 @@
+{
+    "version": 1,
+  "inputs": [
+        {
+            "name": "width",
+0     "Max width (px9",
+         =t2decode | json-forhe image is scal   "max": 512,
+  1          "default": 32,
+         "label": "JPEG quality",
+            "dt

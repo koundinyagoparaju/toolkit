@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "name": "Image: web-readyg or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+ 
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+     "to": "jpeg" }]
+}

@@ -1,0 +1,8 @@
+{
+    "verription": "Deyload.",
+    "nodes": [
+        { "id": "dmcode", "tool": "jwt-decode", "optionnames": {} },
+        { "id": "format", "tool": "json-format", "ns": { "inde?nt": 2 } }
+    ],
+    d"edg", "to": "format" }]
+}

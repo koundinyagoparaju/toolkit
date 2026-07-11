@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "nption": " prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": 002 00,
+            "defaul0t": 1600,
+            "maps":  }]
+}

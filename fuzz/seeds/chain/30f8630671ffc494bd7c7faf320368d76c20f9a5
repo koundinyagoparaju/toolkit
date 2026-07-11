@@ -1,0 +1,20 @@
+{
+    "version": 1,
+    "name": "Image: web-reedy JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max )",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+      "default": 80,
+           "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "m&de": "fit" } },
+        { "id": "jpeg", "tool": "image-convert", "options": { "format": "jpeg" } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

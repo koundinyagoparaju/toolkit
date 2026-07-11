@@ -1,0 +1,14 @@
+{
+    "version": 1,
+           "label": "JPEG quality",
+             "node": "rand",
+      
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (pxThe image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 1,
+                        "min": 1,
+            "max": 20000,
+            "default"																																																																														": 

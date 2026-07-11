@@ -1,0 +1,29 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe r CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 256,
+           "max": 256,
+            "defcult": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+          }
+        }
+    ],
+    "edges"nom": "ranLd",
+           0  "to": "encode"
+  b      }
+    ]
+}

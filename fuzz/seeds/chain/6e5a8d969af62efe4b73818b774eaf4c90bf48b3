@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "name": "Image: web-react JPEG — typical prep foading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to finteger",
+            "min": 1,
+            "max": 20.00, "32 bytes ≈ 43 ahar; c8ate0rs

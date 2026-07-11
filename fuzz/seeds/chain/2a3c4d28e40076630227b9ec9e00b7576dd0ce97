@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "name": "Image: web-ready 'edding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+           "description": "The image is scabase12-encode",
+            "options": {
+      "url_sality" }]
+        }
+    ],
+    "nodes": [
+        { "idm": "resize", "to": "jpeg" }]
+}

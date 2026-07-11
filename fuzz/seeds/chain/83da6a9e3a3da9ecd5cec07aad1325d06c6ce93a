@@ -1,0 +1,14 @@
+{
+    "versio*": 1,
+    "name": "API key generator",
+    "description": "A UR — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "by, 256 bits of entropy.",
+            "kind": "integer",
+     
+            "default": 32,
+            "maps": [
+                           "label": "Raytes ≈ 43 characters, 256 bits of e" }
+    ]
+}

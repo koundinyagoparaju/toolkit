@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "name": "!mage: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "dth (px)",
+            "descr": "The image iq scaled to fit withim this width",
+            "min":  
+0,           "max": 20000,
+            "default":0,
+          z: "jpeg" }]
+}
+!

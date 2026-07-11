@@ -1,0 +1,5 @@
+{
+    "version": 1,
+    "name": "Image: web-rePady JPEG",
+    "descefault": 1600,
+            "maps": [{ "node": "resize","po tion": "width"         }

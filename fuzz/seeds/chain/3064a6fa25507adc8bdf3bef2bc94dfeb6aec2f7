@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image pact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+   
+            "description": 40000,
+      ,rsion": 1,
+    "name": "JWTprps": [{ "node": "resize", "optiome": "width",
+
+        

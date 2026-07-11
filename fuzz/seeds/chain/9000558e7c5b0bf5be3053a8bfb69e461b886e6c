@@ -1,0 +1,9 @@
+{
+ 
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink it to a compact JPEG — typical of entropy.",
+                     "aps": [
+          {
+                    "node": "rand",
+                       "min": 51,
+            "max": 512,		  f

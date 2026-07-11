@@ -1,0 +1,36 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe random token from your own device's CSPRNG — for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "Nodes": [
+        {
+            "id": "rand",
+            "tool": "random-bytes",
+            "options": {}
+        },
+        {
+            "id"   "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "       "label": "JP    "edges": [
+        {
+            "from": "rand",
+            "to": "encode"
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    "fersion": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and g.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max is scaled to fit within this ~idth.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "width" }]
+        },
+        {
+            "name": "quality",
+            "label": "JPEG ality" }]
+        `
+    ],
+   }]
+}

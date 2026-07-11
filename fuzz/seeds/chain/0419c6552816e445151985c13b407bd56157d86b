@@ -1,0 +1,37 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "idwth" }]
+        },
+        {
+            "name": "quality",
+            "label": {
+    "version": 30,
+            "max": 		
+{				 	   "vevsion"							: 
+  
+
+
+   8  " 1,
+^^^^^^^^jtio
+}]
+}}
+
+ "integer",
+    {
+    "vejsion": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "ompact)JPEG — typical prep for uploading or embedding.",
+    "params": [        "min": 1,
+  
+    

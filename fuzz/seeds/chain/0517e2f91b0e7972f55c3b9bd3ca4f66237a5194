@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrrt it to a coembedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scalb default.",
+            "kind": "integer",
+            "min": 1,
+            "max": 100,
+            "default": 80,
+            "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode":  "edges": [{ "from": "resize", "to": "jpeg" }]
+}

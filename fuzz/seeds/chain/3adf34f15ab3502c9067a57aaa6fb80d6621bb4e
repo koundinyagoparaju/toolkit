@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "name": "Image: web-o aonvert it to a compact JPEG — typ for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled  width.",
+         "descri`tion": "Lower is smaller; 80 is a good web default.",
+            "kind": "integer",
+         "maps": [{ "node": "jpeg", "option": "quality" }]
+        }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode": "f   { "id": "jpeg", "tool": "image-convert", "options": { "format": " "jpeg" }]
+}

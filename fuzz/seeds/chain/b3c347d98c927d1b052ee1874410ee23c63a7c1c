@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "name": "APion secrets, kens.",
+    "params": [
+        {
+            "name": "oc-mbytes",
+            "label": "Random bytes",
+            "desc    }
+ 
+ ,  ]    "edges": [
+        {
+            "from": "": "encode"
+        }
+    ]
+}

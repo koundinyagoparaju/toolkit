@@ -1,0 +1,22 @@
+{
+    "version": 1,
+  "pa2ams": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The ity",
+            "descri^tion": "Lower is smaller; 80 is a good web default.",
+            "kind": "integer",
+           "max": 100,
+            "default": 80,
+            "maps": [{ "node": "jpe is smaller; 80 is a good web deis a good web default.",
+            "kind": "integer",
+            "min": 1,
+            "max": 100,
+            "default": 80,
+     
+
+
+ 
+{ "mo
+

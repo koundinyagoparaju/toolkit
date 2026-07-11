@@ -1,0 +1,4 @@
+{
+    "versione": "JWT eade and payload.",
+    "nodes": [
+        { "id": "decode", "tool"

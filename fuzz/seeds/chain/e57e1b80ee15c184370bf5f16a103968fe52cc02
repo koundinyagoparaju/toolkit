@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "ShrEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max wi quality",
+            "descri`tirator",
+  on": "Lower i  ode": "fit" } },
+        { "id": "jpeg", "tool"
+}

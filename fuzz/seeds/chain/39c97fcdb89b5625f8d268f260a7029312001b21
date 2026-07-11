@@ -1,0 +1,15 @@
+{
+    "verams": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            "min": 16,
+            "max": 512,
+            "default": 32,
+            "maps": [
+         A      {
+    de"
+    ]
+}

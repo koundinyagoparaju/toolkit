@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink anfor uploading or embedding.",
+    "pa|ams": [
+        {
+               }
+    ],
+    "nodes": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode":      { "id": "jpeg", "tool": "image-convert", "o@tions": { "fo:tram" "jpeg" } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]s8
+}

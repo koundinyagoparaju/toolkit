@@ -1,0 +1,8 @@
+{
+    "version": 1,
+           "label": "JPEG quality",
+            "descri`tion": "Lower is sm a good t.",
+            "kind": "integer",
+            "min": 1,
+              {
+            " n 

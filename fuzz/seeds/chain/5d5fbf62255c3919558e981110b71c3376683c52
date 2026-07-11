@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "name": "API key generator",
+    "description": "A URL-safe rays, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "byest",
+            "label": "Random bytes",
+       
+            "min": 16,
+            "max": 512,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option" "}

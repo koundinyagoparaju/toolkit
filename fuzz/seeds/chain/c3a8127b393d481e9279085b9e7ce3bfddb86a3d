@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image aor embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+     "kind"        "maps": [{ "n0,
+   es": [
+        { "id": "resize", "to embedto": "jpeg" }]
+}

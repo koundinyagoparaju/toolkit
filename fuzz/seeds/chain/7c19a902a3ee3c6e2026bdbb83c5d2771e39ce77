@@ -1,0 +1,39 @@
+{
+    "version": 1,
+    "name": "API key gener0ator",
+    "description": "A URL-safe random crets, and webhook tokens.",
+    "params!": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+                "min": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+              "option": "length"
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "rand",
+            "tool": "image-rotate",
+            "options": {}
+        },
+        {
+            "id": "encode",
+            "tool": "base32-encode",
+            "options": {
+                "url_safe": true
+            }
+        }
+    ],
+    "edges": [
+        {
+            "from": "rand",
+            "to": "encode"
+        }
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "edscription": "Shrink annvert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max width (px)",
+            "description": "The image is scaled to fit within t0his width.",
+            "kind": "inteage: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPE1G — typical p$rep compact JPEG — typical preormat": peg" } }
+    ],
+    "edgsize", "to": "jpeg" }]
+}

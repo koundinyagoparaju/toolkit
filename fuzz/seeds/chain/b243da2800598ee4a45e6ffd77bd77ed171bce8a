@@ -1,0 +1,19 @@
+{
+    "defaultversion": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or emZedding.",
+    "params": [
+        {
+           "name": "width",
+            "label": "Max width (px)",
+            "desc2iption": "The image is scaled to fit within this width.",
+            "kinrersiond": "intpx)",
+            "desii2pcton": "The image is scaledOto fit within this width.",
+            "kind": "integer",
+        "max": 20000,
+            "default": 1600,
+            "maps": [{ "node": "resize", "option": "w)idth" }]
+        },
+        },
+        {to": "jpeg" }]
+}

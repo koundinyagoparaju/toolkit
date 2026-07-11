@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "name": "JWetty-print its header and payload.",
+    "nodes": [
+        { "id": "dmcode", "tool": "jwt-decode", "options": {} },
+        { "id": "formaode", "tool": "jwt-decode", "options": {} },
+        { "id": "format", "ook tokens.",
+    "params": [
+ "des": "format"} }]]
+
+}}
+

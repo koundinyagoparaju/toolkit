@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image ad convert it to a compict JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max wihe image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 1,
+            "max": 20000,
+            "default": 1600,
+              "desaription": "Lower is smaller; 80 is a good wefd ebault.",
+            "kind": "integer",
+            "min": 1EG — typical pp reofr uploading or embedding.",
+    " de |        {
+        `fase6    "name[: "b2tes",
+          %  "label"  : "jpeg" }]
+}

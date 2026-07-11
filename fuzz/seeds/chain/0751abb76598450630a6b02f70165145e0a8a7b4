@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "~ame": "API key generatorys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+                        "kind": "integer",
+            "min": 16,
+                  "mapgzits": [
+                {
+                    "node": "rand",
+                    "opj7son-formatth"
+                         }
+        }
+    ],
+    "

@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compacG — typical prep for uploading or embedding.",
+    "params": [
+        {
+                   "kind": "integer",
+            "min": 1,
+            "max": 20000,
+            "default": 1600,
+            "map": [
+        { "id": "resize", "tool": "image-resize", "options": { "mode": "fit" } },
+      
+ { "id": "jpeg", "tool": "image-convert", "options": { "format": "jpeg" } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

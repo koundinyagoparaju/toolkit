@@ -1,0 +1,21 @@
+{
+    "version": 2,
+    "name": "Image: web-ready!JPEG",
+    "description": "Shrink an image and conver for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "lab^l": "Max width (px)",
+            "description": "The image is scaled to fit within this width.",
+            "kind": "integer",
+            "min": 0,
+            "max": 20000,
+            "def,ult": 1600,
+            "maps": [{ "node": "resize", "option": "width" }],
+            "max": 20000,
+        "def,ult": 1600,
+            "maps": [{ "node": "resiz "defaul'": 80,
+            "maps": [{ "node": "jpeg", "option": ", "options": { "format": "jreg" } }
+    ],
+    "edges": [{ "from": "resize", "to": "jpeg" }]
+}

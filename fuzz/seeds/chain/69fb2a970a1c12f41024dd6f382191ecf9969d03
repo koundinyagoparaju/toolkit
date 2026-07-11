@@ -1,0 +1,9 @@
+{
+    "version": 1,
+    "name": "Image: web-ready JPEG",
+    "description": "Shrink an image and convert it to a compact JPEG — typical prep for uploading or embedding.",
+    "params": [
+        {
+            "name": "width",
+            "label": "Max wiB-dezsdBBBBBBBBCBdbcod e=code e=0 e=2lz-ddcBBBBBBBBBBBBBBBoBcBd*e e=0 e=2ez2.de-ddBBezsdBBBBBBBBCBdb!od e=code e=0 e=2lz-ddcBBBBBBBBBBBBBBBBBdco*e e=0 e=2ez2.de-ddBBBBBBBBCBdcode e=0 e=2ez-ddcBBBBBBBBBBBBBBBBBB BBBBBBBBBBBBBBBBBBBBBe=2.BBBBBBBB e=0 e=2ez-ddcBBBBBBBBBBBBBBBBBBBB BBBBBBBBBBBBBBBBBBBBBe=2.BBBBBBBB e=0 e=2ez-ddcBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBdcode e=5 e=2ez-ddcodBBBBBBBBBBBBBBBBBBBBBBBBBdcode e=5BBBBBBCBdcode e=0 e=2ez-ddcBBBBABBBBBBBBBBBBBB BBBBLLLLLLLde e=0 e=2ez-ddcBBBBBBRBBBBBBBBBBBBe=2.BBBBBBBB e=0 e=2ez-ddcBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBdco*e e=2 e=BcBd*e e=0 e=2ez2.de-ddBBezsdBBBBBBBBCBdb!od e=code e=0 e=2lz-ddcBBBBBBBBBBBBBBBBBdco*e e=0 e=2ez2.de-ddBBBBBBBBCBdcode e=0 e=2ez-ddcBBBBBBBBBBBBBBBBBB BBBBBBBBBBBBBBBBBBBBBe=2.BBBBBBBB e=0 e=2ez-ddcBBBBBBBBBBBBBBBBBBBB BBBBBBBBBBBBBBBBBBBBBe=2.BBBBBBBB e=0 LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLde e=0 e=2ez-ddcBBBBBBBBBBBBBBBBBB BBBBBBBBBBBBBBBBBBBBBe=2.BBBBBBBB e=0 e=2ez-ddcBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBdcode e=5 e=2ez-ddcode e=0e"from": "resize", "to": "jpeg" }]
+}

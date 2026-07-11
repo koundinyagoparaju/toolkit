@@ -1,0 +1,14 @@
+{     "name": "API key generator",
+    "description": "A URL— for API keys, session secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Re's CSPRNG — .",
+    "params": [
+        {
+            "name": "bytes",
+                 "maps": [
+                   {
+            "id": "rand",
+            "tool": "r",
+           

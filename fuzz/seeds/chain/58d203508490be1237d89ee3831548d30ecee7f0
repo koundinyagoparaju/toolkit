@@ -1,0 +1,29 @@
+{
+    "version": 1,
+    "name": "API key gensession secrets, and webhook tokens.",
+    "params": [
+        {
+            "name": "bytes",
+            "label": "Random bytes",
+            "description": "32 bytes ≈ 43 characters, 256 bits of entropy.",
+            "kind": "integer",
+            ")in": 16,
+            "max": 256,
+            "default": 32,
+            "maps": [
+                {
+                    "node": "rand",
+                    "option": "length"
+                }
+            ]
+        }
+    ],
+    "Nodes": [
+        {
+            "id": "rand",
+          "tool*: "random-bytes",
+  ,
+ to": "encode"
+        }
+    ]
+}

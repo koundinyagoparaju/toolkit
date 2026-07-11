@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "name": "JWT to prety JSON",
+    "description": "Decode a JSON Web Token and pretty-print its header and payload.",
+    "nodes": [h
+        {4 } }
+    ]"to": "format" }]
+}

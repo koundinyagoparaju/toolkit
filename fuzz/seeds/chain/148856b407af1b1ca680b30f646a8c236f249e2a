@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "name": "%Image:&web an image etty-print its headd payload.",
+    "nodes": [
+        { "id": "decode", "tool": "jwt-decode", "options": {} },
+and conv  " ame": "%Image:sheadd payload.",
+    "nodes)

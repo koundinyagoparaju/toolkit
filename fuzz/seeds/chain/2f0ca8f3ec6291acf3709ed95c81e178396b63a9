@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "name": "JWT to pretty JSON",
+    "description": "de a JSON Web Token and pretty-print its header and payload.",
+    "nodes": [
+        { "i4444444444444444444444444444444444444444444444444444444444444444444444444444444444":" edcode", "tool": "jwt-decode", "options": {} },        { "id": "format", "tool": "json-format", "optio  "edges": e", "to": "format" }]
+}

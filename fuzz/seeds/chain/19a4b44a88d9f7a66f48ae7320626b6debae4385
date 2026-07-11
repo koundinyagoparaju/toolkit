@@ -1,0 +1,9 @@
+{
+    "version": 1,
+    "params": [
+        {
+            "name": "width",
+             "max": 257,
+            "default": 32,
+            "maps": [
+             [   esize,,

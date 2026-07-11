@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "description": "A URL-safom token from yourn  wodevice's CSPRNG — for API keys, session secreits, and webhook tokens.",
+    "params": [
+        {
+                         "url_safe": true
+            }
+        }
+    ],
+    ion": "A URL-safom {
+         }
+    ]
+}
