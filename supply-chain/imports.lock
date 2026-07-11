@@ -8,36 +8,6 @@ user-id = 4484
 user-login = "hsivonen"
 user-name = "Henri Sivonen"
 
-[[publisher.wasip2]]
-version = "1.0.4+wasi-0.2.12"
-when = "2026-06-12"
-user-id = 1
-user-login = "alexcrichton"
-user-name = "Alex Crichton"
-
-[[publisher.wit-bindgen]]
-version = "0.57.1"
-when = "2026-04-17"
-trusted-publisher = "github:bytecodealliance/wit-bindgen"
-
-[[audits.bytecode-alliance.wildcard-audits.wasip2]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-user-id = 1 # Alex Crichton (alexcrichton)
-start = "2025-08-10"
-end = "2026-08-21"
-notes = """
-This is a Bytecode Alliance authored crate.
-"""
-
-[[audits.bytecode-alliance.wildcard-audits.wit-bindgen]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-trusted-publisher = "github:bytecodealliance/wit-bindgen"
-start = "2025-08-13"
-end = "2027-01-08"
-notes = "The Bytecode Alliance is the author of this crate"
-
 [[audits.bytecode-alliance.audits.adler2]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
