@@ -9,7 +9,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - The chain library is embedded in the CLI binary: `toolkit chains` and
   `toolkit chain -n <name>` work from any directory, no repo checkout
-  needed. User and project files with the same name override built-ins.
+  needed. Files in `~/.config/toolkit/chains` override built-ins by name.
+
+### Changed
+- `--chains-dir` no longer defaults to `./chains`: a stray directory in
+  the current working directory should never change what a chain name
+  means. Pass it explicitly when working on a project's chain files.
 
 ### Changed
 - `toolkit list` prints an aligned table (name, signature, description)

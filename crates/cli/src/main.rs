@@ -64,13 +64,14 @@ enum Command {
         /// Load the chain from a JSON file
         #[arg(short, long, conflicts_with = "expression")]
         file: Option<PathBuf>,
-        /// Load a named chain from the library (~/.config/toolkit/chains,
-        /// then the --chains-dir, then the chains built into this binary)
+        /// Load a named chain from the library (--chains-dir if given,
+        /// then ~/.config/toolkit/chains, then the chains built into this
+        /// binary)
         #[arg(short, long, conflicts_with_all = ["expression", "file"])]
         name: Option<String>,
-        /// Project chain library directory
-        #[arg(long, default_value = "chains")]
-        chains_dir: PathBuf,
+        /// Extra chain directory to search first (e.g. a project's)
+        #[arg(long)]
+        chains_dir: Option<PathBuf>,
         /// Input file. For chains with declared inputs, repeat as
         /// -i name=path (e.g. -i old=a.txt -i new=b.txt). Chains with
         /// one input default to stdin.
@@ -89,9 +90,9 @@ enum Command {
     },
     /// List the chains available in the chain library
     Chains {
-        /// Project chain library directory
-        #[arg(long, default_value = "chains")]
-        chains_dir: PathBuf,
+        /// Extra chain directory to include (e.g. a project's)
+        #[arg(long)]
+        chains_dir: Option<PathBuf>,
     },
     /// Generate shell completions (tool names included). The install
     /// scripts refresh these paths on every update:
@@ -155,12 +156,11 @@ fn complete_candidates(
     current: &str,
     words: &[String],
 ) -> Vec<String> {
-    let chains_dir = PathBuf::from(flag_value(words, &["--chains-dir"]).unwrap_or("chains"));
+    let chains_dir = flag_value(words, &["--chains-dir"]).map(PathBuf::from);
     match kind {
         "chain-name" => {
-            let mut names: Vec<String> = user_chains_dir()
+            let mut names: Vec<String> = chain_dirs(chains_dir.as_deref())
                 .into_iter()
-                .chain([chains_dir])
                 .flat_map(|dir| std::fs::read_dir(dir).into_iter().flatten().flatten())
                 .filter_map(|entry| {
                     let path = entry.path();
@@ -178,7 +178,7 @@ fn complete_candidates(
             if in_chain {
                 let file = flag_value(words, &["-f", "--file"]).map(PathBuf::from);
                 let name = flag_value(words, &["-n", "--name"]).map(String::from);
-                let Ok(chain) = load_chain(None, file, name, &chains_dir) else {
+                let Ok(chain) = load_chain(None, file, name, chains_dir.as_deref()) else {
                     return Vec::new();
                 };
                 let specs: Vec<toolkit_core::OptionSpec> =
@@ -360,6 +360,18 @@ fn complete_set_candidates(registry: &Registry, current: &str, words: &[String])
 /// ~/.config/toolkit/chains, or %USERPROFILE%\.config\toolkit\chains on
 /// Windows. Chains are data, not code, so dropping files here has no
 /// code-trust implications.
+/// Chain lookup directories, highest priority first: an explicit
+/// --chains-dir, then the user library. (Built-ins come after these at
+/// each call site.) Deliberately NOT the current directory: a stray
+/// ./chains folder should never change what a chain name means.
+fn chain_dirs(explicit: Option<&Path>) -> Vec<PathBuf> {
+    explicit
+        .map(Path::to_path_buf)
+        .into_iter()
+        .chain(user_chains_dir())
+        .collect()
+}
+
 fn user_chains_dir() -> Option<PathBuf> {
     let base = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
@@ -553,7 +565,7 @@ fn run(cli: Cli) -> Result<(), String> {
             output_dir,
             set,
         } => {
-            let chain = load_chain(expression, file, name, &chains_dir)?;
+            let chain = load_chain(expression, file, name, chains_dir.as_deref())?;
             let chain = apply_chain_sets(&chain, &set)?;
             chain.validate(&registry).map_err(|e| e.to_string())?;
             run_chain_streaming(&chain, &registry, &input, output.as_deref(), output_dir)
@@ -585,10 +597,12 @@ fn run(cli: Cli) -> Result<(), String> {
             }
 
             let mut dirs = Vec::new();
+            if let Some(explicit) = chains_dir {
+                dirs.push(("dir", explicit));
+            }
             if let Some(user) = user_chains_dir() {
                 dirs.push(("user", user));
             }
-            dirs.push(("project", chains_dir));
             let mut seen = std::collections::HashSet::new();
             for (origin, dir) in dirs {
                 let Ok(entries) = std::fs::read_dir(&dir) else {
@@ -1122,16 +1136,14 @@ fn load_chain(
     expression: Option<String>,
     file: Option<PathBuf>,
     name: Option<String>,
-    chains_dir: &Path,
+    chains_dir: Option<&Path>,
 ) -> Result<Chain, String> {
     let json = if let Some(path) = file {
         std::fs::read_to_string(&path)
             .map_err(|e| format!("cannot read {}: {e}", path.display()))?
     } else if let Some(name) = name {
-        // User library first, then the project library.
-        let candidates: Vec<PathBuf> = user_chains_dir()
+        let candidates: Vec<PathBuf> = chain_dirs(chains_dir)
             .into_iter()
-            .chain([chains_dir.to_path_buf()])
             .map(|d| d.join(format!("{name}.json")))
             .collect();
         match candidates.iter().find(|p| p.exists()) {

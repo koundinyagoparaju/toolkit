@@ -87,8 +87,8 @@ same as ever: inputs are fed in declaration order, chunk by chunk.
 ## Test it, then submit
 
 ```sh
-cargo run -q -p toolkit-cli -- chains                      # your chain listed, params shown
-echo 'real input' | cargo run -q -p toolkit-cli -- chain --name your-chain
+cargo run -q -p toolkit-cli -- chains --chains-dir chains  # your chain listed, params shown
+echo 'real input' | cargo run -q -p toolkit-cli -- chain --chains-dir chains --name your-chain
 ./scripts/build-web-assets.sh                              # regenerates the web chain index
 ```
 
