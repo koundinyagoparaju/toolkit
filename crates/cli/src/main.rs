@@ -93,14 +93,91 @@ enum Command {
     /// Emit the full tool catalog as JSON (used by the web build)
     #[command(hide = true)]
     Manifests,
-    /// Completion callback: candidates for `run --set` given the words
-    /// typed so far (the completion scripts call this; not for humans)
+    /// Completion callback: candidates for dynamic positions, given the
+    /// words typed so far (the completion scripts call this; not for
+    /// humans). Kinds: "set" (option/param key=value) and "chain-name".
     #[command(hide = true, name = "__complete")]
     CompleteCallback {
+        kind: String,
+        #[arg(default_value = "")]
         current: String,
         #[arg(last = true, num_args = 0..)]
         words: Vec<String>,
     },
+}
+
+/// key=value candidates from option specs: names as "key=" while the key
+/// is typed, enum/bool values once it has one.
+fn candidates_from_specs(specs: &[toolkit_core::OptionSpec], current: &str) -> Vec<String> {
+    match current.split_once('=') {
+        None => specs.iter().map(|o| format!("{}=", o.name)).collect(),
+        Some((key, _)) => {
+            let Some(spec) = specs.iter().find(|o| o.name == key) else {
+                return Vec::new();
+            };
+            match &spec.kind {
+                toolkit_core::OptionKind::Enum { values } => {
+                    values.iter().map(|v| format!("{key}={v}")).collect()
+                }
+                toolkit_core::OptionKind::Bool => {
+                    vec![format!("{key}=true"), format!("{key}=false")]
+                }
+                _ => Vec::new(),
+            }
+        }
+    }
+}
+
+/// The value of a flag in the typed words, e.g. flag_value(w, &["-n", "--name"]).
+fn flag_value<'a>(words: &'a [String], flags: &[&str]) -> Option<&'a str> {
+    words
+        .windows(2)
+        .rev()
+        .find(|w| flags.contains(&w[0].as_str()))
+        .map(|w| w[1].as_str())
+}
+
+/// All completion candidates for the given kind and context.
+fn complete_candidates(
+    registry: &Registry,
+    kind: &str,
+    current: &str,
+    words: &[String],
+) -> Vec<String> {
+    let chains_dir = PathBuf::from(flag_value(words, &["--chains-dir"]).unwrap_or("chains"));
+    match kind {
+        "chain-name" => {
+            let mut names: Vec<String> = user_chains_dir()
+                .into_iter()
+                .chain([chains_dir])
+                .flat_map(|dir| std::fs::read_dir(dir).into_iter().flatten().flatten())
+                .filter_map(|entry| {
+                    let path = entry.path();
+                    (path.extension()? == "json")
+                        .then(|| path.file_stem()?.to_str().map(String::from))?
+                })
+                .collect();
+            names.sort();
+            names.dedup();
+            names
+        }
+        "set" => {
+            let in_chain = words.iter().any(|w| w == "chain");
+            if in_chain {
+                let file = flag_value(words, &["-f", "--file"]).map(PathBuf::from);
+                let name = flag_value(words, &["-n", "--name"]).map(String::from);
+                let Ok(chain) = load_chain(None, file, name, &chains_dir) else {
+                    return Vec::new();
+                };
+                let specs: Vec<toolkit_core::OptionSpec> =
+                    chain.params.iter().map(|p| p.spec.clone()).collect();
+                candidates_from_specs(&specs, current)
+            } else {
+                complete_set_candidates(registry, current, words)
+            }
+        }
+        _ => Vec::new(),
+    }
 }
 
 /// Post-process generated completion scripts so `run --set` completes
@@ -153,8 +230,12 @@ fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[
             let mut script = script
                 .lines()
                 .map(|line| {
-                    if line.contains("Set a tool option") {
+                    if line.contains("Set a tool option")
+                        || line.contains("Set a declared chain param")
+                    {
                         line.replace(":KEY=VALUE:_default", ":KEY=VALUE:_toolkit_set_values")
+                    } else if line.contains("Load a named chain from the library") {
+                        line.replace(":NAME:_default", ":NAME:_toolkit_chain_names")
                     } else {
                         line.to_string()
                     }
@@ -163,7 +244,7 @@ fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[
                 .join("\n");
             // Inside a subcommand's _arguments, $words is re-based at the
             // subcommand ("run" ...), so the binary comes from $service.
-            let func = "\n_toolkit_set_values() {\n    local -a candidates\n    candidates=(${(f)\"$(\"${service:-toolkit}\" __complete \"${PREFIX}${SUFFIX}\" -- \"${words[@]}\" 2>/dev/null)\"})\n    (( ${#candidates} )) && compadd -S '' -- \"${candidates[@]}\"\n}\n\n";
+            let func = "\n_toolkit_set_values() {\n    local -a candidates\n    candidates=(${(f)\"$(\"${service:-toolkit}\" __complete set \"${PREFIX}${SUFFIX}\" -- \"${words[@]}\" 2>/dev/null)\"})\n    (( ${#candidates} )) && compadd -S '' -- \"${candidates[@]}\"\n}\n\n_toolkit_chain_names() {\n    local -a candidates\n    candidates=(${(f)\"$(\"${service:-toolkit}\" __complete chain-name \"${PREFIX}${SUFFIX}\" -- \"${words[@]}\" 2>/dev/null)\"})\n    (( ${#candidates} )) && compadd -- \"${candidates[@]}\"\n}\n\n";
             // Define the function before the trailing dispatch block, so
             // it exists on the very first completion invocation.
             match script.find("if [ \"$funcstack[1]\" = \"_toolkit\" ]; then") {
@@ -174,45 +255,71 @@ fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[
         }
         clap_complete::Shell::Bash => {
             // Patch the two --set/-s arms inside the run section only.
-            let label = "toolkit__subcmd__run)";
-            let Some(run_start) = script.find(label) else {
-                return script;
-            };
-            // readline breaks words on '=', so `--set key=<cur>` arrives
-            // as prev="=" (or cur="="). Reassemble those shapes into the
-            // canonical prev="--set", cur="key=value" before the case.
-            let prologue = "\n            if [[ ${COMP_WORDS[COMP_CWORD]} == = && ( ${COMP_WORDS[COMP_CWORD-2]:-} == --set || ${COMP_WORDS[COMP_CWORD-2]:-} == -s ) ]]; then\n                prev=\"--set\"; cur=\"${COMP_WORDS[COMP_CWORD-1]}=\"\n            elif [[ ${COMP_WORDS[COMP_CWORD-1]:-} == = && ( ${COMP_WORDS[COMP_CWORD-3]:-} == --set || ${COMP_WORDS[COMP_CWORD-3]:-} == -s ) ]]; then\n                prev=\"--set\"; cur=\"${COMP_WORDS[COMP_CWORD-2]}=${cur}\"\n            fi";
             let mut script = script;
-            script.insert_str(run_start + label.len(), prologue);
-            let run_end = script[run_start..]
-                .find("\n        toolkit__")
-                .map(|i| run_start + i)
-                .unwrap_or(script.len());
-            let old_arm = "COMPREPLY=($(compgen -f \"${cur}\"))\n                    return 0";
-            // Candidates come back as full key=value; when readline split
-            // at '=', it matches only the part after it, so strip the key.
-            let new_arm = "local setcands\n                    setcands=\"$(\"${COMP_WORDS[0]}\" __complete \"${cur}\" -- \"${COMP_WORDS[@]}\" 2>/dev/null)\"\n                    if [[ ${cur} == *=* ]]; then setcands=\"${setcands//${cur%%=*}=/}\"; fi\n                    COMPREPLY=($(compgen -W \"${setcands}\" -- \"${cur#*=}\"))\n                    [[ ${COMPREPLY-} == *= ]] && compopt -o nospace 2>/dev/null\n                    return 0";
-            let mut section = script[run_start..run_end].to_string();
-            for marker in ["--set)", "-s)"] {
-                if let Some(arm_pos) = section.find(marker) {
-                    if let Some(body_pos) = section[arm_pos..].find(old_arm) {
-                        let at = arm_pos + body_pos;
-                        section.replace_range(at..at + old_arm.len(), new_arm);
-                    }
-                }
+            for (label, set_kind_arms, name_arms) in [
+                ("toolkit__subcmd__run)", true, false),
+                ("toolkit__subcmd__chain)", true, true),
+            ] {
+                script = patch_bash_section(script, label, set_kind_arms, name_arms);
             }
-            format!("{}{}{}", &script[..run_start], section, &script[run_end..])
+            script
         }
         clap_complete::Shell::Fish => {
             // The fish generator skips positional values: append tool-name
-            // completion for run, and option key/value completion for --set.
+            // completion for run, option/param completion for --set on
+            // both subcommands, and chain-name completion for -n/--name.
             format!(
-                "{script}complete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -f -a \"{}\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -s s -l set -x -a \"(toolkit __complete (commandline -ct) -- (commandline -opc))\"\n",
+                "{script}complete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -f -a \"{}\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand chain\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand chain\" -s n -l name -x -a \"(toolkit __complete chain-name (commandline -ct) -- (commandline -opc))\"\n",
                 tool_names.join(" ")
             )
         }
         _ => script,
     }
+}
+
+/// Rewire one bash subcommand section: '=' wordbreak normalization plus
+/// callback-driven --set/-s (and, for chain, --name/-n) arms.
+fn patch_bash_section(script: String, label: &str, set_arms: bool, name_arms: bool) -> String {
+    let Some(run_start) = script.find(label) else {
+        return script;
+    };
+    // readline breaks words on '=', so `--set key=<cur>` arrives
+    // as prev="=" (or cur="="). Reassemble those shapes into the
+    // canonical prev="--set", cur="key=value" before the case.
+    let prologue = "\n            if [[ ${COMP_WORDS[COMP_CWORD]} == = && ( ${COMP_WORDS[COMP_CWORD-2]:-} == --set || ${COMP_WORDS[COMP_CWORD-2]:-} == -s ) ]]; then\n                prev=\"--set\"; cur=\"${COMP_WORDS[COMP_CWORD-1]}=\"\n            elif [[ ${COMP_WORDS[COMP_CWORD-1]:-} == = && ( ${COMP_WORDS[COMP_CWORD-3]:-} == --set || ${COMP_WORDS[COMP_CWORD-3]:-} == -s ) ]]; then\n                prev=\"--set\"; cur=\"${COMP_WORDS[COMP_CWORD-2]}=${cur}\"\n            fi";
+    let mut script = script;
+    script.insert_str(run_start + label.len(), prologue);
+    let run_end = script[run_start..]
+        .find("\n        toolkit__")
+        .map(|i| run_start + i)
+        .unwrap_or(script.len());
+    let old_arm = "COMPREPLY=($(compgen -f \"${cur}\"))\n                    return 0";
+    // Candidates come back as full key=value; when readline split
+    // at '=', it matches only the part after it, so strip the key.
+    let set_arm = "local setcands\n                    setcands=\"$(\"${COMP_WORDS[0]}\" __complete set \"${cur}\" -- \"${COMP_WORDS[@]}\" 2>/dev/null)\"\n                    if [[ ${cur} == *=* ]]; then setcands=\"${setcands//${cur%%=*}=/}\"; fi\n                    COMPREPLY=($(compgen -W \"${setcands}\" -- \"${cur#*=}\"))\n                    [[ ${COMPREPLY-} == *= ]] && compopt -o nospace 2>/dev/null\n                    return 0";
+    let name_arm = "COMPREPLY=($(compgen -W \"$(\"${COMP_WORDS[0]}\" __complete chain-name \"${cur}\" -- \"${COMP_WORDS[@]}\" 2>/dev/null)\" -- \"${cur}\"))\n                    return 0";
+    let mut section = script[run_start..run_end].to_string();
+    if set_arms {
+        for marker in ["--set)", "-s)"] {
+            if let Some(arm_pos) = section.find(marker) {
+                if let Some(body_pos) = section[arm_pos..].find(old_arm) {
+                    let at = arm_pos + body_pos;
+                    section.replace_range(at..at + old_arm.len(), set_arm);
+                }
+            }
+        }
+    }
+    if name_arms {
+        for marker in ["--name)", "-n)"] {
+            if let Some(arm_pos) = section.find(marker) {
+                if let Some(body_pos) = section[arm_pos..].find(old_arm) {
+                    let at = arm_pos + body_pos;
+                    section.replace_range(at..at + old_arm.len(), name_arm);
+                }
+            }
+        }
+    }
+    format!("{}{}{}", &script[..run_start], section, &script[run_end..])
 }
 
 /// Candidates for completing `--set` on `toolkit run`: option names as
@@ -234,28 +341,7 @@ fn complete_set_candidates(registry: &Registry, current: &str, words: &[String])
     let Some(tool) = tool_name.and_then(|n| registry.find(n)) else {
         return Vec::new();
     };
-    let manifest = tool.manifest();
-    match current.split_once('=') {
-        None => manifest
-            .options
-            .iter()
-            .map(|o| format!("{}=", o.name))
-            .collect(),
-        Some((key, _)) => {
-            let Some(spec) = manifest.options.iter().find(|o| o.name == key) else {
-                return Vec::new();
-            };
-            match &spec.kind {
-                toolkit_core::OptionKind::Enum { values } => {
-                    values.iter().map(|v| format!("{key}={v}")).collect()
-                }
-                toolkit_core::OptionKind::Bool => {
-                    vec![format!("{key}=true"), format!("{key}=false")]
-                }
-                _ => Vec::new(),
-            }
-        }
-    }
+    candidates_from_specs(&tool.manifest().options, current)
 }
 
 /// The per-user chain library: $XDG_CONFIG_HOME/toolkit/chains,
@@ -478,8 +564,18 @@ fn run(cli: Cli) -> Result<(), String> {
             print!("{}", patch_completions(shell, script, &names));
             Ok(())
         }
-        Command::CompleteCallback { current, words } => {
-            for candidate in complete_set_candidates(&registry, &current, &words) {
+        Command::CompleteCallback {
+            kind,
+            current,
+            words,
+        } => {
+            // 0.6.0 scripts passed <current> with no kind; treat an
+            // unrecognized kind as that legacy form.
+            let (kind, current) = match kind.as_str() {
+                "set" | "chain-name" => (kind, current),
+                legacy => ("set".to_string(), legacy.to_string()),
+            };
+            for candidate in complete_candidates(&registry, &kind, &current, &words) {
                 println!("{candidate}");
             }
             Ok(())
@@ -1071,6 +1167,79 @@ mod tests {
         );
         assert!(keys.contains(&"width=".to_string()), "{keys:?}");
         assert!(keys.contains(&"mode=".to_string()));
+    }
+
+    #[test]
+    fn chain_completion_names_and_params() {
+        let registry = registry();
+        let dir = std::env::temp_dir().join(format!("tk-comp-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("mychain.json"),
+            r#"{"version":1,"params":[{"name":"width","label":"W","kind":"integer","maps":[]},
+                {"name":"format","label":"F","kind":"enum","values":["png","jpeg"],"maps":[]}],
+               "nodes":[{"id":"a","tool":"json-format"}],"edges":[]}"#,
+        )
+        .unwrap();
+        let dir_s = dir.to_str().unwrap().to_string();
+
+        let names = complete_candidates(
+            &registry,
+            "chain-name",
+            "",
+            &w(&["toolkit", "chain", "--chains-dir", &dir_s, "-n"]),
+        );
+        assert!(names.contains(&"mychain".to_string()), "{names:?}");
+
+        let keys = complete_candidates(
+            &registry,
+            "set",
+            "",
+            &w(&[
+                "toolkit",
+                "chain",
+                "--chains-dir",
+                &dir_s,
+                "-n",
+                "mychain",
+                "--set",
+            ]),
+        );
+        assert_eq!(keys, vec!["width=", "format="]);
+
+        let values = complete_candidates(
+            &registry,
+            "set",
+            "format=",
+            &w(&[
+                "toolkit",
+                "chain",
+                "--chains-dir",
+                &dir_s,
+                "-n",
+                "mychain",
+                "--set",
+            ]),
+        );
+        assert_eq!(values, vec!["format=png", "format=jpeg"]);
+
+        // Unknown chain: quiet, not an error.
+        assert!(complete_candidates(
+            &registry,
+            "set",
+            "",
+            &w(&[
+                "toolkit",
+                "chain",
+                "--chains-dir",
+                &dir_s,
+                "-n",
+                "nope",
+                "--set"
+            ]),
+        )
+        .is_empty());
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
