@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "toolkit": {
+      "type": "stdio",
+      "command": "toolkit",
+      "args": [
+        "mcp"
+      ],
+      "env": {}
+    }
+  }
+}
