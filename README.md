@@ -103,6 +103,12 @@ toolkit chain --name image-web-ready --set width=800 -i photo.png -o photo.jpg
 toolkit chain --file my-chain.json -i input.txt
 ```
 
+Shell completions (with tool names) for bash, zsh, fish, and PowerShell:
+
+```sh
+toolkit completions zsh > "${fpath[1]}/_toolkit"     # or: bash / fish / powershell
+```
+
 Drop your own chain files into `~/.config/toolkit/chains/` and run them by
 name — chains are pure data, so this needs no code trust. To update the CLI,
 re-run the install one-liner (it detects your version) or use your package

@@ -6,6 +6,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `toolkit completions <shell>`: shell completions for bash, zsh, fish,
+  and PowerShell — including the tool names after `toolkit run` (bash,
+  zsh, fish).
+
 ## [0.3.0] - 2026-07-11
 
 ### Added

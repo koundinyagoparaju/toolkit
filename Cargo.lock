@@ -150,6 +150,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete"
+version = "4.6.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db8b397918185f0161ff3d6fcaa9e4bfc09b8367caf6e1d4a2848e5477ed027b"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "clap_derive"
 version = "4.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1039,6 +1048,7 @@ name = "toolkit-cli"
 version = "0.3.0"
 dependencies = [
  "clap",
+ "clap_complete",
  "getrandom",
  "serde_json",
  "toolkit-core",

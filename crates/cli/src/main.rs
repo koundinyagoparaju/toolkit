@@ -27,11 +27,12 @@ enum Command {
     Info { tool: String },
     /// Run a single tool (input as an argument, from stdin, or --input)
     Run {
+        #[arg(index = 1)]
         tool: String,
         /// The input value itself, e.g. `toolkit run base64-encode hello`.
         /// Only for tools with one input port (repeatable for
         /// variable-arity ports); use -i for files or named ports.
-        #[arg(value_name = "VALUE", conflicts_with = "input")]
+        #[arg(value_name = "VALUE", conflicts_with = "input", index = 2)]
         value: Vec<String>,
         /// Input file. For multi-input tools, repeat as -i port=path
         /// (e.g. -i first=a.png -i second=b.png). Single-input tools
@@ -81,6 +82,12 @@ enum Command {
         #[arg(long, default_value = "chains")]
         chains_dir: PathBuf,
     },
+    /// Generate shell completions (tool names included). To enable:
+    ///   bash: toolkit completions bash >> ~/.bashrc  (or bash-completion dir)
+    ///   zsh:  toolkit completions zsh > "${fpath[1]}/_toolkit"
+    ///   fish: toolkit completions fish > ~/.config/fish/completions/toolkit.fish
+    ///   pwsh: toolkit completions powershell >> $PROFILE
+    Completions { shell: clap_complete::Shell },
     /// Emit the full tool catalog as JSON (used by the web build)
     #[command(hide = true)]
     Manifests,
@@ -286,6 +293,28 @@ fn run(cli: Cli) -> Result<(), String> {
             }
             if !any {
                 println!("no chains found (looked in ~/.config/toolkit/chains and ./chains)");
+            }
+            Ok(())
+        }
+        Command::Completions { shell } => {
+            use clap::CommandFactory;
+            // The registry is static, so completions can offer real tool
+            // names after `run`. Injected only here — the parser keeps its
+            // friendlier unknown-tool error.
+            let names: Vec<String> = registry.manifests().into_iter().map(|m| m.name).collect();
+            let cmd = Cli::command().mut_subcommand("run", |run| {
+                run.mut_arg("tool", |a| {
+                    a.value_parser(clap::builder::PossibleValuesParser::new(names.clone()))
+                })
+            });
+            clap_complete::generate(shell, &mut cmd.clone(), "toolkit", &mut std::io::stdout());
+            // clap_complete's fish generator skips positional values; one
+            // extra line gives fish users tool-name completion too.
+            if shell == clap_complete::Shell::Fish {
+                println!(
+                    "complete -c toolkit -n \"__fish_toolkit_using_subcommand run\" -f -a \"{}\"",
+                    names.join(" ")
+                );
             }
             Ok(())
         }

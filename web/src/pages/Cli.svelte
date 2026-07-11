@@ -78,7 +78,8 @@ toolkit chain -n file-checksum -i backup.iso  # streams: GBs in a few MB of RAM<
     <p class="dim">
         Every tool page here shows its own terminal equivalent — options included — and every
         chain in the <a href="#/chains">library</a> runs as
-        <code>toolkit chain -n &lt;name&gt;</code>. Drop your own chain files into
+        <code>toolkit chain -n &lt;name&gt;</code>. Tab completion (tool names included) comes
+        from <code>toolkit completions bash|zsh|fish|powershell</code>. Drop your own chain files into
         <code>~/.config/toolkit/chains/</code> and they run by name too.
     </p>
 </section>

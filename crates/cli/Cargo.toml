@@ -15,5 +15,6 @@ toolkit-pack-image = { path = "../packs/image" }
 toolkit-pack-crypto = { path = "../packs/crypto" }
 toolkit-pack-data = { path = "../packs/data" }
 serde_json = { workspace = true }
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "string"] }
 getrandom = "0.3"
+clap_complete = "4.6.7"
