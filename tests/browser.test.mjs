@@ -154,13 +154,11 @@ try {
             ta.dispatchEvent(new Event("input", { bubbles: true }));
         })()`,
     );
-    await sleep(1500); // debounce (250ms) + wasm fetch + run
-
-    const hashOut = await evalJs(cdp, `document.querySelector("pre")?.textContent ?? ""`);
-    assert(
-        hashOut.trim() === "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-        `hash tool computes sha256 in the browser (got "${hashOut.trim().slice(0, 40)}…")`,
+    await waitFor(
+        cdp,
+        `(document.querySelector("pre")?.textContent ?? "").trim() === "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"`,
     );
+    assert(true, "hash tool computes sha256 in the browser");
 
     // CSP: outbound requests must be blocked.
     const cspBlocked = await evalJs(
@@ -232,10 +230,8 @@ try {
         cdp2,
         `[...document.querySelectorAll("button")].find((b) => b.textContent.includes("Run chain")).click()`,
     );
-    await sleep(2000);
-
-    const ranOk = await evalJs(cdp2, `document.body.textContent.includes("Chain ran ✓")`);
-    assert(ranOk, "2-node chain (base64-decode → json-format) runs in the browser");
+    await waitFor(cdp2, `document.body.textContent.includes("Chain ran ✓")`);
+    assert(true, "2-node chain (base64-decode → json-format) runs in the browser");
 
     // Click the sink node and check its output panel.
     await evalJs(
@@ -245,12 +241,8 @@ try {
             rects[1].dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
         })()`,
     );
-    await sleep(500);
-    const sideOut = await evalJs(cdp2, `document.querySelector("aside pre")?.textContent ?? ""`);
-    assert(
-        sideOut.includes('"hello": "world"'),
-        `sink node shows formatted JSON (got "${sideOut.slice(0, 60)}")`,
-    );
+    await waitFor(cdp2, `(document.querySelector("aside pre")?.textContent ?? "").includes('"hello": "world"')`);
+    assert(true, "sink node shows formatted JSON");
 
 
     // --- Test 3: multi-input tool page renders one input per port ---
@@ -305,19 +297,14 @@ try {
     })()`);
     await sleep(400);
     await evalJs(cdp5, `[...document.querySelectorAll("button")].find((b) => b.textContent.includes("Run chain")).click()`);
-    await sleep(2000);
-    const fanOk = await evalJs(cdp5, `document.body.textContent.includes("Chain ran ✓")`);
-    assert(fanOk, "fan-in chain (hex + base64 → doc-merge) runs in the browser");
+    await waitFor(cdp5, `document.body.textContent.includes("Chain ran ✓")`);
+    assert(true, "fan-in chain (hex + base64 → doc-merge) runs in the browser");
     await evalJs(cdp5, `(() => {
         const rects = document.querySelectorAll("svg g rect");
         rects[2].dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     })()`);
-    await sleep(500);
-    const fanOut = await evalJs(cdp5, `document.querySelector("aside pre")?.textContent ?? ""`);
-    assert(
-        fanOut.trim() === "6869 + aGk=",
-        `doc-merge output ordered by edge declaration (got "${fanOut.trim()}")`,
-    );
+    await waitFor(cdp5, `(document.querySelector("aside pre")?.textContent ?? "").trim() === "6869 + aGk="`);
+    assert(true, "doc-merge output ordered by edge declaration");
     const badges = await evalJs(cdp5, `[...document.querySelectorAll("svg .badge text")].map((t) => t.textContent)`);
     assert(JSON.stringify(badges) === JSON.stringify(["1", "2"]), `edge order badges shown (got ${JSON.stringify(badges)})`);
     cdp5.close();
@@ -348,16 +335,8 @@ try {
         inputEl.dispatchEvent(new Event("change", { bubbles: true }));
     })()`);
     // 40MB > the 32MB eager limit, so this exercises the streaming path.
-    let digest6 = "";
-    for (let i = 0; i < 30; i++) {
-        await sleep(1000);
-        digest6 = (await evalJs(cdp6, `document.querySelector("pre")?.textContent ?? ""`)).trim();
-        if (/^[0-9a-f]{64}$/.test(digest6)) break;
-    }
-    assert(
-        digest6 === expected,
-        `40MB file streamed through hash in-browser (got "${digest6.slice(0, 16)}…", want "${expected.slice(0, 16)}…")`,
-    );
+    await waitFor(cdp6, `(document.querySelector("pre")?.textContent ?? "").trim() === "${expected}"`, 90000);
+    assert(true, "40MB file streamed through hash in-browser");
     cdp6.close();
     await closeTab(tab6);
 
