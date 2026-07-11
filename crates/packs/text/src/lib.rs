@@ -7,6 +7,7 @@
 
 #![deny(unsafe_code)]
 mod base64_tools;
+mod binary;
 mod case_convert;
 mod diff;
 mod doc_merge;
@@ -17,6 +18,8 @@ mod html_entities;
 mod json;
 mod json_pick;
 mod jwt;
+mod lorem;
+mod number_base;
 mod sort_lines;
 mod unicode_escape;
 mod url;
@@ -46,6 +49,10 @@ pub fn registry() -> Registry {
         Box::new(unicode_escape::UnicodeEscape),
         Box::new(unicode_escape::UnicodeUnescape),
         Box::new(diff::TextDiff),
+        Box::new(number_base::NumberBase),
+        Box::new(binary::TextToBinary),
+        Box::new(binary::BinaryToText),
+        Box::new(lorem::LoremIpsum),
     ])
 }
 

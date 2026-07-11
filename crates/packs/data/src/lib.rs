@@ -4,8 +4,11 @@
 mod color;
 mod csv_tools;
 mod filetype;
+mod http_status;
+mod json_diff;
 mod markdown;
 mod regex_tool;
+mod sql_format;
 mod timestamp;
 mod toml_tools;
 mod url_tool;
@@ -29,6 +32,9 @@ pub fn registry() -> Registry {
         Box::new(markdown::MarkdownToHtml),
         Box::new(color::ColorConvert),
         Box::new(filetype::FileType),
+        Box::new(json_diff::JsonDiff),
+        Box::new(http_status::HttpStatus),
+        Box::new(sql_format::SqlFormat),
     ])
 }
 
