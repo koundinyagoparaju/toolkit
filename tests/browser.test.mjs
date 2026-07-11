@@ -96,9 +96,17 @@ async function waitFor(cdp, expression, timeoutMs = 45000) {
     }
 }
 
+// On GitHub Actions, ::error:: lines become check-run annotations, which
+// are readable through the public API even when the job logs are not —
+// so a CI-only failure names its test without needing log access.
+const annotate = (msg) => {
+    if (process.env.GITHUB_ACTIONS) console.log(`::error::browser suite: ${msg}`);
+};
+
 const assert = (cond, msg) => {
     if (!cond) {
         console.error(`FAIL: ${msg}`);
+        annotate(`FAIL: ${msg}`);
         process.exitCode = 1;
     } else {
         console.log(`ok - ${msg}`);
@@ -561,6 +569,9 @@ try {
 
     cdp.close();
     cdp2.close();
+} catch (e) {
+    annotate(`aborted: ${e.message}`);
+    throw e;
 } finally {
     chrome.kill();
 }
