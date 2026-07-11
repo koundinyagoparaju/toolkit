@@ -78,9 +78,14 @@ async function evalJs(cdp, expression) {
 }
 
 async function waitFor(cdp, expression, timeoutMs = 45000) {
+    // A throw inside the page counts as "not ready yet", not a failure:
+    // early polls can run before the document even has a body (seen on
+    // slow CI runners), and a condition that never stops throwing still
+    // surfaces below as a timeout naming the expression.
+    const guarded = `(() => { try { return !!(${expression}); } catch { return false; } })()`;
     const start = Date.now();
     for (;;) {
-        if (await evalJs(cdp, expression)) return;
+        if (await evalJs(cdp, guarded)) return;
         if (Date.now() - start > timeoutMs) throw new Error(`timeout waiting for: ${expression}`);
         await sleep(300);
     }
