@@ -18,7 +18,7 @@
 
 <nav>
     <div class="container nav-inner">
-        <a class="brand" href="#/">🔒 toolkit</a>
+        <a class="brand" href="#/">🧰 toolkit</a>
         <div class="links">
             <a href="#/">Tools</a>
             <a href="#/chains">Chains</a>
