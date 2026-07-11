@@ -77,7 +77,13 @@ const assert = (cond, msg) => {
 const text = await load("web/public/wasm/text.wasm");
 
 const manifests = JSON.parse(dec.decode(takeBuffer(text, text.tk_manifests())));
-assert(manifests.length === 21, `text pack reports 21 manifests (got ${manifests.length})`);
+// A representative sample rather than an exact count, so adding tools
+// doesn't break the ABI test.
+const textNames = manifests.map((m) => m.name);
+assert(manifests.length >= 20, `text pack reports its manifests (got ${manifests.length})`);
+for (const name of ["base64-encode", "hash", "number-base", "slugify", "text-stats"]) {
+    assert(textNames.includes(name), `text pack includes ${name}`);
+}
 assert(
     manifests.every((m) => Array.isArray(m.inputs) && m.inputs.length >= 1),
     "every manifest declares input ports",
