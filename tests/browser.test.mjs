@@ -7,23 +7,50 @@
 //   ./scripts/build-web-assets.sh && cd web && npm run build
 //   npm run preview -- --port 4173 &
 //   node tests/browser.test.mjs          # BASE_URL/CHROME_BIN to override
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const CHROME = process.env.CHROME_BIN ?? "google-chrome";
-const PORT = Number(process.env.CDP_PORT ?? 9222);
 const BASE = process.env.BASE_URL ?? "http://localhost:4173";
 const PROFILE = `/tmp/toolkit-cdp-${process.pid}`;
 
-const chrome = execFile(CHROME, [
-    "--headless=new",
-    "--disable-gpu",
-    "--no-sandbox",
-    `--remote-debugging-port=${PORT}`,
-    `--user-data-dir=${PROFILE}`,
-    "about:blank",
-]);
+// Port 0 = Chrome picks a free one and writes it to the profile's
+// DevToolsActivePort file — the canonical readiness signal, and no fixed
+// port to collide on. Capture stderr and the exit code so a Chrome that
+// dies at launch says why instead of surfacing as a connection timeout.
+const chrome = spawn(
+    CHROME,
+    [
+        "--headless=new",
+        "--disable-gpu",
+        "--no-sandbox",
+        `--remote-debugging-port=${process.env.CDP_PORT ?? 0}`,
+        `--user-data-dir=${PROFILE}`,
+        "about:blank",
+    ],
+    { stdio: ["ignore", "ignore", "pipe"] },
+);
+let chromeStderr = "";
+chrome.stderr.on("data", (d) => (chromeStderr += d));
+let chromeExit = null;
+chrome.on("exit", (code) => (chromeExit = code));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function devtoolsPort() {
+    for (let i = 0; i < 120; i++) {
+        if (chromeExit !== null) {
+            throw new Error(`chrome exited with ${chromeExit} at launch: ${chromeStderr.trim()}`);
+        }
+        try {
+            return Number(readFileSync(`${PROFILE}/DevToolsActivePort`, "utf8").split("\n")[0]);
+        } catch {
+            await sleep(250);
+        }
+    }
+    throw new Error(`chrome devtools not ready after 30s: ${chromeStderr.trim()}`);
+}
+const PORT = await devtoolsPort();
 
 /** Close the page itself — cdp.close() only closes the WebSocket, and a
  *  pile of live tabs (one of which just streamed 40MB) can stall later
