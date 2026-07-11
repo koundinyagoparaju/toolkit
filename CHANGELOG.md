@@ -13,9 +13,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 - Subcommands renamed for consistency: `tools` lists tools (like `chains`
-  lists chains), `run-tool` runs a tool, `run-chain` runs a chain. The old
-  names (`list`, `run`, `chain`) keep working as hidden aliases, so
-  existing scripts and muscle memory are safe.
+  lists chains), `run-tool` runs a tool, `run-chain` runs a chain. The
+  old names (`list`, `run`, `chain`) are gone — a clean break this early
+  beats carrying aliases forever; the error suggests the new name.
 
 ### Fixed
 - Piping into a command that exits early (`toolkit tools | head`, or a

@@ -28,10 +28,10 @@ jobs:
           set -euo pipefail
           sh scripts/install.sh
           export PATH="$HOME/.local/bin:$PATH"
-          # `run` (not `run-tool`): the alias works in every released
-          # version this workflow might verify.
+          # run-tool exists from v0.9.0 on; dispatching this manually
+          # against an older release will fail here, expectedly.
           toolkit --version
-          out="$(toolkit run base64-encode hi)"
+          out="$(toolkit run-tool base64-encode hi)"
           test "$out" = "aGk=" || { echo "unexpected output: $out"; exit 1; }
 
       # macos-latest is arm64 with Rosetta 2 — also execute the x86_64
@@ -43,7 +43,7 @@ jobs:
           tag="$(curl -fsSL https://api.github.com/repos/${{ github.repository }}/releases/latest | grep -m1 '"tag_name"' | cut -d'"' -f4)"
           curl -fsSL -o x86.tar.gz "https://github.com/${{ github.repository }}/releases/download/$tag/toolkit-macos-x86_64.tar.gz"
           tar -xzf x86.tar.gz
-          out="$(./toolkit run base64-encode hi)"
+          out="$(./toolkit run-tool base64-encode hi)"
           test "$out" = "aGk=" || { echo "unexpected output: $out"; exit 1; }
 
   windows:

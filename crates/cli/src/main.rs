@@ -33,12 +33,10 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// List all available tools
-    #[command(alias = "list")]
     Tools,
     /// Show a tool's description and options
     Info { tool: String },
     /// Run a single tool (input as an argument, from stdin, or --input)
-    #[command(alias = "run")]
     RunTool {
         #[arg(index = 1)]
         tool: String,
@@ -60,7 +58,6 @@ enum Command {
         set: Vec<String>,
     },
     /// Run a toolchain: pipe syntax, a chain JSON file, or a named chain
-    #[command(alias = "chain")]
     RunChain {
         /// Pipe expression, e.g. "base64-decode | json-format indent=4"
         expression: Option<String>,
@@ -177,7 +174,7 @@ fn complete_candidates(
             names
         }
         "set" => {
-            let in_chain = words.iter().any(|w| w == "run-chain" || w == "chain");
+            let in_chain = words.iter().any(|w| w == "run-chain");
             if in_chain {
                 let file = flag_value(words, &["-f", "--file"]).map(PathBuf::from);
                 let name = flag_value(words, &["-n", "--name"]).map(String::from);
@@ -357,7 +354,7 @@ fn complete_set_candidates(registry: &Registry, current: &str, words: &[String])
     let value_flags = ["-i", "--input", "-o", "--output", "-s", "--set"];
     let mut after_run = words
         .iter()
-        .skip_while(|w| w.as_str() != "run-tool" && w.as_str() != "run")
+        .skip_while(|w| w.as_str() != "run-tool")
         .skip(1);
     let mut tool_name = None;
     while let Some(word) = after_run.next() {
@@ -1269,11 +1266,14 @@ mod tests {
     #[test]
     fn set_completion_lists_option_keys_then_values() {
         let registry = registry();
-        let keys = complete_set_candidates(&registry, "", &w(&["toolkit", "run", "hash"]));
+        let keys = complete_set_candidates(&registry, "", &w(&["toolkit", "run-tool", "hash"]));
         assert!(keys.contains(&"algorithm=".to_string()), "{keys:?}");
 
-        let values =
-            complete_set_candidates(&registry, "algorithm=", &w(&["toolkit", "run", "hash"]));
+        let values = complete_set_candidates(
+            &registry,
+            "algorithm=",
+            &w(&["toolkit", "run-tool", "hash"]),
+        );
         assert!(values.contains(&"algorithm=md5".to_string()), "{values:?}");
         assert!(values.contains(&"algorithm=sha256".to_string()));
     }
@@ -1285,7 +1285,14 @@ mod tests {
         let keys = complete_set_candidates(
             &registry,
             "",
-            &w(&["toolkit", "run", "-i", "photo.png", "image-resize", "--set"]),
+            &w(&[
+                "toolkit",
+                "run-tool",
+                "-i",
+                "photo.png",
+                "image-resize",
+                "--set",
+            ]),
         );
         assert!(keys.contains(&"width=".to_string()), "{keys:?}");
         assert!(keys.contains(&"mode=".to_string()));
@@ -1329,7 +1336,7 @@ mod tests {
             &registry,
             "chain-name",
             "",
-            &w(&["toolkit", "chain", "--chains-dir", &dir_s, "-n"]),
+            &w(&["toolkit", "run-chain", "--chains-dir", &dir_s, "-n"]),
         );
         assert!(names.contains(&"mychain".to_string()), "{names:?}");
 
@@ -1339,7 +1346,7 @@ mod tests {
             "",
             &w(&[
                 "toolkit",
-                "chain",
+                "run-chain",
                 "--chains-dir",
                 &dir_s,
                 "-n",
@@ -1355,7 +1362,7 @@ mod tests {
             "format=",
             &w(&[
                 "toolkit",
-                "chain",
+                "run-chain",
                 "--chains-dir",
                 &dir_s,
                 "-n",
@@ -1376,7 +1383,7 @@ mod tests {
             "",
             &w(&[
                 "toolkit",
-                "chain",
+                "run-chain",
                 "--chains-dir",
                 &dir_s,
                 "-n",
@@ -1391,15 +1398,16 @@ mod tests {
     #[test]
     fn set_completion_is_quiet_on_unknown_tool_or_key() {
         let registry = registry();
-        assert!(complete_set_candidates(&registry, "", &w(&["toolkit", "run"])).is_empty());
+        assert!(complete_set_candidates(&registry, "", &w(&["toolkit", "run-tool"])).is_empty());
         assert!(
-            complete_set_candidates(&registry, "nope=", &w(&["toolkit", "run", "hash"])).is_empty()
+            complete_set_candidates(&registry, "nope=", &w(&["toolkit", "run-tool", "hash"]))
+                .is_empty()
         );
         // integer options offer no value candidates
         assert!(complete_set_candidates(
             &registry,
             "width=",
-            &w(&["toolkit", "run", "image-resize"])
+            &w(&["toolkit", "run-tool", "image-resize"])
         )
         .is_empty());
     }

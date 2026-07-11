@@ -50,9 +50,7 @@ class Toolkit < Formula
   end
 
   test do
-    # `run` (not `run-tool`): the alias works in every released version,
-    # so the formula test never depends on which binary it installs.
-    assert_equal "aGk=", shell_output("#{{bin}}/toolkit run base64-encode hi").strip
+    assert_equal "aGk=", shell_output("#{{bin}}/toolkit run-tool base64-encode hi").strip
   end
 end
 """
