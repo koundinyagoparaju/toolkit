@@ -1,4 +1,656 @@
 
 # cargo-vet audits file
 
-[audits]
+[[audits.bitflags]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "2.11.1 -> 2.13.0"
+notes = "Safe additive: IterEqualNames iterator, flag_name rename attr, docs. Zero unsafe in diff."
+
+[[audits.bs58]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.5.0"
+notes = "Single unsafe: String::as_bytes_mut behind Drop guard that restores UTF-8 (output ASCII by construction); forbid elsewhere."
+
+[[audits.bytemuck]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.22.0 -> 1.25.0"
+notes = "Whitespace-heavy diff; substance: AnyBitPattern for [MaybeUninit<T>;N] (sound by definition), Pod/Zeroable for core::simd::Simd (repr(simd), Pod lanes), ZeroableInOption for fn-ptr ABIs (null niche), nightly_stdsimd -> avx512_simd cfg, core::error impls. All standard sound impls."
+
+[[audits.byteorder-lite]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = "byteorder fork with the unsafe slice APIs removed; forbid(unsafe_code); zero unsafe."
+
+[[audits.cpufeatures]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.2.2"
+notes = "Full read (432 lines). x86: __cpuid register reads, bit positions match Intel SDM. aarch64: getauxval(AT_HWCAP); macOS sysctlbyname with NUL assert + size/rc checks; iOS static fallbacks. No memory-unsafe patterns."
+
+[[audits.crc32fast]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.4.2 -> 1.5.0"
+notes = "combine() rewritten to precomputed x^2^n table (safe integer math, golden + quickcheck tests); aarch64 CRC intrinsics on stable >=1.80 via build.rs rustc-version probe; dead debug helper removed. SIMD unsafe untouched."
+
+[[audits.crypto-common]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.1.6 -> 0.1.7"
+notes = "src/ identical to 0.1.6; delta is version bump, generic-array pinned to =0.14.7, and cargo-emitted manifest metadata (resolver=2, autolib/autobins, explicit [lib])."
+
+[[audits.data-encoding]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "2.11.0"
+notes = "Unsafe limited to chunk helpers with safety_assert bounds and from_utf8_unchecked on ASCII-alphabet encoder output. Sound."
+
+[[audits.digest]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.9.0"
+notes = "Trait-only crate (forbid unsafe_code); no unsafe, no capabilities."
+
+[[audits.g2gen]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.2.2"
+notes = "Proc-macro generating Galois-field types; no unsafe in crate or in quote! output; no capabilities."
+
+[[audits.g2p]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.2.2"
+notes = "Thin facade over g2gen/g2poly; no unsafe, no capabilities."
+
+[[audits.g2poly]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.2.2"
+notes = "Pure safe GF(2) polynomial arithmetic; no unsafe, no capabilities."
+
+[[audits.generic-array]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.14.6"
+notes = "repr(transparent) over repr(C) nested-pair ArrayType = contiguous NxT layout justifying slice casts (length-asserted); ArrayBuilder/Consumer panic-safe via position-tracked drops; Send/Sync delegate to T; build.rs only rustc version probe."
+
+[[audits.getrandom]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.4.3"
+notes = "OS-entropy FFI is the advertised purpose. Reviewed compiled backends (linux getrandom(2), windows ProcessPrng raw-dylib, macOS getentropy chunked at 256): sys_fill_exact handles EINTR/short reads with checked splits; all failures error, no weak fallback. build.rs is a benign MSAN cfg probe."
+
+[[audits.gif]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.14.2"
+notes = "deny(unsafe_code); zero unsafe; no capabilities; decoder fuzzed downstream."
+
+[[audits.icu_collections]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "2.1.1 -> 2.2.0"
+notes = "Two transmutes replaced with equivalent raw-pointer casts (same wrapper-view soundness argument); new safe contains_utf8; InvalidSetError payload restored under alloc; import/lint tidying."
+
+[[audits.icu_normalizer_data]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "2.1.1 -> 2.2.0"
+notes = "Machine-generated Unicode data refresh (CLDR 48.0.0 -> 48.2.0) and clippy::msrv 1.83 -> 1.86; standard icu4x-datagen output, no logic change."
+
+[[audits.idna_adapter]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.2.1 -> 1.2.2"
+notes = "Refactor: drop redundant CanonicalCombiningClassMap field; is_virama delegates to mapper.is_virama (behavior-equivalent). Edition 2021->2024. No unsafe, no new capabilities."
+
+[[audits.image]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.25.10"
+notes = "37k lines, 7 unsafe occurrences, all reviewed: from_slice casts to repr(transparent) [T;N] wrappers with length asserts; two unsafe-fn contract declarations with safe default bodies; buffer unchecked indexing backed by checked_mul construction invariant (verified in image_buffer_len/from_raw); filter_1d forbids unsafe. std::fs only in advertised open/save APIs and tests; no net/process/env; no build.rs or proc macros. Codecs are safe Rust and fuzzed downstream in this repo."
+
+[[audits.image-webp]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.2.4"
+notes = "WebP codec, forbid(unsafe_code); zero unsafe; no capabilities; fuzzed downstream."
+
+[[audits.kamadak-exif]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.6.1"
+notes = "Single unsafe: repr(transparent) newtype projection &Value->&UIntValue (sound); fs only in tests; fuzzed downstream."
+
+[[audits.litemap]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.8.1 -> 0.8.2"
+notes = "Doc formatting and lint-attr relocation; alloc::vec::Vec -> Vec (same type). No functional change."
+
+[[audits.lru]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.16.4"
+notes = "Design-level review of the single unsafe idiom: map-owned NonNull Box nodes with MaybeUninit sigils; detach/attach under &mut self; Drop drains map, drop_in_place init'd fields, reboxes sigils; Send/Sync bounds correct for owning container. Version long past RUSTSEC-2021-0130."
+
+[[audits.md-5]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.10.5 -> 0.10.6"
+notes = "Restructure: soft compress logic byte-identical (op_f/g/h/i, RC table, round schedule, final adds); adds loongarch64_asm backend gated to feature+target_arch=loongarch64 (not compiled for x86_64/aarch64/wasm). Reviewed asm block: correct inout/clobbers, readonly/pure/nostack, no ptr writes."
+
+[[audits.moxcms]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.8.1"
+notes = "ICC/CMS engine used by image-rs. Structural soundness: unchecked LUT indexing is over fixed-size Box<[_; 65536]>/[_; 256] tables covering the full index type range (verified public entries instantiate LINEAR_CAP=65536 for all u16 paths incl. 10/12-bit); SIMD paths gated by is_x86_feature_detected; fs only in tests; spot-verified rgb_xyz_q2_13 kernel. 263 unchecked sites share this one table-size-ge-type-max architecture; not every site individually read (discretion recorded)."
+
+[[audits.mutate_once]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.1.2"
+notes = "Full read (331 lines). Write-once cell: 3-state machine over UnsafeCell; single RefMut enforced by panics, get_ref freezes to Fixed so no &mut after &T; leak just wedges the cell. !Sync via Cell, no manual Send/Sync. Sound."
+
+[[audits.num-conv]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.2.1 -> 0.2.2"
+notes = "Additive: new Widen/WidenTarget replacing deprecated Extend (name clash with std::Extend); conversion still size-checked 'as'. No unsafe."
+
+[[audits.png]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.18.0-rc -> 0.18.1"
+notes = "RC stabilization: table-driven Adam7 with saturating/div_ceil math; chunk buffer growth bounded by decoder allocation limits; address-space checks on allocations. Zero unsafe in diff; no capability changes. Fuzzed downstream."
+
+[[audits.pulldown-cmark]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.9.3 -> 0.13.4"
+notes = "Endpoint audited (4-version diff impractical): unsafe confined to ssse3 scan gated by runtime detection + length check with documented precondition (same verified design as pulldown-cmark-escape); we build with default-features=false so simd is not compiled; build.rs no-op without gen-tests; fs/env only in optional CLI bin. Parser fuzzed downstream."
+
+[[audits.pulldown-cmark-escape]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.11.0"
+notes = "Full read (470 lines). SSSE3 escape path: compute_mask precondition len>=offset+16 holds at all call sites; unaligned loads; matched bytes ASCII so get_unchecked slices stay on char boundaries; exhaustive 256-byte test. Rest safe scalar."
+
+[[audits.pxfm]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.1.30"
+notes = "Pure-math libm (103k lines). All 224 unsafe sites are two idioms: OnceLock fn-ptr dispatch gated by is_x86_feature_detected(avx+fma) (verified), and to_int_unchecked on pre-clamped/filtered values with documented invariants. Zero unchecked indexing; no capabilities; forbid(unsafe_code) in most modules."
+
+[[audits.qrcode]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.14.1"
+notes = "QR encoding, pure safe Rust; only env use is arg parsing in example bin; no unsafe."
+
+[[audits.quick-error]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "2.0.1"
+notes = "Declarative macro crate; no unsafe, no capabilities."
+
+[[audits.quick-xml]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.41.0"
+notes = "XML parser; zero unsafe; fs limited to advertised Reader::from_file; fuzzed downstream via toolkit data fuzz target."
+
+[[audits.r-efi]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "6.0.0"
+notes = "UEFI ABI definitions (unsafe extern fn-pointer types + repr(C) structs), same nature as libc/windows-sys. Only 3 unsafe blocks: two sound Guid transmutes (repr(C,align(4)), all-integer, size 16) and one test. Only compiled on UEFI targets."
+
+[[audits.rqrr]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.10.1"
+notes = "QR decoding, pure safe Rust (no unsafe, no fs/net/process); fuzzed downstream via toolkit image fuzz target."
+
+[[audits.sha1]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.10.6 -> 0.10.7"
+notes = "Removes aarch64 asm backend and asm-feature routing to sha1-asm (net reduction in external-asm/unsafe surface); soft/x86 paths unchanged; doc additions. Toolkit uses default soft features."
+
+[[audits.simd-adler32]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.3.7 -> 0.3.9"
+notes = "Adds compile-time-gated NEON backend (Chromium zlib port; loads bounded by chunks_exact blocks); removes dead nightly detection; miri-aware tests."
+
+[[audits.sqlformat]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.5.0"
+notes = "SQL formatter, forbid(unsafe_code) effective; zero unsafe; no capabilities."
+
+[[audits.stable_deref_trait]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.2.0 -> 1.2.1"
+notes = "Adds sound unsafe impl StableDeref for Cow<..> (owned=heap-stable, borrowed=external); gates Arc impls behind target_has_atomic=ptr. Marker-trait crate."
+
+[[audits.time]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.3.53"
+notes = "Unsafe is the time-rs internal-invariant style: ranged-integer const constructors on compile-time-valid constants, MaybeUninit digit-formatting buffers with bounded offsets, assert_unchecked hints backed by debug_asserts. Sampled sites sound; no fs/net/process; env only via advertised local-offset API. Not every one of 259 sites individually read (discretion recorded)."
+
+[[audits.time-core]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.1.8 -> 0.1.9"
+notes = "convert module restructured into unit (const-generic unit types); conversion-constant tables verified identical; adds trivial cross-unit PartialEq/PartialOrd. No unsafe, no ambient capabilities."
+
+[[audits.time-macros]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.2.27 -> 0.2.31"
+notes = "Proc-macro (compile-time). Lexer refactor with v2 escapes; single unsafe converts just-matched ASCII byte via from_utf8_unchecked (sound); new error variants."
+
+[[audits.tinyvec]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.9.0 -> 1.12.0"
+notes = "Deletes pre-1.55 generated_impl and must_use attrs (-9.7k lines); serde->serde_core imports; safe bin-proto impls delegating to slices. Zero unsafe (crate is 100% safe by design)."
+
+[[audits.typenum]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.20.1"
+notes = "Type-level arithmetic; zero unsafe; no build script in 1.20 (build=false); no capabilities."
+
+[[audits.unicode_categories]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.1.1"
+notes = "Pure Unicode category tables + binary search; no unsafe, no capabilities."
+
+[[audits.url]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "2.5.7 -> 2.5.8"
+notes = "Correctness fix in host.rs: handle Cow::Borrowed from the static percent-encoding table (compare to input, own otherwise) with regression test; serde->serde_derive import swap; typo/doc tweaks. No unsafe."
+
+[[audits.version_check]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.9.4 -> 0.9.5"
+notes = "Doc-comment additions only (feature-detection note); no executable code change."
+
+[[audits.weezl]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.1.12"
+notes = "LZW codec, forbid(unsafe_code); zero unsafe; no capabilities."
+
+[[audits.writeable]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.6.2 -> 0.6.3"
+notes = "Adds safe Concat<A,B> adapter and concat_writeable! macro (sequential delegation); lint/lifetime tidying. No unsafe."
+
+[[audits.zerofrom]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.1.6 -> 0.1.8"
+notes = "Lint-attribute reshuffle and doc-comment relocation only; no functional change."
+
+[[audits.zerofrom-derive]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.1.6 -> 0.1.7"
+notes = "Lint-attr reshuffle, doc-link fixes, mem::replace fully qualified, examples de-pub'd. Proc-macro generated-code semantics unchanged."
+
+[[audits.zerovec-derive]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.11.2 -> 0.11.3"
+notes = "Generated code loses unsafe: enum to_unaligned uses safe 'as u8' instead of transmute, new_from_u8 via safe from_unaligned; remaining transmute gains explicit types. Rest doc backticks and examples de-pub'd."
+
+[[audits.zune-core]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.5.1"
+notes = "Zero unsafe code (grep hits are the zune_use_unsafe options flag identifier); no capabilities."
+
+[[audits.zune-jpeg]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.5.15"
+notes = "forbid(unsafe_code) without SIMD features; AVX2/NEON entries gated by genuine runtime detection (is_x86_feature_detected in zune-core; NEON mandatory on aarch64). Spot-verified idct (fixed [i32;64], checked stores) and upsampler (fixed-size array refs from windows/chunks_exact, in-bounds ptr math). Decoder logic safe Rust; fuzzed upstream + by toolkit image fuzz target."
+
+[[trusted.aho-corasick]]
+criteria = "safe-to-deploy"
+user-id = 189 # Andrew Gallant (BurntSushi)
+start = "2019-03-28"
+end = "2027-07-12"
+
+[[trusted.anstream]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-03-16"
+end = "2027-07-12"
+
+[[trusted.anstyle]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2022-05-18"
+end = "2027-07-12"
+
+[[trusted.anstyle-parse]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-03-08"
+end = "2027-07-12"
+
+[[trusted.anstyle-query]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-04-13"
+end = "2027-07-12"
+
+[[trusted.anstyle-wincon]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-03-08"
+end = "2027-07-12"
+
+[[trusted.autocfg]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2019-05-22"
+end = "2027-07-12"
+
+[[trusted.clap]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2021-12-08"
+end = "2027-07-12"
+
+[[trusted.clap_builder]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-03-28"
+end = "2027-07-12"
+
+[[trusted.clap_complete]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2021-12-31"
+end = "2027-07-12"
+
+[[trusted.clap_derive]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2021-12-08"
+end = "2027-07-12"
+
+[[trusted.clap_lex]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2022-04-15"
+end = "2027-07-12"
+
+[[trusted.colorchoice]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-04-13"
+end = "2027-07-12"
+
+[[trusted.csv]]
+criteria = "safe-to-deploy"
+user-id = 189 # Andrew Gallant (BurntSushi)
+start = "2019-04-05"
+end = "2027-07-12"
+
+[[trusted.csv-core]]
+criteria = "safe-to-deploy"
+user-id = 189 # Andrew Gallant (BurntSushi)
+start = "2019-06-26"
+end = "2027-07-12"
+
+[[trusted.displaydoc]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2024-06-20"
+end = "2027-07-12"
+
+[[trusted.flate2]]
+criteria = "safe-to-deploy"
+user-id = 980 # Sebastian Thiel (Byron)
+start = "2023-08-15"
+end = "2027-07-12"
+
+[[trusted.hashbrown]]
+criteria = "safe-to-deploy"
+user-id = 2915 # Amanieu d'Antras (Amanieu)
+start = "2019-04-02"
+end = "2027-07-12"
+
+[[trusted.icu_locale_core]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2025-02-26"
+end = "2027-07-12"
+
+[[trusted.icu_normalizer]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2021-04-29"
+end = "2027-07-12"
+
+[[trusted.icu_properties]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2022-01-31"
+end = "2027-07-12"
+
+[[trusted.icu_properties_data]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2023-10-03"
+end = "2027-07-12"
+
+[[trusted.icu_provider]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2022-01-31"
+end = "2027-07-12"
+
+[[trusted.indexmap]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2020-01-15"
+end = "2027-07-12"
+
+[[trusted.is_terminal_polyfill]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2024-05-02"
+end = "2027-07-12"
+
+[[trusted.itoa]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-05-02"
+end = "2027-07-12"
+
+[[trusted.libc]]
+criteria = "safe-to-deploy"
+user-id = 55123 # rust-lang-owner
+start = "2024-08-15"
+end = "2027-07-12"
+
+[[trusted.memchr]]
+criteria = "safe-to-deploy"
+user-id = 189 # Andrew Gallant (BurntSushi)
+start = "2019-07-07"
+end = "2027-07-12"
+
+[[trusted.once_cell_polyfill]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2025-05-22"
+end = "2027-07-12"
+
+[[trusted.potential_utf]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2024-11-23"
+end = "2027-07-12"
+
+[[trusted.quote]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-04-09"
+end = "2027-07-12"
+
+[[trusted.regex]]
+criteria = "safe-to-deploy"
+user-id = 189 # Andrew Gallant (BurntSushi)
+start = "2019-02-27"
+end = "2027-07-12"
+
+[[trusted.regex-automata]]
+criteria = "safe-to-deploy"
+user-id = 189 # Andrew Gallant (BurntSushi)
+start = "2019-02-25"
+end = "2027-07-12"
+
+[[trusted.regex-syntax]]
+criteria = "safe-to-deploy"
+user-id = 189 # Andrew Gallant (BurntSushi)
+start = "2019-03-30"
+end = "2027-07-12"
+
+[[trusted.ryu]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-05-02"
+end = "2027-07-12"
+
+[[trusted.serde_json]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-02-28"
+end = "2027-07-12"
+
+[[trusted.serde_spanned]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-01-20"
+end = "2027-07-12"
+
+[[trusted.serde_yaml]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-05-02"
+end = "2027-07-12"
+
+[[trusted.syn]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-03-01"
+end = "2027-07-12"
+
+[[trusted.tinystr]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2021-01-14"
+end = "2027-07-12"
+
+[[trusted.toml]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2022-12-14"
+end = "2027-07-12"
+
+[[trusted.toml_datetime]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2022-10-21"
+end = "2027-07-12"
+
+[[trusted.toml_edit]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2021-09-13"
+end = "2027-07-12"
+
+[[trusted.toml_write]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2025-04-25"
+end = "2027-07-12"
+
+[[trusted.unicase]]
+criteria = "safe-to-deploy"
+user-id = 359 # Sean McArthur (seanmonstar)
+start = "2019-03-05"
+end = "2027-07-12"
+
+[[trusted.unicode-ident]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2021-10-02"
+end = "2027-07-12"
+
+[[trusted.unsafe-libyaml]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2022-07-03"
+end = "2027-07-12"
+
+[[trusted.windows-sys]]
+criteria = "safe-to-deploy"
+user-id = 64539 # Kenny Kerr (kennykerr)
+start = "2021-11-15"
+end = "2027-07-12"
+
+[[trusted.winnow]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-02-22"
+end = "2027-07-12"
+
+[[trusted.yoke]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2021-05-01"
+end = "2027-07-12"
+
+[[trusted.yoke-derive]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2021-07-02"
+end = "2027-07-12"
+
+[[trusted.zerotrie]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2023-10-03"
+end = "2027-07-12"
+
+[[trusted.zerovec]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2021-04-19"
+end = "2027-07-12"
+
+[[trusted.zmij]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2025-12-18"
+end = "2027-07-12"
