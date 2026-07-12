@@ -17,8 +17,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   CLI test runs every example with default options — a broken or stale
   example fails the build. Tool pages get a "Try an example" button;
   `toolkit info` prints a runnable example.
+- `toolkit info --chain <name>` shows a chain's full definition (nodes
+  with options, edges, params, declared inputs); `--json` dumps the raw
+  chain JSON, so the remix loop is `info --chain X --json > my.json`,
+  edit, `run-chain -f my.json`. A test keeps the dump re-runnable.
+- Tab completion covers `info`: `--tool <TAB>` offers every tool name,
+  `--chain <TAB>` offers the chain library (bash, zsh, fish), guarded
+  by a test on the generated scripts.
 
 ### Changed
+- `toolkit info` takes `--tool <name>` explicitly (was positional),
+  making room for `--chain` without name-collision guesswork — a clean
+  break like the v0.9.0 subcommand renames; the old form errors with
+  the new usage.
 - The unit converters' `from`/`to` options have sensible defaults
   (mi→km, kg→lb, gal→l, gib→mb, celsius→fahrenheit, px→pt) instead of
   being required — on the web the tools now run as soon as they have

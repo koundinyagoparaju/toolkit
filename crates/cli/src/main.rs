@@ -35,8 +35,23 @@ struct Cli {
 enum Command {
     /// List all available tools
     Tools,
-    /// Show a tool's description and options
-    Info { tool: String },
+    /// Show a tool's description and options, or a chain's definition
+    #[command(group = clap::ArgGroup::new("subject").required(true).args(["tool", "chain"]))]
+    Info {
+        /// Tool to describe, e.g. --tool hash
+        #[arg(long)]
+        tool: Option<String>,
+        /// Chain to describe (from the library, like run-chain -n)
+        #[arg(long)]
+        chain: Option<String>,
+        /// With --chain: print the raw chain JSON, ready to save, edit,
+        /// and run with `toolkit run-chain -f my-chain.json`
+        #[arg(long, requires = "chain")]
+        json: bool,
+        /// Extra chain directory to search first (e.g. a project's)
+        #[arg(long, requires = "chain")]
+        chains_dir: Option<PathBuf>,
+    },
     /// Run a single tool (input as an argument, from stdin, or --input)
     RunTool {
         #[arg(index = 1)]
@@ -267,6 +282,8 @@ fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[
                         line.replace(":KEY=VALUE:_default", ":KEY=VALUE:_toolkit_set_values")
                     } else if line.contains("Load a named chain from the library") {
                         line.replace(":NAME:_default", ":NAME:_toolkit_chain_names")
+                    } else if line.contains("Chain to describe") {
+                        line.replace(":CHAIN:_default", ":CHAIN:_toolkit_chain_names")
                     } else {
                         line.to_string()
                     }
@@ -285,22 +302,30 @@ fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[
             script
         }
         clap_complete::Shell::Bash => {
-            // Patch the two --set/-s arms inside the run section only.
+            // Patch --set/-s arms in the run sections, and chain-name
+            // completion for run-chain's --name/-n and info's --chain.
             let mut script = script;
-            for (label, set_kind_arms, name_arms) in [
-                ("toolkit__subcmd__run__subcmd__tool)", true, false),
-                ("toolkit__subcmd__run__subcmd__chain)", true, true),
-            ] {
-                script = patch_bash_section(script, label, set_kind_arms, name_arms);
+            let markers: [(&str, bool, &[&str]); 3] = [
+                ("toolkit__subcmd__run__subcmd__tool)", true, &[]),
+                (
+                    "toolkit__subcmd__run__subcmd__chain)",
+                    true,
+                    &["--name)", "-n)"],
+                ),
+                ("toolkit__subcmd__info)", false, &["--chain)"]),
+            ];
+            for (label, set_kind_arms, name_markers) in markers {
+                script = patch_bash_section(script, label, set_kind_arms, name_markers);
             }
             script
         }
         clap_complete::Shell::Fish => {
             // The fish generator skips positional values: append tool-name
             // completion for run, option/param completion for --set on
-            // both subcommands, and chain-name completion for -n/--name.
+            // both subcommands, and chain-name completion for run-chain's
+            // -n/--name and info's --chain.
             format!(
-                "{script}complete -c toolkit -n \"__fish_toolkit_using_subcommand run-tool\" -f -a \"{}\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run-tool\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run-chain\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run-chain\" -s n -l name -x -a \"(toolkit __complete chain-name (commandline -ct) -- (commandline -opc))\"\n",
+                "{script}complete -c toolkit -n \"__fish_toolkit_using_subcommand run-tool\" -f -a \"{}\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run-tool\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run-chain\" -s s -l set -x -a \"(toolkit __complete set (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand run-chain\" -s n -l name -x -a \"(toolkit __complete chain-name (commandline -ct) -- (commandline -opc))\"\ncomplete -c toolkit -n \"__fish_toolkit_using_subcommand info\" -l chain -x -a \"(toolkit __complete chain-name (commandline -ct) -- (commandline -opc))\"\n",
                 tool_names.join(" ")
             )
         }
@@ -309,17 +334,26 @@ fn patch_completions(shell: clap_complete::Shell, script: String, tool_names: &[
 }
 
 /// Rewire one bash subcommand section: '=' wordbreak normalization plus
-/// callback-driven --set/-s (and, for chain, --name/-n) arms.
-fn patch_bash_section(script: String, label: &str, set_arms: bool, name_arms: bool) -> String {
+/// callback-driven --set/-s arms, and chain-name completion for the
+/// flags named in `name_markers`.
+fn patch_bash_section(
+    script: String,
+    label: &str,
+    set_arms: bool,
+    name_markers: &[&str],
+) -> String {
     let Some(run_start) = script.find(label) else {
         return script;
     };
     // readline breaks words on '=', so `--set key=<cur>` arrives
     // as prev="=" (or cur="="). Reassemble those shapes into the
     // canonical prev="--set", cur="key=value" before the case.
+    // Only needed where --set exists.
     let prologue = "\n            if [[ ${COMP_WORDS[COMP_CWORD]} == = && ( ${COMP_WORDS[COMP_CWORD-2]:-} == --set || ${COMP_WORDS[COMP_CWORD-2]:-} == -s ) ]]; then\n                prev=\"--set\"; cur=\"${COMP_WORDS[COMP_CWORD-1]}=\"\n            elif [[ ${COMP_WORDS[COMP_CWORD-1]:-} == = && ( ${COMP_WORDS[COMP_CWORD-3]:-} == --set || ${COMP_WORDS[COMP_CWORD-3]:-} == -s ) ]]; then\n                prev=\"--set\"; cur=\"${COMP_WORDS[COMP_CWORD-2]}=${cur}\"\n            fi";
     let mut script = script;
-    script.insert_str(run_start + label.len(), prologue);
+    if set_arms {
+        script.insert_str(run_start + label.len(), prologue);
+    }
     let run_end = script[run_start..]
         .find("\n        toolkit__")
         .map(|i| run_start + i)
@@ -340,13 +374,11 @@ fn patch_bash_section(script: String, label: &str, set_arms: bool, name_arms: bo
             }
         }
     }
-    if name_arms {
-        for marker in ["--name)", "-n)"] {
-            if let Some(arm_pos) = section.find(marker) {
-                if let Some(body_pos) = section[arm_pos..].find(old_arm) {
-                    let at = arm_pos + body_pos;
-                    section.replace_range(at..at + old_arm.len(), name_arm);
-                }
+    for marker in name_markers {
+        if let Some(arm_pos) = section.find(marker) {
+            if let Some(body_pos) = section[arm_pos..].find(old_arm) {
+                let at = arm_pos + body_pos;
+                section.replace_range(at..at + old_arm.len(), name_arm);
             }
         }
     }
@@ -544,10 +576,82 @@ fn run(cli: Cli) -> Result<(), String> {
             print_table(("NAME", "INPUT -> OUTPUT", "DESCRIPTION"), &rows);
             Ok(())
         }
-        Command::Info { tool } => {
+        Command::Info {
+            chain: Some(name),
+            json,
+            chains_dir,
+            ..
+        } => {
+            let chain = load_chain(None, None, Some(name.clone()), chains_dir.as_deref())?;
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&chain).expect("chains serialize")
+                );
+                return Ok(());
+            }
+            println!("{name} — {}", chain.description);
+            for input in &chain.inputs {
+                let binds = input
+                    .binds
+                    .iter()
+                    .map(|b| match &b.port {
+                        Some(port) => format!("{}.{port}", b.node),
+                        None => b.node.clone(),
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                println!(
+                    "input: -i {}=<path>  -> {binds}  {}",
+                    input.name, input.description
+                );
+            }
+            for p in &chain.params {
+                let default = p
+                    .spec
+                    .default
+                    .as_ref()
+                    .map(|d| format!(" (default: {d})"))
+                    .unwrap_or_default();
+                println!(
+                    "param: --set {}=…{default}  {}",
+                    p.spec.name, p.spec.description
+                );
+            }
+            println!("nodes:");
+            for node in &chain.nodes {
+                let opts = node
+                    .options
+                    .iter()
+                    .map(|(k, v)| format!("{k}={v}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let opts = if opts.is_empty() {
+                    String::new()
+                } else {
+                    format!("  ({opts})")
+                };
+                println!("  {}: {}{opts}", node.id, node.tool);
+            }
+            if !chain.edges.is_empty() {
+                println!("edges:");
+                for edge in &chain.edges {
+                    let port = edge
+                        .to_port
+                        .as_ref()
+                        .map(|p| format!(".{p}"))
+                        .unwrap_or_default();
+                    println!("  {} -> {}{port}", edge.from, edge.to);
+                }
+            }
+            println!("(--json prints the raw definition, ready for run-chain -f)");
+            Ok(())
+        }
+        Command::Info { tool, .. } => {
+            let tool = tool.expect("clap group requires --tool or --chain");
             let t = registry
                 .find(&tool)
-                .ok_or_else(|| format!("unknown tool \"{tool}\" (see `toolkit list`)"))?;
+                .ok_or_else(|| format!("unknown tool \"{tool}\" (see `toolkit tools`)"))?;
             let m = t.manifest();
             println!("{} — {}", m.name, m.label);
             println!("{}", m.description);
@@ -578,6 +682,29 @@ fn run(cli: Cli) -> Result<(), String> {
                         format!(" ({})", extras.join(", "))
                     };
                     println!("  --set {}=<{kind}>{extras}  {}", o.name, o.description);
+                }
+            }
+            // A runnable demo when the manifest declares one. Sole-port
+            // examples become a full command line; named ports are shown
+            // as data (the CLI takes those as -i port=path, not inline).
+            let ports: Vec<_> = m.inputs.iter().filter(|p| !p.entropy).collect();
+            if !ports.is_empty() && ports.iter().all(|p| p.example.is_some()) {
+                if let [port] = ports[..] {
+                    let example = port.example.as_deref().expect("checked");
+                    if !example.contains('\n') {
+                        println!("example: toolkit run-tool {} '{}'", m.name, example);
+                    } else {
+                        println!("example input:\n{example}");
+                    }
+                } else {
+                    println!("example inputs:");
+                    for port in &ports {
+                        println!(
+                            "  {} = {:?}",
+                            port.name,
+                            port.example.as_deref().expect("checked")
+                        );
+                    }
                 }
             }
             Ok(())
@@ -702,11 +829,17 @@ fn run(cli: Cli) -> Result<(), String> {
             // names after `run`. Injected only here — the parser keeps its
             // friendlier unknown-tool error.
             let names: Vec<String> = registry.manifests().into_iter().map(|m| m.name).collect();
-            let cmd = Cli::command().mut_subcommand("run-tool", |run| {
-                run.mut_arg("tool", |a| {
-                    a.value_parser(clap::builder::PossibleValuesParser::new(names.clone()))
+            let cmd = Cli::command()
+                .mut_subcommand("run-tool", |run| {
+                    run.mut_arg("tool", |a| {
+                        a.value_parser(clap::builder::PossibleValuesParser::new(names.clone()))
+                    })
                 })
-            });
+                .mut_subcommand("info", |info| {
+                    info.mut_arg("tool", |a| {
+                        a.value_parser(clap::builder::PossibleValuesParser::new(names.clone()))
+                    })
+                });
             let mut buf = Vec::new();
             clap_complete::generate(shell, &mut cmd.clone(), "toolkit", &mut buf);
             let script = String::from_utf8(buf).expect("completion scripts are UTF-8");
@@ -1344,6 +1477,38 @@ mod tests {
         assert!(keys.contains(&"mode=".to_string()));
     }
 
+    /// Every example declared in a manifest must run successfully with
+    /// default options — a stale or broken example fails the build, so
+    /// the one-click demos in the web UI can never rot.
+    #[test]
+    fn manifest_examples_run_clean() {
+        let registry = registry();
+        let mut ran = 0;
+        for manifest in registry.manifests() {
+            if manifest.inputs.is_empty() || !manifest.inputs.iter().all(|p| p.example.is_some()) {
+                continue;
+            }
+            let tool = registry.find(&manifest.name).unwrap();
+            let mut inputs = toolkit_core::Inputs::new();
+            for port in &manifest.inputs {
+                let text = port.example.clone().unwrap();
+                inputs.insert(port.name.clone(), vec![DataValue::Text(text)]);
+            }
+            let out = toolkit_core::run_tool(tool, inputs, &Options::new());
+            assert!(
+                out.is_ok(),
+                "example for {} fails: {}",
+                manifest.name,
+                out.unwrap_err()
+            );
+            ran += 1;
+        }
+        assert!(
+            ran >= 40,
+            "expected at least 40 example-covered tools, ran {ran}"
+        );
+    }
+
     #[test]
     fn builtin_chains_are_present_and_valid() {
         let registry = registry();
@@ -1354,6 +1519,15 @@ mod tests {
             chain
                 .validate(&registry)
                 .unwrap_or_else(|e| panic!("built-in chain {name} does not validate: {e}"));
+            // `info --chain X --json` re-serializes the parsed chain; that
+            // dump must itself parse and validate, or the remix loop
+            // (dump -> edit -> run-chain -f) silently breaks.
+            let dumped = serde_json::to_string_pretty(&chain).expect("chains serialize");
+            let reparsed: Chain = serde_json::from_str(&dumped)
+                .unwrap_or_else(|e| panic!("chain {name} does not roundtrip: {e}"));
+            reparsed
+                .validate(&registry)
+                .unwrap_or_else(|e| panic!("re-serialized chain {name} does not validate: {e}"));
         }
     }
 
@@ -1377,6 +1551,55 @@ mod tests {
         assert_eq!(wrap("a bb ccc", 4), vec!["a bb", "ccc"]);
         assert_eq!(wrap("overlongword ok", 5), vec!["overlongword", "ok"]);
         assert_eq!(wrap("", 10), vec![""]);
+    }
+
+    /// The generated shell scripts must wire chain-name completion to
+    /// info's --chain in every shell (the patch is textual, so a clap
+    /// upgrade that reshapes the scripts should fail here, not in users'
+    /// shells).
+    #[test]
+    fn completion_scripts_wire_info_chain() {
+        use clap::CommandFactory;
+        let names = vec!["hash".to_string()];
+        for (shell, needle) in [
+            (clap_complete::Shell::Zsh, ":CHAIN:_toolkit_chain_names"),
+            (clap_complete::Shell::Bash, "__complete chain-name"),
+            (
+                clap_complete::Shell::Fish,
+                "info\" -l chain -x -a \"(toolkit __complete chain-name",
+            ),
+        ] {
+            let mut buf = Vec::new();
+            clap_complete::generate(shell, &mut Cli::command(), "toolkit", &mut buf);
+            let script = patch_completions(shell, String::from_utf8(buf).unwrap(), &names);
+            assert!(
+                script.contains(needle),
+                "{shell:?} script lacks info --chain wiring ({needle})"
+            );
+        }
+        // Bash: the info section itself must carry the patched arm, not
+        // just some other section.
+        let mut buf = Vec::new();
+        clap_complete::generate(
+            clap_complete::Shell::Bash,
+            &mut Cli::command(),
+            "toolkit",
+            &mut buf,
+        );
+        let script = patch_completions(
+            clap_complete::Shell::Bash,
+            String::from_utf8(buf).unwrap(),
+            &names,
+        );
+        let info = script
+            .split("toolkit__subcmd__info)")
+            .nth(1)
+            .and_then(|s| s.split("\n        toolkit__").next())
+            .expect("info section exists");
+        assert!(
+            info.contains("__complete chain-name"),
+            "info section unpatched"
+        );
     }
 
     #[test]
