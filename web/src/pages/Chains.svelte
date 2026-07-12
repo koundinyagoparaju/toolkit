@@ -23,8 +23,9 @@
             <a class="card chain" href="#/builder/{chainToHash(chain)}">
                 <strong>{chain.name}</strong>
                 <span class="dim desc">{chain.description}</span>
-                <span class="mono dim steps">
-                    {chain.nodes.map((n) => n.tool).join(" → ")}
+                <span class="steps">
+                    {#each chain.nodes as node, i (i)}{#if i}<span class="arrow dim">→</span
+                        >{/if}<code class="step">{node.tool}</code>{/each}
                 </span>
             </a>
         {/each}
@@ -54,6 +55,21 @@
         font-size: 0.85rem;
     }
     .steps {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.3rem;
+        margin-top: 0.2rem;
+    }
+    .step {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.1rem 0.5rem;
+    }
+    .arrow {
         font-size: 0.75rem;
     }
 </style>

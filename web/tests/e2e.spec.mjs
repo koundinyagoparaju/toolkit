@@ -66,6 +66,52 @@ test("tool page runs wasm, re-runs on edits and option changes", async ({ page }
     await expect(page.locator("pre")).toHaveText("e2fc714c4727ee9395f324cd2e7f331f");
 });
 
+test("theme toggle switches palette and persists across reloads", async ({ page }) => {
+    await page.goto("/#/");
+    const bg = () =>
+        page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const before = await bg();
+    await page.getByRole("button", { name: /Switch to (light|dark) theme/ }).click();
+    await expect
+        .poll(bg)
+        .not.toBe(before);
+    const toggled = await bg();
+    await page.reload();
+    await expect.poll(bg).toBe(toggled);
+});
+
+test("catalog: / focuses search, Enter opens a lone match", async ({ page }) => {
+    await page.goto("/#/");
+    // The listener attaches when the app mounts — wait for the UI first,
+    // or the keypress can fire into a page that isn't listening yet.
+    await page.locator("input[type=text]").waitFor();
+    await page.keyboard.press("/");
+    await expect(page.locator("input[type=text]")).toBeFocused();
+    await page.keyboard.type("slugify");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/#\/tool\/slugify/);
+});
+
+test("'Try an example' fills the input and produces output", async ({ page }) => {
+    await page.goto("/#/tool/hash");
+    await page.getByRole("button", { name: "Try an example" }).click();
+    await expect(page.locator("textarea")).toHaveValue(
+        "The quick brown fox jumps over the lazy dog",
+    );
+    await expect(page.locator("pre")).toHaveText(
+        "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592",
+    );
+});
+
+test("related tools link between unit converters", async ({ page }) => {
+    await page.goto("/#/tool/length-convert");
+    await expect(page.getByText("Related tools:")).toBeVisible();
+    await expect(page.locator(".related a").first()).toHaveAttribute(
+        "href",
+        /#\/tool\/.+-convert/,
+    );
+});
+
 test("CSP blocks outbound fetch to other origins", async ({ page }) => {
     await page.goto("/#/tool/hash");
     const cspBlocked = await page.evaluate(() =>

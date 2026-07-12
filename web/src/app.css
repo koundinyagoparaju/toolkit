@@ -7,10 +7,59 @@
     --text-dim: #94a3b8;
     --accent: #38bdf8;
     --accent-dim: #0ea5e9;
+    --btn-text: #04121e;
     --ok: #4ade80;
     --err: #f87171;
+    /* Per-pack accents, used on catalog cards and section markers. */
+    --pack-text: #38bdf8;
+    --pack-image: #a78bfa;
+    --pack-crypto: #4ade80;
+    --pack-data: #fbbf24;
     --radius: 8px;
     color-scheme: dark;
+}
+
+/* The light palette. Applied two ways with the same values: by OS
+   preference (unless the user chose dark in the header), and by the
+   explicit header choice. The default — no stored choice — follows the
+   OS with zero JS, so there is no flash under the strict CSP. */
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+        --bg: #f8fafc;
+        --bg-raised: #ffffff;
+        --bg-input: #f1f5f9;
+        --border: #cbd5e1;
+        --text: #0f172a;
+        --text-dim: #64748b;
+        --accent: #0284c7;
+        --accent-dim: #0369a1;
+        --btn-text: #ffffff;
+        --ok: #16a34a;
+        --err: #dc2626;
+        --pack-text: #0284c7;
+        --pack-image: #7c3aed;
+        --pack-crypto: #16a34a;
+        --pack-data: #b45309;
+        color-scheme: light;
+    }
+}
+:root[data-theme="light"] {
+    --bg: #f8fafc;
+    --bg-raised: #ffffff;
+    --bg-input: #f1f5f9;
+    --border: #cbd5e1;
+    --text: #0f172a;
+    --text-dim: #64748b;
+    --accent: #0284c7;
+    --accent-dim: #0369a1;
+    --btn-text: #ffffff;
+    --ok: #16a34a;
+    --err: #dc2626;
+    --pack-text: #0284c7;
+    --pack-image: #7c3aed;
+    --pack-crypto: #16a34a;
+    --pack-data: #b45309;
+    color-scheme: light;
 }
 
 * {
@@ -62,7 +111,7 @@ h2 {
 .btn {
     display: inline-block;
     background: var(--accent-dim);
-    color: #04121e;
+    color: var(--btn-text);
     font-weight: 600;
     border: none;
     border-radius: var(--radius);

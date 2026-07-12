@@ -6,6 +6,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Light theme: the site follows your OS preference and a header toggle
+  pins either theme (persisted). Previously dark-only.
+- Catalog: per-category accent colors, quick-jump chips, friendlier
+  category names with one-line intros, `/` focuses search, and Enter
+  opens the tool when the search has exactly one match.
+- Tool pages link to related tools (shared-keyword neighbors).
+
+### Changed
+- The builder's tool picker is searchable (type to filter all tools),
+  and its canvas instructions are collapsed behind a disclosure.
+- Chain library cards show each pipeline as step chips instead of a
+  mono text string; the mobile header no longer wraps awkwardly.
+
 ## [0.13.0] - 2026-07-12
 
 ### Added

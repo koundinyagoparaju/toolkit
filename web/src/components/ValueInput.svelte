@@ -41,6 +41,16 @@
         fileInfo = null;
         value = null;
     }
+
+    // Values set from outside (e.g. the tool page's "Try an example")
+    // carry an `example` tag; reflect them in the editor. User edits
+    // produce untagged values, so this never fights the keyboard.
+    $effect(() => {
+        if (value?.example) {
+            text = new TextDecoder().decode(value.bytes);
+            fileInfo = null;
+        }
+    });
 </script>
 
 <div

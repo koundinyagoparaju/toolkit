@@ -111,7 +111,7 @@
     }
 
     function addNode() {
-        if (!paletteTool) return;
+        if (!catalog.tools.has(paletteTool)) return;
         const id = `n${counter++}`;
         nodes.push({
             id,
@@ -121,6 +121,7 @@
             y: 40 + ((nodes.length * 70) % 280),
         });
         selectedId = id;
+        paletteTool = "";
     }
 
     function removeNode(id) {
@@ -401,22 +402,35 @@
 
 <h1>Chain builder</h1>
 <p class="dim">
-    Compose tools into a pipeline: add nodes, then click a node's <em>output dot</em> followed by
-    another node's <em>input dot</em> to connect them. Connections are type-checked. Click an edge
-    to remove it. Everything also works from the keyboard: Tab between elements, Enter to
-    activate, arrow keys to move a node, Escape to cancel.
+    Compose tools into a pipeline — pick a tool, add it, connect the dots. Connections are
+    type-checked, and the result is shareable as a URL.
 </p>
+<details class="help dim">
+    <summary>How the canvas works</summary>
+    Click a node's <em>output dot</em>, then another node's <em>input dot</em>, to connect
+    them. Click an edge to remove it. Everything also works from the keyboard: Tab between
+    elements, Enter to activate, arrow keys to move a node, Escape to cancel. Or skip the
+    blank canvas and remix a <a href="#/chains">ready-made chain</a>.
+</details>
 
 <div class="toolbar">
-    <select bind:value={paletteTool}>
-        <option value="" disabled>Add a tool…</option>
+    <input
+        type="text"
+        class="palette"
+        list="tool-palette"
+        placeholder="Add a tool… (type to search)"
+        bind:value={paletteTool}
+    />
+    <datalist id="tool-palette">
         {#each allTools as tool (tool.name)}
             <option value={tool.name}>
-                {tool.label} ({tool.inputs.map((p) => p.type + (p.multi ? "…" : "")).join(" + ")} → {tool.output})
+                {tool.label} — {tool.inputs.map((p) => p.type + (p.multi ? "…" : "")).join(" + ")} → {tool.output}
             </option>
         {/each}
-    </select>
-    <button class="btn secondary" onclick={addNode} disabled={!paletteTool}>Add node</button>
+    </datalist>
+    <button class="btn secondary" onclick={addNode} disabled={!catalog.tools.has(paletteTool)}>
+        Add node
+    </button>
     <span class="spacer"></span>
     <button class="btn" onclick={run} disabled={running || !nodes.length}>
         {running ? "Running…" : "▶ Run chain"}
@@ -632,9 +646,18 @@
         align-items: center;
         margin-bottom: 0.8rem;
     }
-    .toolbar select {
+    .toolbar .palette {
         width: auto;
-        max-width: 20rem;
+        flex: 0 1 20rem;
+    }
+    .help {
+        margin: -0.4rem 0 0.9rem;
+        font-size: 0.88rem;
+    }
+    .help summary {
+        cursor: pointer;
+        color: var(--accent);
+        width: fit-content;
     }
     .spacer {
         flex: 1;

@@ -3,7 +3,7 @@
     import OptionsForm from "../components/OptionsForm.svelte";
     import ValueInput from "../components/ValueInput.svelte";
     import ValueOutput from "../components/ValueOutput.svelte";
-    import { concatBytes, ensureBytes, prettySize } from "../lib/catalog.js";
+    import { concatBytes, ensureBytes, prettySize, textValue } from "../lib/catalog.js";
     import { openToolStream, runTool } from "../lib/wasm.js";
 
     let { catalog, name } = $props();
@@ -54,6 +54,35 @@
     });
 
     let progress = $state(0);
+
+    /** Sample inputs, straight from the manifest — present only when the
+     *  tool declares an example for every visible port (enforced runnable
+     *  by a CLI test, so the button can never demo an error). */
+    let example = $derived(
+        tool && visiblePorts.length && visiblePorts.every((p) => p.example)
+            ? Object.fromEntries(visiblePorts.map((p) => [p.name, p.example]))
+            : null,
+    );
+
+    function tryExample() {
+        for (const port of visiblePorts) {
+            inputs[port.name] = [{ ...textValue(example[port.name]), example: true }];
+        }
+    }
+
+    /** Up to three tools that share keywords with this one — the "you
+     *  might actually be after…" links. */
+    let related = $derived.by(() => {
+        if (!tool) return [];
+        const mine = new Set(tool.keywords);
+        return [...catalog.tools.values()]
+            .filter((t) => t.name !== tool.name)
+            .map((t) => [t.keywords.filter((k) => mine.has(k)).length, t])
+            .filter(([score]) => score >= 2)
+            .sort((a, b) => b[0] - a[0])
+            .slice(0, 3)
+            .map(([, t]) => t);
+    });
 
     /** Terminal equivalents of the current tool + option values, most
      *  idiomatic first: stdin pipe, input as an argument, file input. */
@@ -230,6 +259,11 @@
                     <p class="dim">
                         Provide {visiblePorts.length > 1 ? "all inputs" : "input"} above — the tool
                         runs automatically.
+                        {#if example}
+                            <button class="btn secondary example" onclick={tryExample}>
+                                Try an example
+                            </button>
+                        {/if}
                     </p>
                 {:else}
                     <p class="dim">Generating…</p>
@@ -249,6 +283,14 @@
                     <a href="#/cli">Install it</a>.
                 </p>
             </section>
+
+            {#if related.length}
+                <p class="related dim">
+                    Related tools:
+                    {#each related as r, i (r.name)}{#if i}&nbsp;·
+                        {/if}<a href="#/tool/{r.name}">{r.label}</a>{/each}
+                </p>
+            {/if}
         </div>
         {#if tool.options.length}
             <aside class="card">
@@ -268,6 +310,15 @@
     .cli-hint p {
         margin-top: 0.5rem;
         font-size: 0.82rem;
+    }
+    .example {
+        margin-left: 0.5rem;
+        font-size: 0.82rem;
+        padding: 0.25rem 0.7rem;
+    }
+    .related {
+        font-size: 0.85rem;
+        margin: 0;
     }
     .layout {
         display: grid;
