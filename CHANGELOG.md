@@ -6,6 +6,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+- The RustCrypto family moves to the digest-0.11 line (sha1/sha2/md-5
+  0.11, hmac 0.13), held since v0.4.0 waiting for the ecosystem to
+  stabilize. All eight updated and four new crates hand-audited for
+  cargo vet — the tree stays fully audited with zero exemptions.
+
 ### Changed
 - `json-pick`, `regex-extract`, and `case-convert` now have option
   defaults (whole value, an email pattern, snake_case) instead of

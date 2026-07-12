@@ -1,4 +1,4 @@
-use hmac::{Hmac as HmacImpl, Mac};
+use hmac::{digest::KeyInit, Hmac as HmacImpl, Mac};
 use sha2::{Sha256, Sha512};
 use toolkit_core::{
     DataType, DataValue, InputSpec, Inputs, InputsExt, Manifest, OptGet, OptionSpec, Options, Tool,
@@ -48,13 +48,13 @@ impl Tool for Hmac {
         };
         let mac = match options.str_opt("algorithm").unwrap_or("sha256") {
             "sha512" => {
-                let mut m = <HmacImpl<Sha512> as Mac>::new_from_slice(&key)
+                let mut m = <HmacImpl<Sha512> as KeyInit>::new_from_slice(&key)
                     .map_err(|e| ToolError::new(e.to_string()))?;
                 m.update(&message);
                 m.finalize().into_bytes().to_vec()
             }
             _ => {
-                let mut m = <HmacImpl<Sha256> as Mac>::new_from_slice(&key)
+                let mut m = <HmacImpl<Sha256> as KeyInit>::new_from_slice(&key)
                     .map_err(|e| ToolError::new(e.to_string()))?;
                 m.update(&message);
                 m.finalize().into_bytes().to_vec()

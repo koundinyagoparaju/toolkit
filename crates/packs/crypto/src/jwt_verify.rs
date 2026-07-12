@@ -1,5 +1,5 @@
 use data_encoding::BASE64URL_NOPAD;
-use hmac::{Hmac, Mac};
+use hmac::{digest::KeyInit, Hmac, Mac};
 use sha2::{Sha256, Sha384, Sha512};
 use toolkit_core::{
     DataType, DataValue, InputSpec, Inputs, InputsExt, Manifest, OptGet, OptionSpec, Options, Tool,
@@ -75,17 +75,20 @@ impl Tool for JwtVerify {
         let bad_key = || ToolError::new("key is not valid for HMAC");
         let ok = match alg {
             "HS256" => {
-                let mut m = <Hmac<Sha256> as Mac>::new_from_slice(&key).map_err(|_| bad_key())?;
+                let mut m =
+                    <Hmac<Sha256> as KeyInit>::new_from_slice(&key).map_err(|_| bad_key())?;
                 m.update(msg);
                 m.verify_slice(&signature).is_ok()
             }
             "HS384" => {
-                let mut m = <Hmac<Sha384> as Mac>::new_from_slice(&key).map_err(|_| bad_key())?;
+                let mut m =
+                    <Hmac<Sha384> as KeyInit>::new_from_slice(&key).map_err(|_| bad_key())?;
                 m.update(msg);
                 m.verify_slice(&signature).is_ok()
             }
             "HS512" => {
-                let mut m = <Hmac<Sha512> as Mac>::new_from_slice(&key).map_err(|_| bad_key())?;
+                let mut m =
+                    <Hmac<Sha512> as KeyInit>::new_from_slice(&key).map_err(|_| bad_key())?;
                 m.update(msg);
                 m.verify_slice(&signature).is_ok()
             }

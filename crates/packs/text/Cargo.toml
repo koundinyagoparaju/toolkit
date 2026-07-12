@@ -13,9 +13,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 base64 = "0.22"
 percent-encoding = "2"
-sha2 = "0.10"
-sha1 = "0.10"
-md-5 = "0.10"
+sha2 = "0.11"
+sha1 = "0.11"
+md-5 = "0.11"
 crc32fast = "1"
 flate2 = "1"
 similar = "2"
