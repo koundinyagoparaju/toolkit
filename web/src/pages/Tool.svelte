@@ -90,7 +90,18 @@
         const ins = visiblePorts
             .map((p) => (p.multi ? " -i <file> -i <file>" : ` -i ${p.name}=<file>`))
             .join("");
-        return [`${base}${ins}`];
+        // Named ports take paths, and a process substitution is a path —
+        // so any command's output can feed a port without a temp file.
+        const firstSingle = visiblePorts.findIndex((p) => !p.multi);
+        if (firstSingle === -1) return [`${base}${ins}`];
+        const subs = visiblePorts
+            .map((p, i) =>
+                p.multi
+                    ? " -i <file> -i <file>"
+                    : ` -i ${p.name}=${i === firstSingle ? "<(command)" : "<file>"}`,
+            )
+            .join("");
+        return [`${base}${ins}`, `${base}${subs}`];
     });
 
     async function run() {
