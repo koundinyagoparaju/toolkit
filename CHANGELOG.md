@@ -6,6 +6,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-07-12
+
+### Security
+- The entire dependency tree is now audited: every crate is covered by a
+  hand audit, a trusted publisher, or an imported third-party audit —
+  `cargo vet` passes with zero exemptions, so any new or bumped
+  dependency fails CI until it is consciously vetted.
+
+### Changed
+- Tool pages show a second CLI hint for multi-port tools: named ports
+  take paths, and `<(command)` is a path, so a command's output can
+  feed a port directly (`text-diff -i old=<(command) -i new=file`).
+
 ## [0.12.0] - 2026-07-11
 
 ### Added
@@ -190,7 +203,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Reproducible builds with provenance attestation; five-platform binaries;
   `curl | sh` installer.
 
-[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/koundinyagoparaju/toolkit/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.9.0...v0.10.0
