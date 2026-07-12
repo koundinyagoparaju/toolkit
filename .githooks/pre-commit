@@ -1,0 +1,20 @@
+#!/bin/sh
+# Fast checks before every commit — the same gates as CI's rust job, so
+# a commit that passes here doesn't bounce off CI minutes later.
+# Emergency escape: git commit --no-verify
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+echo "pre-commit: cargo fmt --check"
+cargo fmt --all --check
+
+echo "pre-commit: clippy (workspace)"
+cargo clippy --workspace --all-targets --locked -- -D warnings
+
+echo "pre-commit: clippy (pack purity)"
+CLIPPY_CONF_DIR="$PWD/crates/packs" cargo clippy --locked \
+    -p toolkit-pack-text -p toolkit-pack-image \
+    -p toolkit-pack-crypto -p toolkit-pack-data -- -D warnings
+
+echo "pre-commit: cargo test"
+cargo test --workspace --locked --quiet

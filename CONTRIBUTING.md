@@ -42,9 +42,17 @@ cargo run -p toolkit-cli -- tools  # CLI against native packs
 cd web && npm install && npm run dev
 ```
 
-Before opening a PR: `cargo test`, `cargo fmt`, `cargo clippy`, and if you
-touched the web app, `npm run build`. Note user-facing changes in
-[CHANGELOG.md](CHANGELOG.md) under `## [Unreleased]`.
+Enable the repo's git hooks once per clone and the CI gates run before
+your code ever leaves your machine — format, clippy (including pack
+purity), and tests on every commit; the wasm/web build and browser
+end-to-end suite on every push (`--no-verify` skips in an emergency):
+
+```sh
+git config core.hooksPath .githooks
+```
+
+Note user-facing changes in [CHANGELOG.md](CHANGELOG.md) under
+`## [Unreleased]`.
 
 ## Good first tools
 
