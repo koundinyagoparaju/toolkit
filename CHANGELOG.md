@@ -6,13 +6,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-07-12
+
 ### Added
 - Light theme: the site follows your OS preference and a header toggle
   pins either theme (persisted). Previously dark-only.
 - Catalog: per-category accent colors, quick-jump chips, friendlier
   category names with one-line intros, `/` focuses search, and Enter
   opens the tool when the search has exactly one match.
-- Tool pages link to related tools (shared-keyword neighbors).
+- Tool pages link to related tools (shared keywords, boosted within
+  a pack — so tool families and encode/decode twins interlink).
 - Tools can declare an example input in their manifest (53 do), and a
   CLI test runs every example with default options — a broken or stale
   example fails the build. Tool pages get a "Try an example" button;
@@ -271,7 +274,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Reproducible builds with provenance attestation; five-platform binaries;
   `curl | sh` installer.
 
-[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/koundinyagoparaju/toolkit/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.11.0...v0.12.0
