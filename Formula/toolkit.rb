@@ -4,26 +4,26 @@
 class Toolkit < Formula
   desc "Everyday data tools that run entirely on your device"
   homepage "https://koundinyagoparaju.github.io/toolkit/"
-  version "0.13.0"
+  version "0.14.0"
   license "Apache-2.0"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.13.0/toolkit-macos-aarch64.tar.gz"
-      sha256 "6a307eab2e14046b7b342ed56d0a68d8467f3eda243d0cdf1138aa7ab51f56f6"
+      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.14.0/toolkit-macos-aarch64.tar.gz"
+      sha256 "61dd18e250071b923fdba45c757e665e7a9d5ea3dbac3e266a56bd272ba95e6a"
     else
-      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.13.0/toolkit-macos-x86_64.tar.gz"
-      sha256 "89779ae497aa999a27c6f02c7173c7b3df934da44f4eac8266b080d15a8dc8df"
+      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.14.0/toolkit-macos-x86_64.tar.gz"
+      sha256 "422bc7ab73b9d37f565c5495cd16a06cc4c5f7ae20bcae1b4887ac6bdf8f2cfe"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.13.0/toolkit-linux-aarch64.tar.gz"
-      sha256 "301664dcd900709f7860064321f6f56dd2040109a6575735aa00fbef52ad650f"
+      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.14.0/toolkit-linux-aarch64.tar.gz"
+      sha256 "f73dbe294d9fa7bd66af15231a23590666d5e2db24b502d940721002b56c736d"
     else
-      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.13.0/toolkit-linux-x86_64.tar.gz"
-      sha256 "85b5dfcaa2e9344cacb9f8eb5a3932a30f27c1f055324842d596ab9017f517a6"
+      url "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.14.0/toolkit-linux-x86_64.tar.gz"
+      sha256 "71f6193f41fc9a61a7d2914cd49eeccdc19c1258f381a7e8c3c3f58994c72895"
     end
   end
 
