@@ -77,7 +77,10 @@ mod tests {
     #[test]
     fn png_to_webp_is_lossless() {
         let input = fixtures::png(16, 16);
-        let DataValue::Image { bytes: ref orig, .. } = input else {
+        let DataValue::Image {
+            bytes: ref orig, ..
+        } = input
+        else {
             panic!()
         };
         let orig = image::load_from_memory(orig).unwrap().into_rgba8();

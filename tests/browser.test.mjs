@@ -561,30 +561,42 @@ try {
     cdpDl.close();
     await closeTab(tabDl);
 
-    // --- Test 12: wasm integrity — pinned hashes present, and a tampered
-    // hash is rejected before instantiation ---
+    // --- Test 12: wasm integrity — the pins are baked into the served
+    // app bundle (not fetched, so they can't skew across deploys), they
+    // match the served packs, and a tampered byte diverges ---
+    const pins = JSON.parse(
+        readFileSync(new URL("../web/src/lib/wasm-integrity.json", import.meta.url), "utf8"),
+    );
+    const pinsOk = ["text.wasm", "image.wasm", "crypto.wasm", "data.wasm"].every((m) =>
+        /^[0-9a-f]{64}$/.test(pins[m] ?? ""),
+    );
+    assert(pinsOk, `wasm-integrity.json pins sha256 for every pack (got ${Object.keys(pins).join(",")})`);
+
     const tab8 = await newTab(`${BASE}/#/`);
     const cdp8 = await connect(tab8.webSocketDebuggerUrl);
-    const pins = await evalJs(cdp8, `fetch("wasm/integrity.json").then((r) => r.json())`);
-    const pinsOk =
-        pins &&
-        ["text.wasm", "image.wasm", "crypto.wasm", "data.wasm"].every((m) =>
-            /^[0-9a-f]{64}$/.test(pins[m] ?? ""),
-        );
-    assert(pinsOk, `integrity.json pins sha256 for every pack (got ${Object.keys(pins ?? {}).join(",")})`);
+    const baked = await evalJs(
+        cdp8,
+        `(async () => {
+            const pins = ${JSON.stringify(pins)};
+            const src = document.querySelector('script[type="module"]').src;
+            const js = await fetch(src).then((r) => r.text());
+            return Object.values(pins).every((p) => js.includes(p)) ? "baked" : "missing";
+        })()`,
+    );
+    assert(baked === "baked", `every pack pin ships inside the served app bundle (got "${baked}")`);
 
     // The real digest must match its pin, and a flipped byte must not —
     // proving the loader's comparison would actually catch tampering.
     const verifyResult = await evalJs(
         cdp8,
         `(async () => {
+            const pin = ${JSON.stringify(pins["text.wasm"])};
             const buf = await fetch("wasm/text.wasm").then((r) => r.arrayBuffer());
             const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
             const real = hex(await crypto.subtle.digest("SHA-256", buf));
             const tampered = new Uint8Array(buf.slice(0));
             tampered[0] ^= 0xff;
             const bad = hex(await crypto.subtle.digest("SHA-256", tampered.buffer));
-            const pin = (await fetch("wasm/integrity.json").then((r) => r.json()))["text.wasm"];
             return real === pin && bad !== pin ? "detects" : "MISS";
         })()`,
     );

@@ -141,8 +141,21 @@ pub const VOLUME: LinearUnits = LinearUnits {
     description: "Convert volumes between metric and US customary units \
                   (cup, pint, quart, gal are US measures).",
     keywords: &[
-        "unit", "convert", "volume", "metric", "ml", "l", "liter", "litre", "teaspoon",
-        "tablespoon", "cup", "pint", "quart", "gallon", "cooking",
+        "unit",
+        "convert",
+        "volume",
+        "metric",
+        "ml",
+        "l",
+        "liter",
+        "litre",
+        "teaspoon",
+        "tablespoon",
+        "cup",
+        "pint",
+        "quart",
+        "gallon",
+        "cooking",
     ],
     units: &[
         ("ml", 0.001),
@@ -185,10 +198,20 @@ impl Tool for TemperatureConvert {
             output: DataType::Text,
             streaming: false,
             options: vec![
-                OptionSpec::enumeration("from", "From scale", "Scale of the input.", TEMPERATURE_UNITS)
-                    .required(),
-                OptionSpec::enumeration("to", "To scale", "Scale of the output.", TEMPERATURE_UNITS)
-                    .required(),
+                OptionSpec::enumeration(
+                    "from",
+                    "From scale",
+                    "Scale of the input.",
+                    TEMPERATURE_UNITS,
+                )
+                .required(),
+                OptionSpec::enumeration(
+                    "to",
+                    "To scale",
+                    "Scale of the output.",
+                    TEMPERATURE_UNITS,
+                )
+                .required(),
             ],
         }
     }
@@ -239,7 +262,16 @@ impl Tool for PxConvert {
                           96 dpi, 16 px font."
                 .into(),
             keywords: [
-                "unit", "convert", "pixel", "px", "pt", "em", "rem", "dpi", "css", "font",
+                "unit",
+                "convert",
+                "pixel",
+                "px",
+                "pt",
+                "em",
+                "rem",
+                "dpi",
+                "css",
+                "font",
                 "typography",
             ]
             .map(String::from)
@@ -306,7 +338,10 @@ mod tests {
 
     #[test]
     fn data_size() {
-        assert_close(convert(&DATA_SIZE, "1.5", "gib", "mb").unwrap(), 1610.612736);
+        assert_close(
+            convert(&DATA_SIZE, "1.5", "gib", "mb").unwrap(),
+            1610.612736,
+        );
         assert_close(convert(&DATA_SIZE, "1", "tb", "gb").unwrap(), 1000.0);
         assert_close(convert(&DATA_SIZE, "1048576", "b", "mib").unwrap(), 1.0);
     }
@@ -316,17 +351,32 @@ mod tests {
         assert_close(convert(&LENGTH, "5", "mi", "km").unwrap(), 8.04672);
         assert_close(convert(&LENGTH, "1", "m", "ft").unwrap(), 3.280839895013123);
         assert_close(convert(&MASS, "1", "lb", "g").unwrap(), 453.59237);
-        assert_close(convert(&MASS, "75", "kg", "lb").unwrap(), 165.34669663866312);
+        assert_close(
+            convert(&MASS, "75", "kg", "lb").unwrap(),
+            165.34669663866312,
+        );
         assert_close(convert(&VOLUME, "1", "gal", "l").unwrap(), 3.785411784);
         assert_close(convert(&VOLUME, "3", "tsp", "tbsp").unwrap(), 1.0);
     }
 
     #[test]
     fn temperature() {
-        assert_close(convert(&TemperatureConvert, "100", "celsius", "fahrenheit").unwrap(), 212.0);
-        assert_close(convert(&TemperatureConvert, "32", "fahrenheit", "celsius").unwrap(), 0.0);
-        assert_close(convert(&TemperatureConvert, "0", "celsius", "kelvin").unwrap(), 273.15);
-        assert_close(convert(&TemperatureConvert, "0", "kelvin", "kelvin").unwrap(), 0.0);
+        assert_close(
+            convert(&TemperatureConvert, "100", "celsius", "fahrenheit").unwrap(),
+            212.0,
+        );
+        assert_close(
+            convert(&TemperatureConvert, "32", "fahrenheit", "celsius").unwrap(),
+            0.0,
+        );
+        assert_close(
+            convert(&TemperatureConvert, "0", "celsius", "kelvin").unwrap(),
+            273.15,
+        );
+        assert_close(
+            convert(&TemperatureConvert, "0", "kelvin", "kelvin").unwrap(),
+            0.0,
+        );
     }
 
     #[test]
