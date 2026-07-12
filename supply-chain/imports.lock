@@ -50,6 +50,13 @@ user-id = 539
 user-login = "cuviper"
 user-name = "Josh Stone"
 
+[[publisher.bstr]]
+version = "1.12.3"
+when = "2026-06-25"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
 [[publisher.clap]]
 version = "4.6.1"
 when = "2026-04-15"
@@ -253,8 +260,8 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.serde_spanned]]
-version = "0.6.9"
-when = "2025-06-06"
+version = "1.1.1"
+when = "2026-03-31"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -281,29 +288,29 @@ user-login = "Manishearth"
 user-name = "Manish Goregaokar"
 
 [[publisher.toml]]
-version = "0.8.23"
-when = "2025-06-06"
+version = "1.1.2+spec-1.1.0"
+when = "2026-04-01"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.toml_datetime]]
-version = "0.6.11"
-when = "2025-06-06"
+version = "1.1.1+spec-1.1.0"
+when = "2026-03-31"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
-[[publisher.toml_edit]]
-version = "0.22.27"
-when = "2025-06-06"
+[[publisher.toml_parser]]
+version = "1.1.2+spec-1.1.0"
+when = "2026-04-01"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
-[[publisher.toml_write]]
-version = "0.1.2"
-when = "2025-06-06"
+[[publisher.toml_writer]]
+version = "1.1.1+spec-1.1.0"
+when = "2026-03-31"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -346,6 +353,13 @@ user-name = "Kenny Kerr"
 [[publisher.winnow]]
 version = "0.7.15"
 when = "2026-03-05"
+user-id = 6743
+user-login = "epage"
+user-name = "Ed Page"
+
+[[publisher.winnow]]
+version = "1.0.3"
+when = "2026-05-14"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -587,6 +601,12 @@ who = "Andrew Brown <andrew.brown@intel.com>"
 criteria = "safe-to-deploy"
 delta = "0.10.5 -> 0.10.6"
 notes = "Only new code is some loongarch64 additions which include assembly code for that platform."
+
+[[audits.bytecode-alliance.audits.similar]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+delta = "2.7.0 -> 3.1.1"
+notes = "Lots of crate changes, new algorithms, etc, but nothing awry. No `unsafe` changes"
 
 [[audits.bytecode-alliance.audits.smallvec]]
 who = "Alex Crichton <alex@alexcrichton.com>"

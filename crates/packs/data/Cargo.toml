@@ -11,7 +11,7 @@ crate-type = ["rlib", "cdylib"]
 toolkit-core = { path = "../../core" }
 serde_json = { workspace = true }
 serde_yaml = "0.9"
-toml = "0.8"
+toml = "1"
 csv = "1"
 quick-xml = "0.41"
 time = { version = "0.3", features = ["parsing", "formatting"] }

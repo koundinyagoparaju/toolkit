@@ -13,6 +13,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   cargo vet — the tree stays fully audited with zero exemptions.
 
 ### Changed
+- Dependency updates: similar 3.1 (text-diff) and toml 1.1 — the toml
+  1.x parser/writer split lands as toml_parser/toml_writer, covered by
+  an already-trusted publisher; the tree stays fully vetted with zero
+  exemptions.
 - `json-pick`, `regex-extract`, and `case-convert` now have option
   defaults (whole value, an email pattern, snake_case) instead of
   required options — they run as soon as they have input, and carry
