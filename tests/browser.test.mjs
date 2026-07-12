@@ -9,8 +9,22 @@
 //   node tests/browser.test.mjs          # BASE_URL/CHROME_BIN to override
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 
-const CHROME = process.env.CHROME_BIN ?? "google-chrome";
+// The suite drives the browser over the raw DevTools Protocol; playwright
+// (a web devDependency) is used only to provide a managed Chromium, so no
+// system browser install is required. CHROME_BIN overrides it; a plain
+// google-chrome on PATH is the last resort.
+function chromeBinary() {
+    if (process.env.CHROME_BIN) return process.env.CHROME_BIN;
+    try {
+        const webRequire = createRequire(new URL("../web/package.json", import.meta.url));
+        return webRequire("playwright").chromium.executablePath();
+    } catch {
+        return "google-chrome";
+    }
+}
+const CHROME = chromeBinary();
 const BASE = process.env.BASE_URL ?? "http://localhost:4173";
 const PROFILE = `/tmp/toolkit-cdp-${process.pid}`;
 

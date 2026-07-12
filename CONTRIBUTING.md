@@ -45,7 +45,9 @@ cd web && npm install && npm run dev
 Enable the repo's git hooks once per clone and the CI gates run before
 your code ever leaves your machine — format, clippy (including pack
 purity), and tests on every commit; the wasm/web build and browser
-end-to-end suite on every push (`--no-verify` skips in an emergency):
+end-to-end suite on every push — the browser is a managed Chromium,
+auto-downloaded through the playwright devDependency, so nothing needs
+to be installed system-wide (`--no-verify` skips in an emergency):
 
 ```sh
 git config core.hooksPath .githooks

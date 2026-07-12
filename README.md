@@ -181,7 +181,9 @@ bytes into the port for reproducible output.
 On dependencies: anything that touches user data is Rust with a minimal,
 pinned, pure-Rust dependency set (vendorable with `cargo vendor`, gated
 by `cargo audit` and `cargo vet` in CI). npm exists only for the web
-shell, svelte and vite and nothing else, and the CSP backstops it. Every
+shell — svelte and vite, plus playwright as a dev-only managed browser
+for the e2e suite (zero third-party transitive deps; nothing npm ever
+ships to users) — and the CSP backstops it. Every
 tool must work on plain single-threaded CPU; hardware acceleration can
 only ever be an additive fast path.
 

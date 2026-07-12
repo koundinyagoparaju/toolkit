@@ -14,6 +14,9 @@ echo "pre-push: ABI protocol tests"
 node tests/abi.test.mjs
 
 echo "pre-push: browser end-to-end tests"
+# Managed Chromium via the playwright devDependency — a no-op when
+# already downloaded, so no system browser is ever required.
+(cd web && npx --no-install playwright install chromium)
 (cd web && exec node node_modules/vite/bin/vite.js preview --port 4173 --strictPort) >/dev/null 2>&1 &
 preview=$!
 trap 'kill "$preview" 2>/dev/null' EXIT
