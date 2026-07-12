@@ -16,7 +16,7 @@ impl Tool for Hmac {
             name: "hmac".into(),
             label: "HMAC".into(),
             description: "Compute an HMAC signature of a message with a secret key — e.g. to debug webhook signatures without the key ever leaving your device.".into(),
-            keywords: ["hmac", "signature", "webhook", "sign", "verify", "sha256"]
+            keywords: ["hmac", "signature", "webhook", "sign", "verify", "sha256", "digest"]
                 .map(String::from)
                 .to_vec(),
             inputs: vec![

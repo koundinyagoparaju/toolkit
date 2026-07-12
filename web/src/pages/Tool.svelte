@@ -71,13 +71,19 @@
     }
 
     /** Up to three tools that share keywords with this one — the "you
-     *  might actually be after…" links. */
+     *  might actually be after…" links. Same-pack tools get +1, so one
+     *  shared keyword suffices within a family (image-resize ⇄
+     *  image-crop) while cross-pack links still need two. */
     let related = $derived.by(() => {
         if (!tool) return [];
         const mine = new Set(tool.keywords);
         return [...catalog.tools.values()]
             .filter((t) => t.name !== tool.name)
-            .map((t) => [t.keywords.filter((k) => mine.has(k)).length, t])
+            .map((t) => [
+                t.keywords.filter((k) => mine.has(k)).length +
+                    (t.pack === tool.pack && t.keywords.some((k) => mine.has(k)) ? 1 : 0),
+                t,
+            ])
             .filter(([score]) => score >= 2)
             .sort((a, b) => b[0] - a[0])
             .slice(0, 3)
