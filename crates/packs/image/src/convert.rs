@@ -11,7 +11,7 @@ impl Tool for Convert {
         Manifest {
             name: "image-convert".into(),
             label: "Image Convert".into(),
-            description: "Convert an image to another format (input may additionally be webp)."
+            description: "Convert an image to another format (webp output is always lossless)."
                 .into(),
             keywords: [
                 "image", "convert", "format", "png", "jpeg", "gif", "bmp", "webp",
@@ -25,8 +25,9 @@ impl Tool for Convert {
                 OptionSpec::enumeration(
                     "format",
                     "Output format",
-                    "Format to encode to.",
-                    &["png", "jpeg", "gif", "bmp"],
+                    "Format to encode to. webp is lossless-only (expect \
+                     files larger than jpeg; for small files use jpeg).",
+                    &["png", "jpeg", "gif", "bmp", "webp"],
                 )
                 .required(),
                 OptionSpec::integer(
@@ -71,6 +72,29 @@ mod tests {
         assert_eq!(format, "jpeg");
         assert_eq!(&bytes[..3], &[0xff, 0xd8, 0xff], "JPEG magic bytes");
         assert_eq!(fixtures::dimensions(&out), (16, 16));
+    }
+
+    #[test]
+    fn png_to_webp_is_lossless() {
+        let input = fixtures::png(16, 16);
+        let DataValue::Image { bytes: ref orig, .. } = input else {
+            panic!()
+        };
+        let orig = image::load_from_memory(orig).unwrap().into_rgba8();
+        let opts = json!({"format": "webp"});
+        let out = run_single(&Convert, input.clone(), opts.as_object().unwrap()).unwrap();
+        let DataValue::Image {
+            ref bytes,
+            ref format,
+        } = out
+        else {
+            panic!()
+        };
+        assert_eq!(format, "webp");
+        assert_eq!(&bytes[..4], b"RIFF");
+        assert_eq!(&bytes[8..12], b"WEBP");
+        let roundtrip = image::load_from_memory(bytes).unwrap().into_rgba8();
+        assert_eq!(orig, roundtrip, "webp output must be pixel-identical");
     }
 
     #[test]

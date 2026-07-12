@@ -1,5 +1,5 @@
-//! Image tools. All operate on encoded images (png/jpeg/gif/bmp; webp
-//! decode-only) and re-encode on output.
+//! Image tools. All operate on encoded images (png/jpeg/gif/bmp/webp;
+//! webp encodes lossless-only) and re-encode on output.
 
 #![deny(unsafe_code)]
 mod clean;

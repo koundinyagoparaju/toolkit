@@ -26,7 +26,8 @@ pub fn decode(value: DataValue) -> Result<(DynamicImage, ImageFormat), ToolError
 }
 
 /// Encode to `format`. `quality` (1-100) applies to jpeg; png always uses
-/// best compression; other formats use their encoder defaults.
+/// best compression; webp is always lossless (the only pure-Rust webp
+/// encoder there is); other formats use their encoder defaults.
 pub fn encode(
     img: &DynamicImage,
     format: ImageFormat,
@@ -57,6 +58,16 @@ pub fn encode(
             );
             img.write_with_encoder(encoder).map_err(fail)?;
         }
+        ImageFormat::WebP => {
+            let encoder = image::codecs::webp::WebPEncoder::new_lossless(Cursor::new(&mut bytes));
+            // The lossless webp encoder takes RGB8/RGBA8 only.
+            if img.color().has_alpha() {
+                img.clone().into_rgba8().write_with_encoder(encoder)
+            } else {
+                img.clone().into_rgb8().write_with_encoder(encoder)
+            }
+            .map_err(fail)?;
+        }
         _ => {
             img.write_to(&mut Cursor::new(&mut bytes), format)
                 .map_err(fail)?;
@@ -85,6 +96,7 @@ pub fn format_from_name(name: &str) -> Result<ImageFormat, ToolError> {
         "jpeg" | "jpg" => Ok(ImageFormat::Jpeg),
         "gif" => Ok(ImageFormat::Gif),
         "bmp" => Ok(ImageFormat::Bmp),
+        "webp" => Ok(ImageFormat::WebP),
         other => Err(ToolError::new(format!(
             "unsupported output format \"{other}\""
         ))),

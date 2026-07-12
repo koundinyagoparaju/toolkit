@@ -7,6 +7,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `image-convert` can output webp — lossless only, since that's the
+  only webp encoder that exists in pure Rust (expect files larger than
+  jpeg; webp input was always supported).
 - Updating is now one command: the installer saves a pinned copy of
   itself as `toolkit-update` next to the binary (a `.cmd` shim on
   Windows), refreshed on every update. `toolkit update` points there —
