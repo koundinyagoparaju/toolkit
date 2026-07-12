@@ -56,6 +56,11 @@ pub struct InputSpec {
     /// UIs hide these ports; chains may wire them for reproducibility.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub entropy: bool,
+    /// A sample input that demonstrates the tool (as UTF-8 text). Must
+    /// run successfully with default options — enforced by a CLI test.
+    /// UIs offer it as a one-click demo; `toolkit info` prints it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub example: Option<String>,
 }
 
 impl InputSpec {
@@ -63,12 +68,12 @@ impl InputSpec {
 
     /// The conventional single port of an ordinary one-input tool.
     pub fn sole(data_type: DataType) -> Vec<InputSpec> {
-        vec![InputSpec {
-            name: Self::SOLE_NAME.into(),
-            data_type,
-            multi: false,
-            entropy: false,
-        }]
+        vec![InputSpec::named(Self::SOLE_NAME, data_type)]
+    }
+
+    /// [`InputSpec::sole`] with a demo input attached.
+    pub fn sole_example(data_type: DataType, example: &str) -> Vec<InputSpec> {
+        vec![InputSpec::named(Self::SOLE_NAME, data_type).example(example)]
     }
 
     pub fn named(name: &str, data_type: DataType) -> InputSpec {
@@ -77,11 +82,17 @@ impl InputSpec {
             data_type,
             multi: false,
             entropy: false,
+            example: None,
         }
     }
 
     pub fn multi(mut self) -> InputSpec {
         self.multi = true;
+        self
+    }
+
+    pub fn example(mut self, example: &str) -> InputSpec {
+        self.example = Some(example.into());
         self
     }
 
@@ -92,6 +103,7 @@ impl InputSpec {
             data_type: DataType::Bytes,
             multi: false,
             entropy: true,
+            example: None,
         }
     }
 }

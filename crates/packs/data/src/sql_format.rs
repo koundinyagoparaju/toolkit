@@ -18,7 +18,10 @@ impl Tool for SqlFormat {
             keywords: ["sql", "format", "beautify", "pretty", "query", "indent"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(
+                DataType::Text,
+                "select id,name from users where active=1 order by name",
+            ),
             output: DataType::Text,
             streaming: false,
             options: vec![

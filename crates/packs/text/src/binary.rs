@@ -16,7 +16,7 @@ impl Tool for TextToBinary {
             keywords: ["binary", "bits", "text", "ascii", "encode"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Bytes),
+            inputs: InputSpec::sole_example(DataType::Bytes, "hi"),
             output: DataType::Text,
             streaming: false,
             options: vec![OptionSpec::string(
@@ -55,7 +55,7 @@ impl Tool for BinaryToText {
             keywords: ["binary", "bits", "decode", "text", "ascii"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "01101000 01101001"),
             output: DataType::Bytes,
             streaming: false,
             options: vec![],

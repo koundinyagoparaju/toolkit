@@ -14,7 +14,7 @@ impl Tool for Base64Encode {
             label: "Base64 Encode".into(),
             description: "Encode data as Base64 text.".into(),
             keywords: ["base64", "encode", "btoa"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Bytes),
+            inputs: InputSpec::sole_example(DataType::Bytes, "hello world"),
             output: DataType::Text,
             streaming: true,
             options: vec![OptionSpec::bool(
@@ -82,7 +82,7 @@ impl Tool for Base64Decode {
             label: "Base64 Decode".into(),
             description: "Decode Base64 text to its original bytes. Accepts standard and URL-safe alphabets, with or without padding; whitespace is ignored.".into(),
             keywords: ["base64", "decode", "atob"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "eyJoZWxsbyI6IndvcmxkIn0="),
             output: DataType::Bytes,
             streaming: true,
             options: vec![],

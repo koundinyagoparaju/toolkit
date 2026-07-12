@@ -16,7 +16,7 @@ impl Tool for HttpStatus {
             keywords: ["http", "status", "code", "response", "rest", "api"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "418"),
             output: DataType::Json,
             streaming: false,
             options: vec![],

@@ -14,7 +14,10 @@ impl Tool for JsonFormat {
             keywords: ["json", "format", "pretty", "beautify", "indent"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Json),
+            inputs: InputSpec::sole_example(
+                DataType::Json,
+                r#"{"name":"toolkit","tools":["hash","diff"]}"#,
+            ),
             output: DataType::Text,
             streaming: false,
             options: vec![OptionSpec::integer(
@@ -54,7 +57,10 @@ impl Tool for JsonMinify {
             label: "JSON Minify".into(),
             description: "Remove all insignificant whitespace from JSON.".into(),
             keywords: ["json", "minify", "compact"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Json),
+            inputs: InputSpec::sole_example(
+                DataType::Json,
+                "{\n  \"name\": \"toolkit\",\n  \"tools\": [\"hash\", \"diff\"]\n}",
+            ),
             output: DataType::Text,
             streaming: false,
             options: vec![],

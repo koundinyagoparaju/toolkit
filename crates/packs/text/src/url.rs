@@ -48,7 +48,7 @@ impl Tool for UrlEncode {
             keywords: ["url", "encode", "percent", "uri", "escape"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "hello world & friends"),
             output: DataType::Text,
             streaming: true,
             options: vec![],
@@ -95,7 +95,7 @@ impl Tool for UrlDecode {
             keywords: ["url", "decode", "percent", "uri", "unescape"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "hello%20world%20%26%20friends"),
             output: DataType::Text,
             streaming: true,
             options: vec![],

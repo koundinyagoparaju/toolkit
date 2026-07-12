@@ -15,7 +15,7 @@ impl Tool for QrGenerate {
             keywords: ["qr", "qrcode", "generate", "barcode", "wifi"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "https://example.com"),
             output: DataType::Image,
             streaming: false,
             options: vec![

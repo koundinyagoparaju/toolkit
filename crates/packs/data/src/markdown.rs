@@ -14,7 +14,10 @@ impl Tool for MarkdownToHtml {
             keywords: ["markdown", "html", "render", "commonmark", "convert"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(
+                DataType::Text,
+                "# Hello\n\nSome *emphasis* and a [link](https://example.com).",
+            ),
             output: DataType::Text,
             streaming: false,
             options: vec![],

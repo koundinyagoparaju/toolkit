@@ -15,7 +15,7 @@ impl Tool for Slugify {
             keywords: ["slug", "slugify", "url", "permalink", "kebab"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "Hello, World — This & That!"),
             output: DataType::Text,
             streaming: false,
             options: vec![

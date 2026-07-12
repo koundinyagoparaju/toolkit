@@ -14,7 +14,7 @@ impl Tool for Base32Encode {
             keywords: ["base32", "encode", "totp", "rfc4648"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Bytes),
+            inputs: InputSpec::sole_example(DataType::Bytes, "hello world"),
             output: DataType::Text,
             streaming: false,
             options: vec![],
@@ -38,7 +38,7 @@ impl Tool for Base32Decode {
             label: "Base32 Decode".into(),
             description: "Decode Base32 text to bytes. Case and whitespace are forgiven; padding is optional.".into(),
             keywords: ["base32", "decode", "totp"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "NBSWY3DP"),
             output: DataType::Bytes,
             streaming: false,
             options: vec![],

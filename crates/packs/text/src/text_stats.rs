@@ -18,7 +18,7 @@ impl Tool for TextStats {
             keywords: ["stats", "count", "wc", "lines", "words", "characters", "bytes"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "The quick brown fox jumps over the lazy dog."),
             output: DataType::Json,
             streaming: true,
             options: vec![],

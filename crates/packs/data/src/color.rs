@@ -13,7 +13,7 @@ impl Tool for ColorConvert {
             keywords: ["color", "hex", "rgb", "hsl", "convert", "css"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "#1e90ff"),
             output: DataType::Json,
             streaming: false,
             options: vec![],

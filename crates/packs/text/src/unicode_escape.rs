@@ -12,7 +12,7 @@ impl Tool for UnicodeEscape {
             label: "Unicode Escape".into(),
             description: "Escape non-ASCII characters as \\uXXXX (JS/JSON, with surrogate pairs) or \\u{…} (Rust).".into(),
             keywords: ["unicode", "escape", "codepoint", "js", "json"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "héllo wörld ✓"),
             output: DataType::Text,
             streaming: false,
             options: vec![OptionSpec::enumeration("format", "Format", "", &["js", "rust"])
@@ -51,7 +51,7 @@ impl Tool for UnicodeUnescape {
             label: "Unicode Unescape".into(),
             description: "Decode \\uXXXX (including surrogate pairs), \\u{…}, \\xNN and common backslash escapes.".into(),
             keywords: ["unicode", "unescape", "decode", "codepoint"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, r"h\u00e9llo w\u00f6rld \u2713"),
             output: DataType::Text,
             streaming: false,
             options: vec![],

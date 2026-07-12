@@ -16,7 +16,7 @@ impl Tool for JsonSchemaInfer {
             keywords: ["json", "schema", "infer", "generate", "contract", "validate"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Json),
+            inputs: InputSpec::sole_example(DataType::Json, r#"{"id":7,"tags":["a","b"],"active":true}"#),
             output: DataType::Json,
             streaming: false,
             options: vec![],

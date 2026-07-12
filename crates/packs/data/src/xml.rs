@@ -17,7 +17,10 @@ impl Tool for XmlFormat {
             keywords: ["xml", "format", "pretty", "saml", "soap", "beautify"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(
+                DataType::Text,
+                "<config><server host='localhost' port='8080'/></config>",
+            ),
             output: DataType::Text,
             streaming: false,
             options: vec![

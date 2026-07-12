@@ -13,8 +13,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   category names with one-line intros, `/` focuses search, and Enter
   opens the tool when the search has exactly one match.
 - Tool pages link to related tools (shared-keyword neighbors).
+- Tools can declare an example input in their manifest (53 do), and a
+  CLI test runs every example with default options — a broken or stale
+  example fails the build. Tool pages get a "Try an example" button;
+  `toolkit info` prints a runnable example.
 
 ### Changed
+- The unit converters' `from`/`to` options have sensible defaults
+  (mi→km, kg→lb, gal→l, gib→mb, celsius→fahrenheit, px→pt) instead of
+  being required — on the web the tools now run as soon as they have
+  input, and in the CLI a bare `toolkit run-tool length-convert 5`
+  works.
 - The builder's tool picker is searchable (type to filter all tools),
   and its canvas instructions are collapsed behind a disclosure.
 - Chain library cards show each pipeline as step chips instead of a

@@ -16,7 +16,7 @@ impl Tool for JwtDecode {
             label: "JWT Decode".into(),
             description: "Decode a JSON Web Token into header, payload, and signature. Does not verify the signature.".into(),
             keywords: ["jwt", "token", "decode", "json web token", "auth"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"),
             output: DataType::Json,
             streaming: false,
             options: vec![],

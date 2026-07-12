@@ -27,7 +27,10 @@ impl Tool for Gzip {
             keywords: ["gzip", "compress", "deflate", "zlib", "zip"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Bytes),
+            inputs: InputSpec::sole_example(
+                DataType::Bytes,
+                "The quick brown fox jumps over the lazy dog",
+            ),
             output: DataType::Bytes,
             streaming: true,
             options: vec![

@@ -13,7 +13,7 @@ impl Tool for Base58Encode {
             keywords: ["base58", "encode", "bitcoin", "wallet"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Bytes),
+            inputs: InputSpec::sole_example(DataType::Bytes, "hello world"),
             output: DataType::Text,
             streaming: false,
             options: vec![],
@@ -39,7 +39,7 @@ impl Tool for Base58Decode {
             keywords: ["base58", "decode", "bitcoin", "wallet"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "Cn8eVZg"),
             output: DataType::Bytes,
             streaming: false,
             options: vec![],

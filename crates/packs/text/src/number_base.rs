@@ -16,7 +16,7 @@ impl Tool for NumberBase {
             keywords: ["base", "radix", "hex", "hexadecimal", "binary", "octal", "decimal", "convert"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "255"),
             output: DataType::Text,
             streaming: false,
             options: vec![

@@ -20,8 +20,8 @@ impl Tool for Hmac {
                 .map(String::from)
                 .to_vec(),
             inputs: vec![
-                InputSpec::named("key", DataType::Bytes),
-                InputSpec::named("message", DataType::Bytes),
+                InputSpec::named("key", DataType::Bytes).example("secret-key"),
+                InputSpec::named("message", DataType::Bytes).example("message to authenticate"),
             ],
             output: DataType::Text,
             streaming: false,

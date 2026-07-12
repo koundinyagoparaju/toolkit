@@ -13,7 +13,7 @@ impl Tool for HtmlEncode {
             keywords: ["html", "escape", "encode", "entities"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, r#"<a href="x.html">Fish & chips</a>"#),
             output: DataType::Text,
             streaming: false,
             options: vec![],
@@ -48,7 +48,7 @@ impl Tool for HtmlDecode {
             label: "HTML Decode".into(),
             description: "Decode HTML entities: common named entities plus numeric &#123; and &#x1F600; forms.".into(),
             keywords: ["html", "unescape", "decode", "entities"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "&lt;a href=&quot;x.html&quot;&gt;Fish &amp; chips&lt;/a&gt;"),
             output: DataType::Text,
             streaming: false,
             options: vec![],

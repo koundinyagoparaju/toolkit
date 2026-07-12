@@ -17,7 +17,10 @@ impl Tool for Hash {
             keywords: ["hash", "sha256", "sha512", "digest", "checksum"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Bytes),
+            inputs: InputSpec::sole_example(
+                DataType::Bytes,
+                "The quick brown fox jumps over the lazy dog",
+            ),
             output: DataType::Text,
             streaming: true,
             options: vec![OptionSpec::enumeration(

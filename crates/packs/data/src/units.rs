@@ -35,6 +35,11 @@ pub struct LinearUnits {
     keywords: &'static [&'static str],
     /// (unit, how many base units one of it is)
     units: &'static [(&'static str, f64)],
+    /// Demo input plus the default from/to pair it converts between —
+    /// also the option defaults, so the tool runs as soon as it has input.
+    example: &'static str,
+    default_from: &'static str,
+    default_to: &'static str,
 }
 
 impl LinearUnits {
@@ -56,13 +61,14 @@ impl Tool for LinearUnits {
             label: self.label.into(),
             description: self.description.into(),
             keywords: self.keywords.iter().map(|s| s.to_string()).collect(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, self.example),
             output: DataType::Text,
             streaming: false,
             options: vec![
                 OptionSpec::enumeration("from", "From unit", "Unit of the input.", &names)
-                    .required(),
-                OptionSpec::enumeration("to", "To unit", "Unit of the output.", &names).required(),
+                    .default_value(self.default_from.into()),
+                OptionSpec::enumeration("to", "To unit", "Unit of the output.", &names)
+                    .default_value(self.default_to.into()),
             ],
         }
     }
@@ -76,6 +82,9 @@ impl Tool for LinearUnits {
 
 pub const DATA_SIZE: LinearUnits = LinearUnits {
     name: "data-size-convert",
+    example: "1.5",
+    default_from: "gib",
+    default_to: "mb",
     label: "Data Size Convert",
     description: "Convert between data sizes: the decimal family (kb = 1000 b) \
                   and the binary family (kib = 1024 b).",
@@ -98,6 +107,9 @@ pub const DATA_SIZE: LinearUnits = LinearUnits {
 
 pub const LENGTH: LinearUnits = LinearUnits {
     name: "length-convert",
+    example: "5",
+    default_from: "mi",
+    default_to: "km",
     label: "Length Convert",
     description: "Convert lengths between metric and imperial units.",
     keywords: &[
@@ -118,6 +130,9 @@ pub const LENGTH: LinearUnits = LinearUnits {
 
 pub const MASS: LinearUnits = LinearUnits {
     name: "mass-convert",
+    example: "75",
+    default_from: "kg",
+    default_to: "lb",
     label: "Mass Convert",
     description: "Convert masses between metric and imperial units.",
     keywords: &[
@@ -137,6 +152,9 @@ pub const MASS: LinearUnits = LinearUnits {
 
 pub const VOLUME: LinearUnits = LinearUnits {
     name: "volume-convert",
+    example: "2",
+    default_from: "gal",
+    default_to: "l",
     label: "Volume Convert",
     description: "Convert volumes between metric and US customary units \
                   (cup, pint, quart, gal are US measures).",
@@ -194,7 +212,7 @@ impl Tool for TemperatureConvert {
             ]
             .map(String::from)
             .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "100"),
             output: DataType::Text,
             streaming: false,
             options: vec![
@@ -204,14 +222,14 @@ impl Tool for TemperatureConvert {
                     "Scale of the input.",
                     TEMPERATURE_UNITS,
                 )
-                .required(),
+                .default_value("celsius".into()),
                 OptionSpec::enumeration(
                     "to",
                     "To scale",
                     "Scale of the output.",
                     TEMPERATURE_UNITS,
                 )
-                .required(),
+                .default_value("fahrenheit".into()),
             ],
         }
     }
@@ -276,14 +294,14 @@ impl Tool for PxConvert {
             ]
             .map(String::from)
             .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "16"),
             output: DataType::Text,
             streaming: false,
             options: vec![
                 OptionSpec::enumeration("from", "From unit", "Unit of the input.", PX_UNITS)
-                    .required(),
+                    .default_value("px".into()),
                 OptionSpec::enumeration("to", "To unit", "Unit of the output.", PX_UNITS)
-                    .required(),
+                    .default_value("pt".into()),
                 OptionSpec::float(
                     "dpi",
                     "DPI",

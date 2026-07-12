@@ -12,7 +12,7 @@ impl Tool for CsvToJson {
             label: "CSV → JSON".into(),
             description: "Parse CSV into a JSON array (objects keyed by the header row, or arrays without one).".into(),
             keywords: ["csv", "json", "convert", "table", "spreadsheet"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "name,age\nAda,36\nAlan,41\n"),
             output: DataType::Json,
             streaming: false,
             options: vec![
@@ -83,7 +83,10 @@ impl Tool for JsonToCsv {
             keywords: ["json", "csv", "convert", "table", "export"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Json),
+            inputs: InputSpec::sole_example(
+                DataType::Json,
+                r#"[{"name":"Ada","age":36},{"name":"Alan","age":41}]"#,
+            ),
             output: DataType::Text,
             streaming: false,
             options: vec![

@@ -14,7 +14,7 @@ impl Tool for HexEncode {
             keywords: ["hex", "hexadecimal", "encode", "dump"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Bytes),
+            inputs: InputSpec::sole_example(DataType::Bytes, "hello world"),
             output: DataType::Text,
             streaming: true,
             options: vec![
@@ -72,7 +72,7 @@ impl Tool for HexDecode {
             label: "Hex Decode".into(),
             description: "Decode a hexadecimal string to bytes. Whitespace and an optional 0x prefix are ignored.".into(),
             keywords: ["hex", "hexadecimal", "decode"].map(String::from).to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "68656c6c6f20776f726c64"),
             output: DataType::Bytes,
             streaming: true,
             options: vec![],

@@ -14,7 +14,10 @@ impl Tool for UrlParse {
             keywords: ["url", "parse", "query", "params", "uri", "inspect"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(
+                DataType::Text,
+                "https://example.com/search?q=toolkit&lang=en#results",
+            ),
             output: DataType::Json,
             streaming: false,
             options: vec![],

@@ -13,7 +13,10 @@ impl Tool for TomlToJson {
             keywords: ["toml", "json", "convert", "config", "cargo"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(
+                DataType::Text,
+                "[server]\nhost = \"localhost\"\nport = 8080\n",
+            ),
             output: DataType::Json,
             streaming: false,
             options: vec![],
@@ -43,7 +46,10 @@ impl Tool for JsonToToml {
             keywords: ["json", "toml", "convert", "config"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Json),
+            inputs: InputSpec::sole_example(
+                DataType::Json,
+                r#"{"server":{"host":"localhost","port":8080}}"#,
+            ),
             output: DataType::Text,
             streaming: false,
             options: vec![],
