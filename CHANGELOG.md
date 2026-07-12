@@ -7,6 +7,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Six unit-conversion tools: `data-size-convert` (decimal and binary
+  byte families), `length-convert`, `mass-convert`, `volume-convert`
+  (metric and US customary), `temperature-convert` (celsius,
+  fahrenheit, kelvin), and `px-convert` (px/pt/em/rem and physical
+  units, with DPI and font-size context — defaults are the CSS
+  reference pixel). One tool per category, so the from/to dropdowns
+  and CLI completion only ever offer compatible units.
 - `image-convert` can output webp — lossless only, since that's the
   only webp encoder that exists in pure Rust (expect files larger than
   jpeg; webp input was always supported).

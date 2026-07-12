@@ -12,6 +12,7 @@ mod regex_tool;
 mod sql_format;
 mod timestamp;
 mod toml_tools;
+mod units;
 mod url_tool;
 mod xml;
 mod yaml;
@@ -37,6 +38,12 @@ pub fn registry() -> Registry {
         Box::new(json_schema_infer::JsonSchemaInfer),
         Box::new(http_status::HttpStatus),
         Box::new(sql_format::SqlFormat),
+        Box::new(units::DATA_SIZE),
+        Box::new(units::LENGTH),
+        Box::new(units::MASS),
+        Box::new(units::VOLUME),
+        Box::new(units::TemperatureConvert),
+        Box::new(units::PxConvert),
     ])
 }
 
