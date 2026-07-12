@@ -6,6 +6,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- `json-pick`, `regex-extract`, and `case-convert` now have option
+  defaults (whole value, an email pattern, snake_case) instead of
+  required options — they run as soon as they have input, and carry
+  manifest examples. An empty json-pick path picks the whole value.
+
 ## [0.14.0] - 2026-07-12
 
 ### Added

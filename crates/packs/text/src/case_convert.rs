@@ -14,7 +14,7 @@ impl Tool for CaseConvert {
             keywords: ["case", "camel", "snake", "kebab", "pascal", "convert", "identifier"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(DataType::Text, "Hello World example"),
             output: DataType::Text,
             streaming: false,
             options: vec![OptionSpec::enumeration(
@@ -23,7 +23,7 @@ impl Tool for CaseConvert {
                 "",
                 &["camel", "pascal", "snake", "kebab", "constant", "title", "lower", "upper"],
             )
-            .required()],
+            .default_value("snake".into())],
         }
     }
 

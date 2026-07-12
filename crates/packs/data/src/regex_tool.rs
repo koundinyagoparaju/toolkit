@@ -14,11 +14,15 @@ impl Tool for RegexExtract {
             keywords: ["regex", "extract", "match", "grep", "pattern", "search"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Text),
+            inputs: InputSpec::sole_example(
+                DataType::Text,
+                "Contact ada@example.com or alan@example.com for access.",
+            ),
             output: DataType::Json,
             streaming: false,
             options: vec![
-                OptionSpec::string("pattern", "Pattern", "Rust regex syntax.").required(),
+                OptionSpec::string("pattern", "Pattern", "Rust regex syntax.")
+                    .default_value(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}".into()),
                 OptionSpec::integer("group", "Capture group", "0 = whole match.", Some(0), Some(99))
                     .default_value(0.into()),
                 OptionSpec::bool("ignore_case", "Ignore case", "").default_value(false.into()),

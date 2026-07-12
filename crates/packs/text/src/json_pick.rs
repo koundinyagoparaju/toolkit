@@ -19,15 +19,19 @@ impl Tool for JsonPick {
             keywords: ["json", "pick", "extract", "path", "select", "query"]
                 .map(String::from)
                 .to_vec(),
-            inputs: InputSpec::sole(DataType::Json),
+            inputs: InputSpec::sole_example(
+                DataType::Json,
+                r#"{"user":{"name":"Ada","roles":["admin","dev"]}}"#,
+            ),
             output: DataType::Json,
             streaming: false,
             options: vec![OptionSpec::string(
                 "path",
                 "Path",
-                "Dot-separated keys; numbers index into arrays.",
+                "Dot-separated keys; numbers index into arrays. Empty picks \
+                 the whole value.",
             )
-            .required()],
+            .default_value("".into())],
         }
     }
 
@@ -35,8 +39,13 @@ impl Tool for JsonPick {
         let DataValue::Json(mut value) = inputs.sole() else {
             unreachable!()
         };
-        let path = options.str_opt("path").expect("required");
-        for (i, segment) in path.split('.').enumerate() {
+        let path = options.str_opt("path").unwrap_or("");
+        let segments = if path.is_empty() {
+            vec![]
+        } else {
+            path.split('.').collect()
+        };
+        for (i, segment) in segments.into_iter().enumerate() {
             let at = || path.split('.').take(i + 1).collect::<Vec<_>>().join(".");
             value = match value {
                 serde_json::Value::Object(mut map) => map.remove(segment).ok_or_else(|| {
