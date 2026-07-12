@@ -106,6 +106,9 @@ enum Command {
     /// Run a Model Context Protocol server over stdio, exposing every
     /// tool to an LLM agent (JSON-RPC on stdin/stdout; no network)
     Mcp,
+    /// Show how to update (toolkit never touches the network, so the
+    /// separate `toolkit-update` command does it)
+    Update,
     /// Emit the full tool catalog as JSON (used by the web build)
     #[command(hide = true)]
     Manifests,
@@ -727,6 +730,18 @@ fn run(cli: Cli) -> Result<(), String> {
             Ok(())
         }
         Command::Mcp => mcp::serve(&registry),
+        Command::Update => {
+            println!(
+                "toolkit never touches the network or spawns processes, so it\n\
+                 cannot update itself. Run the separate updater installed next\n\
+                 to it:\n\
+                 \n    toolkit-update\n\n\
+                 Installed another way (or no toolkit-update yet)?\n\
+                 \n    curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh\n\
+                 \n    Homebrew: brew upgrade toolkit    Scoop: scoop update toolkit"
+            );
+            Ok(())
+        }
         Command::Manifests => {
             println!("{}", manifests_cmd::catalog_json());
             Ok(())

@@ -21,7 +21,14 @@
 set -eu
 
 REPO="${TOOLKIT_REPO:-koundinyagoparaju/toolkit}"
-INSTALL_DIR="${TOOLKIT_INSTALL_DIR:-$HOME/.local/bin}"
+# This script is also saved next to the binary as `toolkit-update` (see
+# the end); when running as that copy, update the installation it
+# belongs to — an explicit TOOLKIT_INSTALL_DIR still wins.
+if [ -z "${TOOLKIT_INSTALL_DIR:-}" ] && [ "$(basename "$0")" = "toolkit-update" ]; then
+    INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
+else
+    INSTALL_DIR="${TOOLKIT_INSTALL_DIR:-$HOME/.local/bin}"
+fi
 API="https://api.github.com/repos/$REPO/releases/latest"
 
 # --- fetch helper: curl or wget, whichever exists ---
@@ -66,8 +73,10 @@ if [ -z "$tag" ]; then
     exit 1
 fi
 
-if command -v toolkit >/dev/null 2>&1; then
-    current="$(toolkit --version 2>/dev/null | awk '{print $2}')"
+# Compare against the binary this run would replace — not whatever
+# `toolkit` PATH happens to find, which may be a different install.
+if [ -x "$INSTALL_DIR/toolkit" ]; then
+    current="$("$INSTALL_DIR/toolkit" --version 2>/dev/null | awk '{print $2}')"
     if [ "v$current" = "$tag" ]; then
         echo "already up to date ($tag)"
         exit 0
@@ -79,7 +88,8 @@ fi
 
 base="https://github.com/$REPO/releases/download/$tag"
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT INT TERM
+new="$INSTALL_DIR/.toolkit.new.$$"
+trap 'rm -rf "$tmp"; rm -f "$new"' EXIT INT TERM
 
 echo "downloading $asset..."
 fetch_to "$base/$asset" "$tmp/$asset"
@@ -90,10 +100,26 @@ echo "verifying checksum..."
 
 tar -xzf "$tmp/$asset" -C "$tmp"
 mkdir -p "$INSTALL_DIR"
-cp "$tmp/toolkit" "$INSTALL_DIR/toolkit"
-chmod 0755 "$INSTALL_DIR/toolkit"
+# Replace via rename, never copy-over: writing into a running executable
+# fails on Linux (ETXTBSY) — e.g. while an MCP server runs from it. The
+# rename is atomic and the old binary is untouched until it succeeds, so
+# a failure at any earlier step leaves the installed version working.
+cp "$tmp/toolkit" "$new"
+chmod 0755 "$new"
+mv -f "$new" "$INSTALL_DIR/toolkit"
 
 echo "installed $tag to $INSTALL_DIR/toolkit"
+
+# Save this tag's copy of this script as `toolkit-update`, so the next
+# update is one command with no URL to remember. Written via rename so
+# a currently running toolkit-update never reads a half-written self.
+if fetch_to "https://raw.githubusercontent.com/$REPO/$tag/scripts/install.sh" "$new" 2>/dev/null; then
+    chmod 0755 "$new"
+    mv -f "$new" "$INSTALL_DIR/toolkit-update"
+    echo "to update later, just run: toolkit-update"
+else
+    echo "note: could not save the updater; to update, re-run this script"
+fi
 
 # Refresh shell completions that were previously set up, so they always
 # match the installed version. Never creates new config: only files that

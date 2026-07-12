@@ -45,8 +45,9 @@
         <CliCommand command={installer.command} />
     {/each}
     <p class="dim">
-        Updating later is the same one-liner — it compares your installed version to the latest
-        release and only downloads when there's something new. Homebrew and Scoop work too:
+        Updating later is just <code>toolkit-update</code> — the installer saves a copy of itself
+        under that name next to the binary, so there's no URL to remember (it only downloads when
+        there's something new). Homebrew and Scoop work too:
         <code>brew install koundinyagoparaju/toolkit/toolkit</code> /
         <code>scoop bucket add toolkit https://github.com/koundinyagoparaju/toolkit</code> — the
         tap and bucket live in the repo itself.

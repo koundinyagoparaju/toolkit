@@ -6,6 +6,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Updating is now one command: the installer saves a pinned copy of
+  itself as `toolkit-update` next to the binary (a `.cmd` shim on
+  Windows), refreshed on every update. `toolkit update` points there —
+  the binary itself still contains no network code and spawns nothing.
+
+### Fixed
+- Updating failed with "Text file busy" while the binary was running
+  (e.g. as a resident MCP server): the installer overwrote it in place.
+  It now swaps via rename — atomic on Unix, so the installed binary
+  stays intact until the new one lands; on Windows the old exe moves
+  aside and is restored if the update fails partway.
+
 ## [0.12.1] - 2026-07-12
 
 ### Security

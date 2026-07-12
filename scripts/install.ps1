@@ -23,7 +23,16 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $Repo = if ($env:TOOLKIT_REPO) { $env:TOOLKIT_REPO } else { "koundinyagoparaju/toolkit" }
-$InstallDir = if ($env:TOOLKIT_INSTALL_DIR) { $env:TOOLKIT_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "toolkit\bin" }
+# This script is also saved next to the binary as toolkit-update.ps1 (see
+# the end); when running as that copy, update the installation it belongs
+# to — an explicit TOOLKIT_INSTALL_DIR still wins.
+$InstallDir = if ($env:TOOLKIT_INSTALL_DIR) {
+    $env:TOOLKIT_INSTALL_DIR
+} elseif ($PSCommandPath -and (Split-Path -Leaf $PSCommandPath) -eq "toolkit-update.ps1") {
+    Split-Path $PSCommandPath
+} else {
+    Join-Path $env:LOCALAPPDATA "toolkit\bin"
+}
 
 # x86_64 only; on Windows-on-ARM the x64 binary runs through emulation.
 $arch = $env:PROCESSOR_ARCHITECTURE
@@ -39,9 +48,11 @@ $release = Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest
 $tag = $release.tag_name
 if (-not $tag) { throw "could not determine the latest release" }
 
-$existing = Get-Command toolkit -ErrorAction SilentlyContinue
-if ($existing) {
-    $current = (& toolkit --version) -replace '^toolkit\s+', ''
+# Compare against the binary this run would replace — not whatever
+# `toolkit` PATH happens to find, which may be a different install.
+$installedExe = Join-Path $InstallDir "toolkit.exe"
+if (Test-Path $installedExe) {
+    $current = (& $installedExe --version) -replace '^toolkit\s+', ''
     if ("v$current" -eq $tag) {
         Write-Host "already up to date ($tag)"
         return
@@ -68,7 +79,42 @@ try {
 
     Expand-Archive -Force (Join-Path $tmp $Asset) -DestinationPath $tmp
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-    Copy-Item -Force (Join-Path $tmp "toolkit.exe") (Join-Path $InstallDir "toolkit.exe")
+
+    # Windows locks a running executable (e.g. an MCP server running from
+    # it), so copying over it fails — but renaming it aside is allowed.
+    # Move the old exe to .old, copy the new one in, and restore the .old
+    # if anything goes wrong in between.
+    $exe = Join-Path $InstallDir "toolkit.exe"
+    $oldExe = "$exe.old"
+    # Sweep a leftover .old from a previous update; harmless if it's
+    # still running and can't be deleted yet.
+    Remove-Item -Force $oldExe -ErrorAction SilentlyContinue
+    $movedAside = $false
+    try {
+        if (Test-Path $exe) {
+            Move-Item -Force $exe $oldExe
+            $movedAside = $true
+        }
+        Copy-Item -Force (Join-Path $tmp "toolkit.exe") $exe
+    } catch {
+        if ($movedAside -and -not (Test-Path $exe)) {
+            Move-Item -Force $oldExe $exe
+        }
+        throw
+    }
+    Remove-Item -Force $oldExe -ErrorAction SilentlyContinue
+
+    # Save this tag's copy of this script as toolkit-update, so the next
+    # update is one command with no URL to remember (.cmd shim so it runs
+    # from any shell without execution-policy friction).
+    try {
+        Invoke-WebRequest "https://raw.githubusercontent.com/$Repo/$tag/scripts/install.ps1" -OutFile (Join-Path $tmp "updater.ps1")
+        Move-Item -Force (Join-Path $tmp "updater.ps1") (Join-Path $InstallDir "toolkit-update.ps1")
+        Set-Content (Join-Path $InstallDir "toolkit-update.cmd") "@powershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0toolkit-update.ps1`" %*"
+        Write-Host "to update later, just run: toolkit-update"
+    } catch {
+        Write-Host "note: could not save the updater; to update, re-run this script"
+    }
 } finally {
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 }

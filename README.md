@@ -115,9 +115,11 @@ The chain library ships inside the binary, so `toolkit chains` works
 anywhere. Your own chain files go in `~/.config/toolkit/chains/` and run
 by name; a file with the same name as a built-in overrides it.
 Chains are pure data, so dropping files there needs no code trust. To
-update the CLI, re-run the install one-liner (it checks your version) or
-use your package manager. The binary itself never updates itself; it has
-no network code to do it with.
+update the CLI, run `toolkit-update` — the installer saves a copy of
+itself under that name next to the binary (package-manager installs
+update with `brew upgrade` / `scoop update` instead). The binary never
+updates itself: it has no network code to do it with, and `toolkit
+update` just tells you the above.
 
 ## Use it from an AI agent
 
