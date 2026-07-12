@@ -61,11 +61,9 @@ jobs:
         working-directory: web
       - name: ABI protocol tests (wasm via Node)
         run: node tests/abi.test.mjs
-      - name: Browser end-to-end tests (headless Chrome)
-        run: |
-          (cd web && npm run preview -- --port 4173 --strictPort &) 
-          for i in $(seq 1 30); do curl -sf http://localhost:4173/ >/dev/null && break; sleep 1; done
-          node tests/browser.test.mjs
+      - name: Browser end-to-end tests (playwright, chromium)
+        run: npx --no-install playwright test
+        working-directory: web
 
   audit:
     name: Dependency audit

@@ -4,6 +4,8 @@ web/dist
 web/public/wasm
 web/public/chains
 web/src/lib/wasm-integrity.json
+web/test-results
+web/playwright-report
 fuzz/target
 fuzz/corpus
 fuzz/artifacts
