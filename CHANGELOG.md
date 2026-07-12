@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-07-12
+
 ### Security
 - The RustCrypto family moves to the digest-0.11 line (sha1/sha2/md-5
   0.11, hmac 0.13), held since v0.4.0 waiting for the ecosystem to
@@ -290,7 +292,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Reproducible builds with provenance attestation; five-platform binaries;
   `curl | sh` installer.
 
-[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/koundinyagoparaju/toolkit/compare/v0.12.0...v0.12.1

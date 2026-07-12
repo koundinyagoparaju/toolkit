@@ -1079,7 +1079,7 @@ checksum = "756daf9b1013ebe47a8776667b466417e2d4c5679d441c26230efd9ef78692db"
 
 [[package]]
 name = "toolkit-cli"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "base64",
  "clap",
@@ -1096,7 +1096,7 @@ dependencies = [
 
 [[package]]
 name = "toolkit-core"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1104,7 +1104,7 @@ dependencies = [
 
 [[package]]
 name = "toolkit-pack-crypto"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "bs58",
  "data-encoding",
@@ -1116,7 +1116,7 @@ dependencies = [
 
 [[package]]
 name = "toolkit-pack-data"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "csv",
  "pulldown-cmark",
@@ -1133,7 +1133,7 @@ dependencies = [
 
 [[package]]
 name = "toolkit-pack-image"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "image",
  "kamadak-exif",
@@ -1145,7 +1145,7 @@ dependencies = [
 
 [[package]]
 name = "toolkit-pack-text"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "base64",
  "crc32fast",
