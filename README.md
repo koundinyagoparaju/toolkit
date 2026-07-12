@@ -23,7 +23,7 @@ toolkit run-tool hash -i backup.iso                  # streams, gigabytes in a f
 The tools: base64/32/58, URL and hex encoding, JWT inspection, JSON to and
 from YAML/TOML/CSV, hashing and HMAC, timestamps, regex extraction, diffs,
 gzip, QR codes, password and UUID generation, EXIF stripping, image
-resize/crop/convert/merge. About 50 of them, and they compose into
+resize/crop/convert/merge. More than 60 of them, and they compose into
 pipelines (chains) you can share as URLs. The URL encodes the chain
 definition, not your data.
 
