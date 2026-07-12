@@ -100,6 +100,18 @@ options: vec![
 // in run():  let shift = options.i64_opt("shift").unwrap_or(13);
 ```
 
+**An example input** — declare one whenever a text sample can demo the
+tool (most can): the web page gets a one-click "Try an example", and
+`toolkit info` prints it as a runnable command. A CLI test runs every
+declared example with **default options** and fails the build if it
+errors — so make it succeed, or don't declare one (image inputs and
+generators don't):
+
+```rust
+inputs: InputSpec::sole_example(DataType::Text, "Uryyb, jbeyq!"),
+// multi-port tools: InputSpec::named("old", DataType::Text).example("alpha\n")
+```
+
 **Multiple inputs** — named ports with distinct roles
 (see `image/src/merge.rs`):
 

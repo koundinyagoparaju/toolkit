@@ -32,6 +32,10 @@ review, and the site never loads code from anywhere but this repo.
   it's audited or consciously exempted in `supply-chain/config.toml`.
 - **Input discipline**: be liberal in what you accept (strip whitespace,
   accept common variants), precise in your error messages.
+- **Examples**: declare a sample input in the manifest
+  (`InputSpec::sole_example(...)`) when a text sample can demo the tool —
+  it powers the web page's "Try an example" and `toolkit info`. It must
+  run successfully with default options; CI enforces that.
 
 ## Development
 

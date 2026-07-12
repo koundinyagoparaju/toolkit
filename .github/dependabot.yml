@@ -3,8 +3,10 @@
 #   - cargo: the pure-Rust deps that tool logic is built on
 #   - github-actions: the workflow actions, which we pin to commit SHAs;
 #     Dependabot bumps the pin and updates the trailing "# vX" comment.
-# The web app's npm deps are intentionally NOT tracked: nothing there
-# touches tool logic, and we don't want npm churn near the trust boundary.
+# The web app's npm deps (svelte, vite, playwright) are exact-pinned,
+# never shipped to users, and checked monthly as one grouped PR — an
+# unwatched pin ages silently, security patches included, but weekly
+# churn near the trust boundary isn't wanted either.
 version: 2
 updates:
   - package-ecosystem: cargo
@@ -21,3 +23,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/web"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      web-deps:
+        patterns: ["*"]

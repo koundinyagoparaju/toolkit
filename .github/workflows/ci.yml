@@ -55,6 +55,12 @@ jobs:
         working-directory: web
       # The same managed Chromium the pre-push hook and local runs use,
       # instead of whatever Chrome the runner image happens to carry.
+      # Cached (~115MB) keyed on the pinned playwright version; the
+      # install step is a no-op on a warm cache.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
       - run: npx --no-install playwright install --with-deps chromium
         working-directory: web
       - run: npm run build
