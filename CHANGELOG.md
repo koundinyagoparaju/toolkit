@@ -28,6 +28,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   It now swaps via rename — atomic on Unix, so the installed binary
   stays intact until the new one lands; on Windows the old exe moves
   aside and is restored if the update fails partway.
+- Intermittent "integrity check failed" in the web app after a deploy:
+  the pinned wasm hashes were fetched at runtime, so the service worker
+  could serve pins and packs from different deploys. The pins are now
+  baked into the app bundle (atomically versioned with the code), and a
+  mismatch refetches the pack past the caches once before failing —
+  stale caches self-heal, real tampering still fails loudly.
 
 ## [0.12.1] - 2026-07-12
 

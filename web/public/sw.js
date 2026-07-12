@@ -76,6 +76,11 @@ self.addEventListener("fetch", (event) => {
                     return response;
                 })
                 .catch(() => cached);
+            // fetch(url, {cache: "reload"}) is a deliberate bypass — the
+            // wasm loader re-fetching after an integrity mismatch. Serve
+            // from the network (still updating the cache); fall back to
+            // the cache only if the network is unreachable.
+            if (event.request.cache === "reload") return refresh;
             return cached || refresh;
         }),
     );

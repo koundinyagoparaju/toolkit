@@ -19,6 +19,9 @@ cargo run --quiet --release -p toolkit-cli -- manifests > web/public/wasm/manife
 # Integrity manifest: sha256 of each pack, so the loader can verify the
 # bytes it fetches before instantiating them. Pairs with reproducible
 # builds — anyone can rebuild a pack and confirm the pinned hash.
+# Written into src/ (not public/) so the pins are imported into the app
+# bundle at build time: a runtime-fetched copy could be served from a
+# different deploy than the app that checks it and fail spuriously.
 sha256_hex() { # portable: coreutils sha256sum or BSD/macOS shasum
     if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1
     else shasum -a 256 "$1" | cut -d' ' -f1; fi
@@ -31,7 +34,8 @@ sha256_hex() { # portable: coreutils sha256sum or BSD/macOS shasum
         sep=","
     done
     printf '}\n'
-} > web/public/wasm/integrity.json
+} > web/src/lib/wasm-integrity.json
+rm -f web/public/wasm/integrity.json # old fetched location; never ship a stale copy
 
 # Chain library: copy chains and build an index of their filenames.
 rm -f web/public/chains/*.json

@@ -109,9 +109,12 @@ The core is deliberately inert: anything environmental is injected by a
 ## Build & release pipeline
 
 - `scripts/build-web-assets.sh`: packs → wasm, catalog → `manifests.json`,
-  chain library → `web/public/chains/`, plus `integrity.json` (sha256 per
-  pack) — the web loader refuses to instantiate a pack whose digest
-  doesn't match its pin.
+  chain library → `web/public/chains/`, plus `wasm-integrity.json`
+  (sha256 per pack, imported into the app bundle so the pins version
+  atomically with the code that checks them) — the web loader refuses to
+  instantiate a pack whose digest doesn't match its pin, retrying once
+  past the service-worker cache so a deploy-boundary stale read heals
+  itself instead of surfacing as a tampering error.
 - CI (every PR): fmt, clippy `-D warnings`, full tests, wasm+web build,
   `cargo audit` (this gate has caught real RUSTSEC advisories).
 - Adversarial inputs: `toolkit_core::exercise` drives every tool with
