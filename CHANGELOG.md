@@ -9,8 +9,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Seven tools aimed at agents and chains (but handy anywhere):
   `text-grep` (streaming regex filter with context lines), `text-uniq`
-  (streaming duplicate-line counts), `json-query` (JSONPath subset:
-  wildcards, `..key` recursive descent), `html-to-text` (markup
+  (streaming duplicate-line counts), `json-query` (full RFC 9535
+  JSONPath — slices, unions, filters, the five standard functions with
+  I-Regexp match/search — passing all 703 cases of the official
+  compliance test suite, vendored as the test oracle), `html-to-text` (markup
   stripped to prose), `cron-explain` (next occurrences from an
   explicit reference time), `semver-check` (cargo's own semver rules),
   and `cert-decode` (X.509 facts without pasting certs anywhere).

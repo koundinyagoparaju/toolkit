@@ -18,7 +18,6 @@ mod html_entities;
 mod html_to_text;
 mod json;
 mod json_pick;
-mod json_query;
 mod jwt;
 mod lorem;
 mod number_base;
@@ -62,7 +61,6 @@ pub fn registry() -> Registry {
         Box::new(text_stats::TextStats),
         Box::new(text_uniq::TextUniq),
         Box::new(html_to_text::HtmlToText),
-        Box::new(json_query::JsonQuery),
     ])
 }
 

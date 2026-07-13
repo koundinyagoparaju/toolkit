@@ -8,6 +8,7 @@ mod filetype;
 mod grep;
 mod http_status;
 mod json_diff;
+mod json_query;
 mod json_schema_infer;
 mod markdown;
 mod regex_tool;
@@ -38,6 +39,7 @@ pub fn registry() -> Registry {
         Box::new(color::ColorConvert),
         Box::new(filetype::FileType),
         Box::new(json_diff::JsonDiff),
+        Box::new(json_query::JsonQuery),
         Box::new(json_schema_infer::JsonSchemaInfer),
         Box::new(http_status::HttpStatus),
         Box::new(sql_format::SqlFormat),
