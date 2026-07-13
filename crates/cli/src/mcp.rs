@@ -126,8 +126,11 @@ fn input_schema(manifest: &Manifest) -> Value {
             schema = json!({ "type": "array", "items": schema });
         }
         // Port description and example from the manifest, so an agent
-        // sees what each input means and a known-good value shape.
-        let blurb = match (&port.description, &port.example) {
+        // sees what each input means and a known-good value shape. Long
+        // examples (cert-decode's whole PEM) would bloat every
+        // tools/list response; skip those.
+        let example = port.example.as_ref().filter(|e| e.len() <= 120);
+        let blurb = match (&port.description, &example) {
             (Some(d), Some(e)) => Some(format!("{d} e.g. {e}")),
             (Some(d), None) => Some(d.clone()),
             (None, Some(e)) => Some(format!("e.g. {e}")),

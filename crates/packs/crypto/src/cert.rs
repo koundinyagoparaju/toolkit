@@ -50,7 +50,9 @@ impl Tool for CertDecode {
             ]
             .map(String::from)
             .to_vec(),
-            inputs: InputSpec::sole_example(DataType::Bytes, EXAMPLE),
+            inputs: vec![InputSpec::named(InputSpec::SOLE_NAME, DataType::Bytes)
+                .describe("A certificate, PEM text or raw DER bytes.")
+                .example(EXAMPLE)],
             output: DataType::Json,
             streaming: false,
             options: vec![],
