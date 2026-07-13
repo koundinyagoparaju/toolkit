@@ -2,13 +2,16 @@
 
 #![deny(unsafe_code)]
 mod color;
+mod cron;
 mod csv_tools;
 mod filetype;
+mod grep;
 mod http_status;
 mod json_diff;
 mod json_schema_infer;
 mod markdown;
 mod regex_tool;
+mod semver_check;
 mod sql_format;
 mod timestamp;
 mod toml_tools;
@@ -38,6 +41,9 @@ pub fn registry() -> Registry {
         Box::new(json_schema_infer::JsonSchemaInfer),
         Box::new(http_status::HttpStatus),
         Box::new(sql_format::SqlFormat),
+        Box::new(grep::TextGrep),
+        Box::new(cron::CronExplain),
+        Box::new(semver_check::SemverCheck),
         Box::new(units::DATA_SIZE),
         Box::new(units::LENGTH),
         Box::new(units::MASS),

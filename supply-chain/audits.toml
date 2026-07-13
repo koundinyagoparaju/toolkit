@@ -1,6 +1,12 @@
 
 # cargo-vet audits file
 
+[[audits.base64ct]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "1.8.3"
+notes = "Constant-time base64. 9 unsafe sites: in-place decode via separated raw-pointer reads/writes with bounds guaranteed by len/4 chunk arithmetic (reads into a temp before writing, forward-moving). No capabilities, no build script."
+
 [[audits.bitflags]]
 who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
 criteria = "safe-to-deploy"
@@ -79,6 +85,18 @@ criteria = "safe-to-deploy"
 version = "2.11.0"
 notes = "Unsafe limited to chunk helpers with safety_assert bounds and from_utf8_unchecked on ASCII-alphabet encoder output. Sound."
 
+[[audits.der]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.7.10 -> 0.8.1"
+notes = "DER codec rework for 0.8. deny(unsafe_code) with a handful of allowed repr(transparent) reference casts (str->StringRef, BytesRef->SequenceRef and friends) — the sound newtype pattern. No fs/net/process/env, no build script."
+
+[[audits.der_derive]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.8.0"
+notes = "Proc macro deriving der codecs. forbid(unsafe_code); token manipulation only — no fs/net/process/env access at build time; no build script."
+
 [[audits.digest]]
 who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
 criteria = "safe-to-deploy"
@@ -90,6 +108,12 @@ who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "0.10.7 -> 0.11.3"
 notes = "Trait-only rework for the 0.11 API. forbid(unsafe_code); no fs/net/process/env; no build script. Pure trait definitions and blanket impls."
+
+[[audits.flagset]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.4.3 -> 0.4.7"
+notes = "2 unsafe sites: a documented unsafe const constructor and the macro-generated From impl calling it with the enum's own declared discriminants — contract upheld by construction. No capabilities, no build script."
 
 [[audits.g2gen]]
 who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
@@ -217,6 +241,12 @@ criteria = "safe-to-deploy"
 delta = "0.2.1 -> 0.2.2"
 notes = "Additive: new Widen/WidenTarget replacing deprecated Extend (name clash with std::Extend); conversion still size-checked 'as'. No unsafe."
 
+[[audits.pem-rfc7468]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.7.0 -> 1.0.0"
+notes = "deny(unsafe_code) + one allowed from_utf8_unchecked on base64 output the encoder itself just produced (ASCII by construction). No capabilities, no build script."
+
 [[audits.png]]
 who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
 criteria = "safe-to-deploy"
@@ -295,6 +325,12 @@ criteria = "safe-to-deploy"
 delta = "0.3.7 -> 0.3.9"
 notes = "Adds compile-time-gated NEON backend (Chromium zlib port; loads bounded by chunks_exact blocks); removes dead nightly detection; miri-aware tests."
 
+[[audits.spki]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.8.0"
+notes = "SubjectPublicKeyInfo types. forbid(unsafe_code); no capabilities; no build script."
+
 [[audits.sqlformat]]
 who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
 criteria = "safe-to-deploy"
@@ -367,6 +403,12 @@ criteria = "safe-to-deploy"
 delta = "0.6.2 -> 0.6.3"
 notes = "Adds safe Concat<A,B> adapter and concat_writeable! macro (sequential delegation); lint/lifetime tidying. No unsafe."
 
+[[audits.x509-cert]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.3.0"
+notes = "X.509 parsing on the der crate. forbid(unsafe_code); no fs/net/process/env; no build script. Pure DER structure definitions and accessors."
+
 [[audits.zerofrom]]
 who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
 criteria = "safe-to-deploy"
@@ -378,6 +420,12 @@ who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "0.1.6 -> 0.1.7"
 notes = "Lint-attr reshuffle, doc-link fixes, mem::replace fully qualified, examples de-pub'd. Proc-macro generated-code semantics unchanged."
+
+[[audits.zeroize]]
+who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.8.2 -> 1.9.0"
+notes = "The crate's purpose is volatile memory clearing: 18 unsafe sites are write_volatile/volatile_set over self's own memory plus compiler fences, the standard implementation. No fs/net/process/env, no build script."
 
 [[audits.zerovec-derive]]
 who = "Koundinya Goparaju <koundinya.goparaju@gmail.com>"
@@ -612,6 +660,12 @@ criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-05-02"
 end = "2027-07-12"
+
+[[trusted.semver]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2021-05-25"
+end = "2027-07-13"
 
 [[trusted.serde_json]]
 criteria = "safe-to-deploy"

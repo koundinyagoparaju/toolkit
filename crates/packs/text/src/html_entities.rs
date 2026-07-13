@@ -59,8 +59,15 @@ impl Tool for HtmlDecode {
         let DataValue::Text(text) = inputs.sole() else {
             unreachable!()
         };
+        Ok(DataValue::Text(decode_entities(&text)))
+    }
+}
+
+/// Decode HTML entities in `text` (shared with html-to-text).
+pub(crate) fn decode_entities(text: &str) -> String {
+    {
         let mut out = String::with_capacity(text.len());
-        let mut rest = text.as_str();
+        let mut rest = text;
         while let Some(amp) = rest.find('&') {
             out.push_str(&rest[..amp]);
             rest = &rest[amp..];
@@ -79,7 +86,7 @@ impl Tool for HtmlDecode {
             rest = &rest[semi + 1..];
         }
         out.push_str(rest);
-        Ok(DataValue::Text(out))
+        out
     }
 }
 

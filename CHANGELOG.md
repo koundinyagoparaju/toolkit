@@ -7,6 +7,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Seven tools aimed at agents and chains (but handy anywhere):
+  `text-grep` (streaming regex filter with context lines), `text-uniq`
+  (streaming duplicate-line counts), `json-query` (JSONPath subset:
+  wildcards, `..key` recursive descent), `html-to-text` (markup
+  stripped to prose), `cron-explain` (next occurrences from an
+  explicit reference time), `semver-check` (cargo's own semver rules),
+  and `cert-decode` (X.509 facts without pasting certs anywhere).
 - Input ports can declare a description in the manifest; MCP input
   schemas now carry each port's description and example, so agents
   see what "key" means and a known-good value shape. Tool pages and

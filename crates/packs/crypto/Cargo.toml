@@ -14,3 +14,4 @@ hmac = "0.13"
 sha2 = "0.11"
 data-encoding = "2"
 bs58 = "0.5"
+x509-cert = { version = "0.3", default-features = false, features = ["pem"] }

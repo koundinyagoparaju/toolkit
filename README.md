@@ -24,8 +24,9 @@ The tools: base64/32/58, URL and hex encoding, JWT inspection, JSON to and
 from YAML/TOML/CSV, hashing and HMAC, timestamps, regex extraction, diffs,
 gzip, QR codes, password and UUID generation, EXIF stripping, image
 resize/crop/convert/merge, unit conversion (length, mass, volume,
-temperature, data size, px/pt/em). More than 60 of them, and they
-compose into
+temperature, data size, px/pt/em), grep and duplicate-line counts,
+JSONPath queries, HTML to text, cron and semver explainers, X.509
+certificate decoding. More than 70 of them, and they compose into
 pipelines (chains) you can share as URLs. The URL encodes the chain
 definition, not your data.
 
