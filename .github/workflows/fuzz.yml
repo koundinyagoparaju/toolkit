@@ -32,6 +32,11 @@ jobs:
       - run: command -v cargo-fuzz || cargo install cargo-fuzz --locked
       - name: Fuzz for 5 minutes
         run: |
+          # The corpus dir is gitignored and libFuzzer refuses to start
+          # without it (newer cargo-fuzz no longer creates explicitly
+          # passed corpus dirs — this broke when a Cargo.lock change
+          # rolled the cache and reinstalled cargo-fuzz).
+          mkdir -p "fuzz/corpus/${{ matrix.target }}"
           seeds=""
           [ -d "fuzz/seeds/${{ matrix.target }}" ] && seeds="fuzz/seeds/${{ matrix.target }}"
           cargo +nightly fuzz run ${{ matrix.target }} fuzz/corpus/${{ matrix.target }} $seeds -- -max_total_time=300
