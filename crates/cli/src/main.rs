@@ -1,6 +1,8 @@
 //! The toolkit CLI. Links every pack natively — one static binary, no
 //! network code, data flows stdin -> tools -> stdout.
 
+#[cfg(test)]
+mod differential_tests;
 mod manifests_cmd;
 mod mcp;
 

@@ -359,6 +359,82 @@ mod tests {
         assert_eq!(v["next"][0], "2028-02-29T00:00:00Z");
     }
 
+    /// Property + differential check: for pseudo-random specs, compare
+    /// the set-iteration implementation against an independent
+    /// minute-by-minute brute scan over a two-day window, and assert
+    /// the structural invariants (monotonic, strictly after `from`).
+    #[test]
+    fn random_specs_match_a_brute_force_scan() {
+        let mut state = 42u64;
+        let mut next = move || {
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            state >> 33
+        };
+        let from = OffsetDateTime::from_unix_timestamp(1_767_225_600).unwrap(); // 2026-01-01
+        for _ in 0..40 {
+            let field = |max: u64, next: &mut dyn FnMut() -> u64| match next() % 4 {
+                0 => "*".to_string(),
+                1 => format!("{}", next() % (max + 1)),
+                2 => {
+                    let a = next() % (max + 1);
+                    let b = a + next() % (max + 1 - a);
+                    format!("{a}-{b}")
+                }
+                _ => format!("*/{}", next() % max + 1),
+            };
+            let expr = format!(
+                "{} {} {} {} {}",
+                field(59, &mut next),
+                field(23, &mut next),
+                // day-of-month field ranges 1-31; bias into validity
+                match next() % 3 {
+                    0 => "*".to_string(),
+                    _ => format!("{}", next() % 28 + 1),
+                },
+                field(11, &mut next).replace("*/0", "*").replace(" 0", "1"),
+                field(6, &mut next),
+            );
+            let expr = expr.replace("month 0", "month 1");
+            let Ok(spec) = CronSpec::parse(&expr) else {
+                continue; // month 0 etc. — generator slop, skip
+            };
+            let ours = spec.occurrences_after(from, 50).unwrap_or_default();
+
+            // Independent implementation: scan every minute for 48h.
+            let mut brute = Vec::new();
+            let mut t = from + time::Duration::minutes(1);
+            let end = from + time::Duration::hours(48);
+            while t <= end {
+                let ok = spec.minute.values.contains(&(t.minute()))
+                    && spec.hour.values.contains(&(t.hour()))
+                    && spec.month.values.contains(&(t.month() as u8))
+                    && spec.day_matches(t.date());
+                if ok {
+                    brute.push(t);
+                }
+                t += time::Duration::minutes(1);
+            }
+            let ours_window: Vec<_> = ours.iter().filter(|t| **t <= end).collect();
+            assert_eq!(
+                ours_window.len(),
+                brute.len().min(50),
+                "spec {expr}: {ours_window:?} vs brute {brute:?}"
+            );
+            for (a, b) in ours_window.iter().zip(&brute) {
+                assert_eq!(**a, *b, "spec {expr}");
+            }
+            for pair in ours.windows(2) {
+                assert!(pair[0] < pair[1], "not increasing for {expr}");
+            }
+            assert!(
+                ours.iter().all(|t| *t > from),
+                "not after `from` for {expr}"
+            );
+        }
+    }
+
     #[test]
     fn impossible_and_malformed_error() {
         assert!(explain("0 0 30 2 *", "2026-01-01T00:00:00Z", 1).is_err());

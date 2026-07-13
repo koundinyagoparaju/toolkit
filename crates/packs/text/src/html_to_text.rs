@@ -197,6 +197,49 @@ mod tests {
         assert_eq!(out, "a b\nc");
     }
 
+    /// Property test over generated documents: every visible marker
+    /// survives in order, nothing from dropped sections leaks, and no
+    /// markup survives (marker text is alphanumeric, so any '<' in the
+    /// output would be an unstripped tag).
+    #[test]
+    fn generated_documents_hold_the_invariants() {
+        let mut state = 7u64;
+        let mut next = move || {
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            state >> 33
+        };
+        for round in 0..50 {
+            let mut html = String::new();
+            let mut markers = Vec::new();
+            for i in 0..20 {
+                match next() % 7 {
+                    0 => html.push_str(&format!("<script>NEVER{i} = '<p>NEVER</p>';</script>")),
+                    1 => html.push_str(&format!("<style>NEVER{i} {{}}</style>")),
+                    2 => html.push_str(&format!("<!-- NEVER{i} <div> -->")),
+                    3 => html.push_str("<div class=\"x\"><ul><li>"),
+                    4 => html.push_str("</li></ul></div><br/>"),
+                    _ => {
+                        let m = format!("T{round}x{i}");
+                        html.push_str(&format!("<p> {m} &amp; </p>"));
+                        markers.push(m);
+                    }
+                }
+            }
+            let out = convert(&html);
+            assert!(!out.contains("NEVER"), "dropped content leaked: {html}");
+            assert!(!out.contains('<'), "markup survived: {out}");
+            let mut rest = out.as_str();
+            for m in &markers {
+                let at = rest.find(m.as_str()).unwrap_or_else(|| {
+                    panic!("marker {m} missing or out of order in {out:?} for {html}")
+                });
+                rest = &rest[at + m.len()..];
+            }
+        }
+    }
+
     #[test]
     fn tolerates_malformed_markup() {
         assert_eq!(convert("plain, no tags"), "plain, no tags");
