@@ -61,6 +61,11 @@ pub struct InputSpec {
     /// UIs offer it as a one-click demo; `toolkit info` prints it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub example: Option<String>,
+    /// What this port expects, for multi-port tools where the name alone
+    /// is thin (e.g. hmac's "key"). Shown in MCP input schemas, the web
+    /// input panels, and `toolkit info`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 impl InputSpec {
@@ -83,6 +88,7 @@ impl InputSpec {
             multi: false,
             entropy: false,
             example: None,
+            description: None,
         }
     }
 
@@ -96,6 +102,11 @@ impl InputSpec {
         self
     }
 
+    pub fn describe(mut self, description: &str) -> InputSpec {
+        self.description = Some(description.into());
+        self
+    }
+
     /// The conventional driver-filled randomness port of a generator tool.
     pub fn entropy() -> InputSpec {
         InputSpec {
@@ -104,6 +115,7 @@ impl InputSpec {
             multi: false,
             entropy: true,
             example: None,
+            description: None,
         }
     }
 }

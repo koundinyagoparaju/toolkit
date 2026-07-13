@@ -6,6 +6,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Input ports can declare a description in the manifest; MCP input
+  schemas now carry each port's description and example, so agents
+  see what "key" means and a known-good value shape. Tool pages and
+  `toolkit info` show them too.
+
 ## [0.15.0] - 2026-07-12
 
 ### Security

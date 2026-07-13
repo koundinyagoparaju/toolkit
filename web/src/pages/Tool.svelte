@@ -226,6 +226,9 @@
                         {visiblePorts.length > 1 ? `Input “${port.name}”` : "Input"}
                         <span class="mono dim">({port.type}{port.multi ? "…" : ""})</span>
                     </h2>
+                    {#if port.description}
+                        <p class="dim port-desc">{port.description}</p>
+                    {/if}
                     {#each inputs[port.name] ?? [] as _, i (i)}
                         <div class="slot">
                             <ValueInput bind:value={inputs[port.name][i]} hint={port.type} />
@@ -345,6 +348,10 @@
     }
     .slot {
         margin-bottom: 0.6rem;
+    }
+    .port-desc {
+        margin: -0.4rem 0 0.5rem;
+        font-size: 0.82rem;
     }
     .slot .remove {
         margin-top: 0.35rem;

@@ -18,8 +18,10 @@ impl Tool for Merge {
                 .map(String::from)
                 .to_vec(),
             inputs: vec![
-                InputSpec::named("first", DataType::Image),
-                InputSpec::named("second", DataType::Image),
+                InputSpec::named("first", DataType::Image)
+                    .describe("The image placed first (left or top)."),
+                InputSpec::named("second", DataType::Image)
+                    .describe("The image placed second (right or bottom)."),
             ],
             output: DataType::Image,
             streaming: false,

@@ -125,6 +125,17 @@ fn input_schema(manifest: &Manifest) -> Value {
         if port.multi {
             schema = json!({ "type": "array", "items": schema });
         }
+        // Port description and example from the manifest, so an agent
+        // sees what each input means and a known-good value shape.
+        let blurb = match (&port.description, &port.example) {
+            (Some(d), Some(e)) => Some(format!("{d} e.g. {e}")),
+            (Some(d), None) => Some(d.clone()),
+            (None, Some(e)) => Some(format!("e.g. {e}")),
+            (None, None) => None,
+        };
+        if let (Value::Object(map), Some(blurb)) = (&mut schema, blurb) {
+            map.insert("description".into(), json!(blurb));
+        }
         properties.insert(name.clone(), schema);
         required.push(json!(name));
     }

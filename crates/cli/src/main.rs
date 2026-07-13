@@ -699,8 +699,13 @@ fn run(cli: Cli) -> Result<(), String> {
                 } else {
                     println!("example inputs:");
                     for port in &ports {
+                        let desc = port
+                            .description
+                            .as_deref()
+                            .map(|d| format!("  ({d})"))
+                            .unwrap_or_default();
                         println!(
-                            "  {} = {:?}",
+                            "  {} = {:?}{desc}",
                             port.name,
                             port.example.as_deref().expect("checked")
                         );

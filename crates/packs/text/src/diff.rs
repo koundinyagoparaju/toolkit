@@ -15,8 +15,12 @@ impl Tool for TextDiff {
                 .map(String::from)
                 .to_vec(),
             inputs: vec![
-                InputSpec::named("old", DataType::Text).example("alpha\nbeta\ngamma\n"),
-                InputSpec::named("new", DataType::Text).example("alpha\nbeta\ndelta\n"),
+                InputSpec::named("old", DataType::Text)
+                    .describe("The original text.")
+                    .example("alpha\nbeta\ngamma\n"),
+                InputSpec::named("new", DataType::Text)
+                    .describe("The changed text to compare against the original.")
+                    .example("alpha\nbeta\ndelta\n"),
             ],
             output: DataType::Text,
             streaming: false,

@@ -18,8 +18,12 @@ impl Tool for JsonDiff {
                 .map(String::from)
                 .to_vec(),
             inputs: vec![
-                InputSpec::named("left", DataType::Json).example(r#"{"name":"Ada","role":"admin"}"#),
-                InputSpec::named("right", DataType::Json).example(r#"{"name":"Ada","role":"owner"}"#),
+                InputSpec::named("left", DataType::Json)
+                    .describe("The baseline JSON value.")
+                    .example(r#"{"name":"Ada","role":"admin"}"#),
+                InputSpec::named("right", DataType::Json)
+                    .describe("The JSON value to compare against the baseline.")
+                    .example(r#"{"name":"Ada","role":"owner"}"#),
             ],
             output: DataType::Json,
             streaming: false,

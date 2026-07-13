@@ -22,8 +22,10 @@ impl Tool for JwtVerify {
                 .map(String::from)
                 .to_vec(),
             inputs: vec![
-                InputSpec::named("token", DataType::Text).example("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"),
-                InputSpec::named("key", DataType::Bytes).example("your-256-bit-secret"),
+                InputSpec::named("token", DataType::Text)
+                    .describe("The JWT to verify.").example("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"),
+                InputSpec::named("key", DataType::Bytes)
+                    .describe("The shared HMAC secret the token was signed with.").example("your-256-bit-secret"),
             ],
             output: DataType::Json,
             streaming: false,
