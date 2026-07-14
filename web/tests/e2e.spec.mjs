@@ -289,6 +289,128 @@ test("service worker streams page-fed chunks as a download response", async ({ p
     expect(roundTrip.disposition).toContain('filename="t.txt"');
 });
 
+test("app works fully offline after the first visit", async ({ page, context }) => {
+    // Warm the caches: one tool from each pack, so all four wasm modules
+    // and the shell are in the service worker's cache.
+    await page.goto("/#/");
+    await swControlled(page);
+    const warm = [
+        ["hash", "abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"],
+        ["timestamp-convert", "1700000000", null],
+        ["html-encode", "<x>", "&lt;x&gt;"],
+    ];
+    for (const [tool, input, expected] of warm) {
+        await page.goto(`/#/tool/${tool}`);
+        await page.locator("textarea").fill(input);
+        if (expected) await expect(page.locator("pre")).toHaveText(expected);
+        else await expect(page.locator("pre")).not.toBeEmpty();
+    }
+    await page.goto("/#/tool/uuid"); // crypto pack, runs by itself
+    await expect(page.locator("pre")).toHaveText(/[0-9a-f-]{36}/);
+    await page.goto("/#/tool/qr-generate"); // image pack
+    await page.locator("textarea").fill("offline");
+    await expect(page.locator("img")).toBeVisible();
+
+    // The worker precaches the shell after registration; wait for it.
+    await expect
+        .poll(() => page.evaluate(async () => Boolean(await caches.match("./"))), {
+            timeout: 15_000,
+        })
+        .toBe(true);
+
+    // Now the actual claim: no network at all, reload, everything runs.
+    await context.setOffline(true);
+    try {
+        await page.reload();
+        for (const [tool, input, expected] of warm) {
+            await page.goto(`/#/tool/${tool}`);
+            await page.locator("textarea").fill(input);
+            if (expected) await expect(page.locator("pre")).toHaveText(expected);
+            else await expect(page.locator("pre")).not.toBeEmpty();
+        }
+        await page.goto("/#/tool/uuid");
+        await expect(page.locator("pre")).toHaveText(/[0-9a-f-]{36}/);
+        await page.goto("/#/tool/qr-generate");
+        await page.locator("textarea").fill("offline");
+        await expect(page.locator("img")).toBeVisible();
+    } finally {
+        await context.setOffline(false);
+    }
+});
+
+test("download sink credits: bounded under flood, sustained when honored", async ({
+    page,
+}) => {
+    await page.goto("/#/");
+    await swControlled(page);
+    const result = await page.evaluate(async () => {
+        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        const open = async (filename) => {
+            const token = crypto.randomUUID();
+            const channel = new MessageChannel();
+            const state = { pulls: 0, flow: false };
+            const ready = new Promise((r) => {
+                channel.port1.onmessage = (m) => {
+                    if (m.data.ready) {
+                        state.flow = Boolean(m.data.flow);
+                        r();
+                    }
+                    if (m.data.pull) state.pulls += 1;
+                };
+            });
+            navigator.serviceWorker.controller.postMessage(
+                { type: "stream-download", token, filename, port: channel.port2 },
+                [channel.port2],
+            );
+            await ready;
+            const response = await fetch(`stream-download/${token}/${filename}`);
+            return { channel, state, reader: response.body.getReader() };
+        };
+        const send = (channel, bytes) => {
+            const buf = new Uint8Array(bytes).buffer;
+            channel.port1.postMessage({ chunk: buf }, [buf]);
+        };
+
+        // Scenario 1: flood 30 MB ignoring credits — pulls must stay
+        // bounded by the queue high-water marks, not track the flood.
+        const flood = await open("flood.bin");
+        await wait(200);
+        for (let i = 0; i < 30; i++) send(flood.channel, 1024 * 1024);
+        await wait(500);
+        const floodPulls = flood.state.pulls;
+        flood.channel.port1.postMessage({ done: true });
+        flood.reader.cancel().catch(() => {});
+
+        // Scenario 2: honor credits — one chunk per pull, consumed
+        // concurrently; the credit flow must sustain all 12 chunks.
+        const good = await open("good.bin");
+        let received = 0;
+        const pump = (async () => {
+            for (;;) {
+                const { done, value } = await good.reader.read();
+                if (done) return;
+                received += value.length;
+            }
+        })();
+        let used = 0;
+        for (let i = 0; i < 12; i++) {
+            const deadline = Date.now() + 5000;
+            while (good.state.pulls <= used && Date.now() < deadline) await wait(10);
+            if (good.state.pulls <= used) return { floodPulls, stalled: i, received };
+            used += 1;
+            send(good.channel, 1024 * 1024);
+        }
+        good.channel.port1.postMessage({ done: true });
+        await pump;
+        return { flow: good.state.flow, floodPulls, goodPulls: good.state.pulls, received };
+    });
+    expect(result.flow).toBe(true);
+    expect(result.stalled).toBeUndefined();
+    expect(result.floodPulls).toBeLessThanOrEqual(15);
+    expect(result.goodPulls).toBeGreaterThanOrEqual(12);
+    expect(result.received).toBe(12 * 1024 * 1024);
+});
+
 test("40MB chain output streams to a real file download", async ({ page }) => {
     await page.goto(
         builderUrl({

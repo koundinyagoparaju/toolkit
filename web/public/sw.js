@@ -22,28 +22,52 @@ const downloads = new Map(); // token -> {stream, filename}
 
 self.addEventListener("message", (event) => {
     const data = event.data;
+    // The page sends the shell's own URLs after registration: the first
+    // load isn't controlled by this worker, so they'd otherwise only get
+    // cached on the second visit.
+    if (data?.type === "precache") {
+        // Each URL independently: one miss must not void the rest.
+        event.waitUntil(
+            caches.open(CACHE).then((cache) =>
+                Promise.allSettled(data.urls.map((url) => cache.add(url))),
+            ),
+        );
+        return;
+    }
     if (data?.type !== "stream-download") return;
     const port = data.port;
-    const stream = new ReadableStream({
-        start(controller) {
-            port.onmessage = (m) => {
-                try {
-                    if (m.data.chunk) controller.enqueue(new Uint8Array(m.data.chunk));
-                    if (m.data.done) controller.close();
-                    if (m.data.abort) controller.error(new Error("aborted by the page"));
-                } catch {
-                    // Stream already closed/cancelled (e.g. user cancelled
-                    // the download): drop further chunks silently.
-                }
-                if (m.data.done || m.data.abort) port.onmessage = null;
-            };
+    const stream = new ReadableStream(
+        {
+            start(controller) {
+                port.onmessage = (m) => {
+                    try {
+                        if (m.data.chunk) controller.enqueue(new Uint8Array(m.data.chunk));
+                        if (m.data.done) controller.close();
+                        if (m.data.abort) controller.error(new Error("aborted by the page"));
+                    } catch {
+                        // Stream already closed/cancelled (e.g. user cancelled
+                        // the download): drop further chunks silently.
+                    }
+                    if (m.data.done || m.data.abort) port.onmessage = null;
+                };
+            },
+            // Backpressure: the page sends a chunk per credit, and credits
+            // are granted here — only while the download's own consumer
+            // keeps up. A slow disk pauses the whole pipeline back to the
+            // input file instead of buffering unboundedly in this stream.
+            pull() {
+                port.postMessage({ pull: true });
+            },
+            cancel() {
+                port.postMessage({ cancelled: true });
+            },
         },
-        cancel() {
-            port.postMessage({ cancelled: true });
-        },
-    });
+        new CountQueuingStrategy({ highWaterMark: 4 }),
+    );
     downloads.set(data.token, { stream, filename: data.filename });
-    port.postMessage({ ready: true });
+    // flow:true tells the page this worker grants credits; a page from a
+    // newer deploy paired with an old worker keeps the legacy behavior.
+    port.postMessage({ ready: true, flow: true });
 });
 
 self.addEventListener("fetch", (event) => {
@@ -69,7 +93,10 @@ self.addEventListener("fetch", (event) => {
     }
     event.respondWith(
         caches.open(CACHE).then(async (cache) => {
-            const cached = await cache.match(event.request);
+            // ignoreVary: this cache is same-origin only, and servers'
+            // `Vary: Origin` would otherwise split entries by whether the
+            // request carried an Origin header (crossorigin scripts do).
+            const cached = await cache.match(event.request, { ignoreVary: true });
             const refresh = fetch(event.request)
                 .then((response) => {
                     if (response.ok) cache.put(event.request, response.clone());

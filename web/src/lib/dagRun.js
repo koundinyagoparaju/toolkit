@@ -288,12 +288,14 @@ export async function executeChainStreaming(chain, catalog, sources, retain = fa
     const failed = new Set();
     const queue = [];
 
-    const emit = (nIdx, bytes) => {
+    const emit = async (nIdx, bytes) => {
         const node = nodes[nIdx];
         if (!bytes.length) return;
         node.emitted += bytes.length;
         if (node.isSink && onSink) {
-            onSink(node.id, bytes);
+            // Awaited: a sink that can't keep up (slow download disk)
+            // pauses the pump, and with it the input file read.
+            await onSink(node.id, bytes);
             if (node.preview.reduce((n, c) => n + c.length, 0) < PREVIEW_CAP) {
                 node.preview.push(bytes.slice(0, PREVIEW_CAP));
             }
@@ -334,7 +336,7 @@ export async function executeChainStreaming(chain, catalog, sources, retain = fa
             return;
         }
         results.set(node.id, { ok: true, value: output });
-        if (node.isSink && onSink) onSink(node.id, output.bytes);
+        if (node.isSink && onSink) await onSink(node.id, output.bytes);
         node.emitted = output.bytes.length;
         for (const [t, s] of node.outgoing) {
             nodes[t].slots[s].meta = { type: output.type, ...(output.format ? { format: output.format } : {}) };
@@ -353,7 +355,7 @@ export async function executeChainStreaming(chain, catalog, sources, retain = fa
             if (kind === "chunk") {
                 if (node.session) {
                     try {
-                        emit(nIdx, node.session.update(slot.port, slot.index, bytes));
+                        await emit(nIdx, node.session.update(slot.port, slot.index, bytes));
                     } catch (e) {
                         markFailed(nIdx, e.message);
                     }
@@ -365,9 +367,9 @@ export async function executeChainStreaming(chain, catalog, sources, retain = fa
                 const allEnded = node.slots.every((s) => s.ended);
                 if (node.session) {
                     try {
-                        emit(nIdx, node.session.endInput(slot.port, slot.index));
+                        await emit(nIdx, node.session.endInput(slot.port, slot.index));
                         if (allEnded && !node.finished) {
-                            emit(nIdx, node.session.finish());
+                            await emit(nIdx, node.session.finish());
                             finishNode(nIdx);
                         }
                     } catch (e) {

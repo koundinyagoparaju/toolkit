@@ -14,22 +14,36 @@ export async function openDownloadStream(filename) {
         channel.port1.onmessage = (m) => {
             if (m.data.ready) {
                 clearTimeout(timer);
-                resolve();
+                resolve(Boolean(m.data.flow));
             }
         };
     });
     sw.postMessage({ type: "stream-download", token, filename, port: channel.port2 }, [
         channel.port2,
     ]);
+    let flowControlled;
     try {
-        await ready;
+        flowControlled = await ready;
     } catch {
         return null;
     }
 
+    // Backpressure: the worker grants a credit per chunk its stream is
+    // willing to queue; write() waits for one, which pauses the engine
+    // and, through it, the input file read.
     let cancelled = false;
+    let credits = 0;
+    const waiters = [];
     channel.port1.onmessage = (m) => {
-        if (m.data.cancelled) cancelled = true;
+        if (m.data.pull) {
+            const waiter = waiters.shift();
+            if (waiter) waiter();
+            else credits += 1;
+        }
+        if (m.data.cancelled) {
+            cancelled = true;
+            while (waiters.length) waiters.shift()();
+        }
     };
 
     // Navigating to the tokenized URL starts the download; the relative
@@ -42,8 +56,13 @@ export async function openDownloadStream(filename) {
 
     return {
         /** @param {Uint8Array} chunk */
-        write(chunk) {
+        async write(chunk) {
             if (cancelled) return;
+            if (flowControlled) {
+                if (credits === 0) await new Promise((resolve) => waiters.push(resolve));
+                if (cancelled) return;
+                credits -= 1;
+            }
             // Copy + transfer: the engine reuses its buffers.
             const buf = chunk.slice().buffer;
             channel.port1.postMessage({ chunk: buf }, [buf]);
