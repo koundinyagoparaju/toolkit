@@ -6,6 +6,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- The web app now truly works offline after the *first* visit: the
+  shell and catalog are precached once the service worker activates
+  (previously only the second visit populated the cache), and cache
+  matching ignores `Vary: Origin` splits. Proven by an e2e test that
+  cuts the network and exercises tools from every pack.
+- Streaming downloads exert backpressure end to end: the service
+  worker grants per-chunk credits and the engine awaits the sink, so a
+  slow destination pauses the pipeline — including the input file read
+  — instead of buffering unboundedly in the worker.
+
+### Changed
+- The Trust page and architecture docs now state the boundary
+  explicitly: the JS shell and service worker can observe input before
+  it reaches wasm; the CLI removes that layer.
+
 ## [0.16.0] - 2026-07-13
 
 ### Added

@@ -53,6 +53,19 @@
 </section>
 
 <section class="card">
+    <h2>What you still have to trust</h2>
+    <p>
+        Honest threat modeling names its boundary: the JavaScript shell and the service worker on
+        this page sit <em>inside</em> it. They see your input before it reaches the WebAssembly
+        modules — the integrity pins prove which wasm runs, not what the page around it does. What
+        keeps that surface honest: it is small and hand-written (no framework soup), it ships only
+        from the public repository through reviewed pull requests, and the CSP above means even a
+        compromised shell has nowhere to send anything. If you don't want to extend that trust,
+        use the CLI below — it removes the browser layer entirely.
+    </p>
+</section>
+
+<section class="card">
     <h2>Prefer the terminal?</h2>
     <p>
         The same tools ship as a single static CLI binary with no network code at all:
