@@ -44,9 +44,20 @@ if ($arch -eq "ARM64") {
 $Asset = "toolkit-windows-x86_64.zip"
 
 Write-Host "checking latest release of $Repo..."
-$release = Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest"
-$tag = $release.tag_name
-if (-not $tag) { throw "could not determine the latest release" }
+# The latest tag comes from this URL's redirect (.../releases/tag/<tag>),
+# not from api.github.com: the API allows 60 unauthenticated requests per
+# hour per IP, which shared IPs (CI runners, corporate NAT) blow through,
+# turning installs into 403s. The redirect is not API-rate-limited.
+$resp = Invoke-WebRequest -Method Head -UseBasicParsing "https://github.com/$Repo/releases/latest"
+# Windows PowerShell 5.1 exposes the post-redirect URI as ResponseUri;
+# PowerShell 7+ as RequestMessage.RequestUri.
+$finalUri = if ($resp.BaseResponse.ResponseUri) {
+    $resp.BaseResponse.ResponseUri
+} else {
+    $resp.BaseResponse.RequestMessage.RequestUri
+}
+$tag = $finalUri.Segments[-1].Trim('/')
+if (-not $tag -or $tag -in @("latest", "releases")) { throw "could not determine the latest release" }
 
 # Compare against the binary this run would replace — not whatever
 # `toolkit` PATH happens to find, which may be a different install.

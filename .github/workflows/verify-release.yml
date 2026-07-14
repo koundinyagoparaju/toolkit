@@ -48,7 +48,11 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           set -euo pipefail
-          tag="$(curl -fsSL https://api.github.com/repos/${{ github.repository }}/releases/latest | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+          # Tag via the releases/latest redirect, not api.github.com —
+          # runner IPs are shared and exhaust the unauthenticated API
+          # rate limit (this step 403'd on macOS for exactly that).
+          tag="$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/${{ github.repository }}/releases/latest")"
+          tag="${tag##*/}"
           curl -fsSL -o x86.tar.gz "https://github.com/${{ github.repository }}/releases/download/$tag/toolkit-macos-x86_64.tar.gz"
           tar -xzf x86.tar.gz
           out="$(./toolkit run-tool base64-encode hi)"
