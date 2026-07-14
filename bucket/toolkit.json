@@ -1,12 +1,12 @@
 {
-    "version": "0.16.0",
+    "version": "0.16.1",
     "description": "Everyday data tools that run entirely on your device",
     "homepage": "https://koundinyagoparaju.github.io/toolkit/",
     "license": "Apache-2.0",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.16.0/toolkit-windows-x86_64.zip",
-            "hash": "59a6fe40d78ccb88b72824460cc9457cba2b08b5d57c06d6f24a5074b01fb8a6"
+            "url": "https://github.com/koundinyagoparaju/toolkit/releases/download/v0.16.1/toolkit-windows-x86_64.zip",
+            "hash": "f4a07b397e6d9db9e79806c2d0ef5d4ee6cffab8ad7127d78dfbeb12a86e11b8"
         }
     },
     "bin": "toolkit.exe",
