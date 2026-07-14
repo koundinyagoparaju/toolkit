@@ -9,6 +9,8 @@ mod cert;
 mod generators;
 mod hmac_tool;
 mod jwt_verify;
+mod totp;
+mod uuid_inspect;
 
 use toolkit_core::Registry;
 
@@ -18,6 +20,8 @@ pub fn registry() -> Registry {
         Box::new(jwt_verify::JwtVerify),
         Box::new(cert::CertDecode),
         Box::new(generators::Uuid),
+        Box::new(uuid_inspect::UuidInspect),
+        Box::new(totp::Totp),
         Box::new(generators::PasswordGen),
         Box::new(generators::RandomBytes),
         Box::new(base32_tools::Base32Encode),

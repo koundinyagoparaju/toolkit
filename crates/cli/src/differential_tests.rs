@@ -156,6 +156,52 @@ fn json_query_matches_jq() {
     }
 }
 
+/// hexdump vs `xxd` on random byte lengths, including the ragged final
+/// row and empty input.
+#[test]
+fn hexdump_matches_xxd() {
+    for seed in 1..=6u64 {
+        let mut rng = Rng(seed);
+        // Lengths that straddle the 16-byte row boundary.
+        let len = (rng.next() as usize) % 40;
+        let bytes: Vec<u8> = (0..len).map(|_| (rng.next() & 0xff) as u8).collect();
+
+        let registry = registry();
+        let tool = registry.find("hexdump").expect("tool exists");
+        let mut inputs = Inputs::new();
+        inputs.insert("input".into(), vec![DataValue::Bytes(bytes.clone())]);
+        let DataValue::Text(ours) = run_tool(tool, inputs, &Options::new()).expect("dumps") else {
+            unreachable!()
+        };
+
+        let mut xxd = Command::new("xxd");
+        let reference = {
+            use std::io::Read;
+            let mut child = xxd
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn()
+                .expect("xxd spawns");
+            child
+                .stdin
+                .take()
+                .expect("stdin")
+                .write_all(&bytes)
+                .expect("write bytes");
+            let mut out = String::new();
+            child
+                .stdout
+                .take()
+                .expect("stdout")
+                .read_to_string(&mut out)
+                .expect("read");
+            child.wait().expect("xxd runs");
+            out
+        };
+        assert_eq!(ours, reference, "seed {seed} len {len}");
+    }
+}
+
 /// cert-decode vs a certificate openssl just minted — including an IP
 /// SAN, which the fixed unit-test fixture doesn't cover.
 #[test]

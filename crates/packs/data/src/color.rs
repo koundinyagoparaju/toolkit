@@ -36,7 +36,7 @@ impl Tool for ColorConvert {
     }
 }
 
-fn parse_color(s: &str) -> Result<(u8, u8, u8), ToolError> {
+pub(crate) fn parse_color(s: &str) -> Result<(u8, u8, u8), ToolError> {
     let invalid = || ToolError::new("expected #rgb, #rrggbb, rgb(r, g, b) or hsl(h, s%, l%)");
     if let Some(hex) = s.strip_prefix('#') {
         let hex: String = hex.chars().filter(|c| !c.is_whitespace()).collect();

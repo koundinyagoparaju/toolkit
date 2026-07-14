@@ -14,15 +14,18 @@ mod doc_merge;
 mod gzip;
 mod hash;
 mod hex;
+mod hexdump;
 mod html_entities;
 mod html_to_text;
 mod json;
 mod json_pick;
+mod json_shape;
 mod jwt;
 mod lorem;
 mod number_base;
 mod slugify;
 mod sort_lines;
+mod text_slice;
 mod text_stats;
 mod text_uniq;
 mod unicode_escape;
@@ -60,6 +63,9 @@ pub fn registry() -> Registry {
         Box::new(slugify::Slugify),
         Box::new(text_stats::TextStats),
         Box::new(text_uniq::TextUniq),
+        Box::new(text_slice::TextSlice),
+        Box::new(hexdump::Hexdump),
+        Box::new(json_shape::JsonShape),
         Box::new(html_to_text::HtmlToText),
     ])
 }

@@ -1,9 +1,13 @@
 //! Data-format tools: converters, parsers, and formatters.
 
 #![deny(unsafe_code)]
+mod cidr;
 mod color;
+mod contrast;
 mod cron;
+mod csv_stats;
 mod csv_tools;
+mod duration;
 mod filetype;
 mod grep;
 mod http_status;
@@ -14,6 +18,7 @@ mod markdown;
 mod regex_tool;
 mod semver_check;
 mod sql_format;
+mod text_replace;
 mod timestamp;
 mod toml_tools;
 mod units;
@@ -44,6 +49,11 @@ pub fn registry() -> Registry {
         Box::new(http_status::HttpStatus),
         Box::new(sql_format::SqlFormat),
         Box::new(grep::TextGrep),
+        Box::new(text_replace::TextReplace),
+        Box::new(duration::DurationConvert),
+        Box::new(cidr::CidrCalc),
+        Box::new(contrast::ContrastRatio),
+        Box::new(csv_stats::CsvStats),
         Box::new(cron::CronExplain),
         Box::new(semver_check::SemverCheck),
         Box::new(units::DATA_SIZE),

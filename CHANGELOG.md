@@ -6,6 +6,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Ten more tools, several of them chosen to shrink an agent's context
+  window (return the shape of data, not the whole file):
+  - **text-slice** — cut a line/char range (`A:B`, `-N:` tail).
+  - **text-replace** — per-line regex replace with capture groups.
+  - **hexdump** — an xxd-format dump, verified byte-for-byte against `xxd`.
+  - **json-shape** — a JSON's schema/skeleton with sampled keys, not values.
+  - **csv-stats** — per-column type, range, and distinct/empty counts.
+  - **duration-convert** — `90m`, `1:30:00`, `5400` ↔ ms/human/ISO-8601.
+  - **totp** — RFC 6238 codes from a base32 secret at an explicit timestamp.
+  - **uuid-inspect** — version, variant, and the embedded v1/v6/v7 timestamp.
+  - **cidr-calc** — network/broadcast/host range/mask math, v4 and v6.
+  - **contrast-ratio** — WCAG 2 ratio with AA/AAA verdicts.
+- A differential test pinning hexdump's output byte-for-byte to `xxd`.
+
 ## [0.16.1] - 2026-07-14
 
 ### Fixed
