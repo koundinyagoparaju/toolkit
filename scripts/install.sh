@@ -29,15 +29,20 @@ if [ -z "${TOOLKIT_INSTALL_DIR:-}" ] && [ "$(basename "$0")" = "toolkit-update" 
 else
     INSTALL_DIR="${TOOLKIT_INSTALL_DIR:-$HOME/.local/bin}"
 fi
-API="https://api.github.com/repos/$REPO/releases/latest"
+# Redirects to …/releases/tag/<tag>; unlike api.github.com it has no
+# unauthenticated rate limit, which 403s on shared IPs (CI, NAT).
+LATEST="https://github.com/$REPO/releases/latest"
 
 # --- fetch helper: curl or wget, whichever exists ---
 if command -v curl >/dev/null 2>&1; then
-    fetch() { curl -fsSL "$1"; }
     fetch_to() { curl -fsSL -o "$2" "$1"; }
+    final_url() { curl -fsSLI -o /dev/null -w '%{url_effective}' "$1"; }
 elif command -v wget >/dev/null 2>&1; then
-    fetch() { wget -qO- "$1"; }
     fetch_to() { wget -qO "$2" "$1"; }
+    final_url() {
+        wget -q --spider --server-response "$1" 2>&1 |
+            sed -n 's/^ *[Ll]ocation: *//p' | tail -n1 | tr -d '\r'
+    }
 else
     echo "error: need curl or wget" >&2
     exit 1
@@ -66,12 +71,14 @@ esac
 asset="toolkit-${os}-${arch}.tar.gz"
 
 echo "checking latest release of $REPO..."
-release_json="$(fetch "$API")"
-tag="$(printf '%s' "$release_json" | grep -m1 '"tag_name"' | cut -d'"' -f4)"
-if [ -z "$tag" ]; then
-    echo "error: could not determine the latest release" >&2
-    exit 1
-fi
+tag="$(final_url "$LATEST")"
+tag="${tag##*/}"
+# A repo with no releases redirects elsewhere; don't treat that as a tag.
+case "$tag" in
+    ""|latest|releases)
+        echo "error: could not determine the latest release" >&2
+        exit 1 ;;
+esac
 
 # Compare against the binary this run would replace — not whatever
 # `toolkit` PATH happens to find, which may be a different install.
