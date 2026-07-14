@@ -44,10 +44,8 @@ if ($arch -eq "ARM64") {
 $Asset = "toolkit-windows-x86_64.zip"
 
 Write-Host "checking latest release of $Repo..."
-# The latest tag comes from this URL's redirect (.../releases/tag/<tag>),
-# not from api.github.com: the API allows 60 unauthenticated requests per
-# hour per IP, which shared IPs (CI runners, corporate NAT) blow through,
-# turning installs into 403s. The redirect is not API-rate-limited.
+# Redirects to .../releases/tag/<tag>; unlike api.github.com it has no
+# unauthenticated rate limit, which 403s on shared IPs (CI, NAT).
 $resp = Invoke-WebRequest -Method Head -UseBasicParsing "https://github.com/$Repo/releases/latest"
 # Windows PowerShell 5.1 exposes the post-redirect URI as ResponseUri;
 # PowerShell 7+ as RequestMessage.RequestUri.

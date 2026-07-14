@@ -29,10 +29,8 @@ if [ -z "${TOOLKIT_INSTALL_DIR:-}" ] && [ "$(basename "$0")" = "toolkit-update" 
 else
     INSTALL_DIR="${TOOLKIT_INSTALL_DIR:-$HOME/.local/bin}"
 fi
-# The latest tag is read from this URL's redirect (…/releases/tag/<tag>),
-# not from api.github.com: the API allows 60 unauthenticated requests per
-# hour per IP, which shared IPs (CI runners, corporate NAT) blow through,
-# turning installs into 403s. The redirect is not API-rate-limited.
+# Redirects to …/releases/tag/<tag>; unlike api.github.com it has no
+# unauthenticated rate limit, which 403s on shared IPs (CI, NAT).
 LATEST="https://github.com/$REPO/releases/latest"
 
 # --- fetch helper: curl or wget, whichever exists ---
