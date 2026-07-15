@@ -38,6 +38,31 @@ fn run(tool: &str, input: &str, sets: &[(&str, serde_json::Value)]) -> DataValue
     run_tool(tool, inputs, &options).expect("tool runs")
 }
 
+/// True when every reference binary exists. Missing ones skip the test
+/// (a Windows or macOS dev box needn't have jq/xxd/factor), except on
+/// Linux CI, where they must be present so coverage can't silently
+/// disappear.
+fn have(cmds: &[&str]) -> bool {
+    for cmd in cmds {
+        let found = Command::new(cmd)
+            .arg("--version")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .is_ok();
+        if !found {
+            assert!(
+                std::env::var_os("CI").is_none() || !cfg!(target_os = "linux"),
+                "{cmd} must be present on Linux CI"
+            );
+            eprintln!("skipping: reference tool {cmd} not found");
+            return false;
+        }
+    }
+    true
+}
+
 fn pipe(cmd: &mut Command, stdin: &str) -> String {
     let mut child = cmd
         .stdin(Stdio::piped())
@@ -66,6 +91,9 @@ fn random_lines(rng: &mut Rng, n: usize) -> String {
 
 #[test]
 fn text_uniq_matches_coreutils() {
+    if !have(&["sort", "uniq"]) {
+        return;
+    }
     for seed in 1..=5u64 {
         let input = random_lines(&mut Rng(seed), 200);
         let DataValue::Text(ours) = run("text-uniq", &input, &[]) else {
@@ -93,6 +121,9 @@ fn text_uniq_matches_coreutils() {
 
 #[test]
 fn text_grep_matches_gnu_grep() {
+    if !have(&["grep"]) {
+        return;
+    }
     for seed in 1..=5u64 {
         let input = random_lines(&mut Rng(seed), 200);
         for invert in [false, true] {
@@ -117,6 +148,9 @@ fn text_grep_matches_gnu_grep() {
 
 #[test]
 fn json_query_matches_jq() {
+    if !have(&["jq"]) {
+        return;
+    }
     // (our query, jq equivalent) over docs generated to avoid the
     // null/false edge where jq's `// empty` and JSONPath semantics
     // legitimately differ.
@@ -160,6 +194,9 @@ fn json_query_matches_jq() {
 /// row and empty input.
 #[test]
 fn hexdump_matches_xxd() {
+    if !have(&["xxd"]) {
+        return;
+    }
     for seed in 1..=6u64 {
         let mut rng = Rng(seed);
         // Lengths that straddle the 16-byte row boundary.
@@ -202,10 +239,78 @@ fn hexdump_matches_xxd() {
     }
 }
 
+/// number-factor vs coreutils `factor` on random 1..2^40 integers (big
+/// enough to exercise Pollard's rho past the trial-division primes).
+#[test]
+fn number_factor_matches_coreutils_factor() {
+    if !have(&["factor"]) {
+        return;
+    }
+    for seed in 1..=5u64 {
+        let mut rng = Rng(seed);
+        let n = rng.next() % (1 << 40) + 1;
+        let DataValue::Json(ours) = run("number-factor", &n.to_string(), &[]) else {
+            unreachable!()
+        };
+        let mut flat = Vec::new();
+        for f in ours["numbers"][0]["factors"].as_array().unwrap() {
+            for _ in 0..f["exp"].as_u64().unwrap() {
+                flat.push(f["prime"].as_u64().unwrap());
+            }
+        }
+
+        let reference = pipe(Command::new("factor").arg(n.to_string()), "");
+        let ref_flat: Vec<u64> = reference
+            .split_once(':')
+            .expect("n: factors")
+            .1
+            .split_whitespace()
+            .map(|p| p.parse().expect("prime"))
+            .collect();
+        assert_eq!(flat, ref_flat, "n {n}");
+    }
+}
+
+/// calc vs awk on random +-*/ expressions with parentheses.
+#[test]
+fn calc_matches_awk() {
+    if !have(&["awk"]) {
+        return;
+    }
+    fn gen(rng: &mut Rng, depth: u32) -> String {
+        if depth == 0 || rng.next().is_multiple_of(3) {
+            return (rng.next() % 9 + 1).to_string();
+        }
+        let op = *rng.pick(&["+", "-", "*", "/"]);
+        format!("({} {} {})", gen(rng, depth - 1), op, gen(rng, depth - 1))
+    }
+    for seed in 1..=10u64 {
+        let mut rng = Rng(seed);
+        let expr = gen(&mut rng, 4);
+        let DataValue::Json(ours) = run("calc", &expr, &[]) else {
+            unreachable!()
+        };
+        let ours = ours["result"].as_f64().expect("number");
+
+        let reference = pipe(
+            Command::new("awk").arg(format!("BEGIN {{ printf \"%.17g\", {expr} }}")),
+            "",
+        );
+        let reference: f64 = reference.trim().parse().expect("awk emits a number");
+        assert!(
+            (ours - reference).abs() <= 1e-9 * reference.abs().max(1.0),
+            "{expr}: {ours} vs {reference}"
+        );
+    }
+}
+
 /// cert-decode vs a certificate openssl just minted — including an IP
 /// SAN, which the fixed unit-test fixture doesn't cover.
 #[test]
 fn cert_decode_matches_openssl_output() {
+    if !have(&["openssl"]) {
+        return;
+    }
     let dir = std::env::temp_dir().join(format!("tk-cert-test-{}", std::process::id()));
     std::fs::create_dir_all(&dir).expect("temp dir");
     let cert_path = dir.join("cert.pem");

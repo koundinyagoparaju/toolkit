@@ -6,6 +6,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Five math tools, exact where it counts: **calc** (arithmetic
+  expressions with functions and constants — the thing an agent
+  shouldn't do in its head), **number-stats** (mean/median/stddev/
+  percentiles of a number list), **number-factor** (prime
+  factorization, gcd/lcm, Miller–Rabin + Pollard's rho up to 2^64),
+  **combinatorics** (exact n!, C(n,k), P(n,k) via a tiny built-in
+  bignum), and **percent-calc** (percent-of / what-percent / change).
+  calc and number-factor are diff-tested against awk and coreutils
+  factor.
+
 ## [0.18.0] - 2026-07-15
 
 ### Added

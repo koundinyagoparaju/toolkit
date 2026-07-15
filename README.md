@@ -27,9 +27,10 @@ inspection, EXIF stripping, image resize/crop/convert/merge, unit and
 duration conversion (length, mass, volume, temperature, data size,
 px/pt/em), grep and duplicate-line counts, JSONPath queries, CSV column
 stats, hex dumps, HTML to text, cron and semver explainers, CIDR math,
-WCAG contrast ratios, X.509 certificate decoding. More than 80 of them, and
-they compose into pipelines (chains) you can share as URLs. The URL encodes
-the chain definition, not your data.
+WCAG contrast ratios, X.509 certificate decoding, an exact calculator,
+number statistics, prime factorization, combinatorics. More than 90 of
+them, and they compose into pipelines (chains) you can share as URLs. The
+URL encodes the chain definition, not your data.
 
 ## The web app
 
