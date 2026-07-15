@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-07-15
+
 ### Changed
 - The five math tools moved into their own `math` pack (`math.wasm`,
   ~320 KB), so using the calculator in the browser no longer downloads
@@ -373,7 +375,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Reproducible builds with provenance attestation; five-platform binaries;
   `curl | sh` installer.
 
-[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/koundinyagoparaju/toolkit/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/koundinyagoparaju/toolkit/compare/v0.16.1...v0.17.0
