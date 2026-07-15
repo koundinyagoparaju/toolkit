@@ -1,0 +1,12 @@
+[package]
+name = "toolkit-pack-math"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+toolkit-core = { path = "../../core" }
+serde_json = { workspace = true }

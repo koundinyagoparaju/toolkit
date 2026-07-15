@@ -290,7 +290,7 @@ test("service worker streams page-fed chunks as a download response", async ({ p
 });
 
 test("app works fully offline after the first visit", async ({ page, context }) => {
-    // Warm the caches: one tool from each pack, so all four wasm modules
+    // Warm the caches: one tool from each pack, so all five wasm modules
     // and the shell are in the service worker's cache.
     await page.goto("/#/");
     await swControlled(page);
@@ -298,6 +298,7 @@ test("app works fully offline after the first visit", async ({ page, context }) 
         ["hash", "abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"],
         ["timestamp-convert", "1700000000", null],
         ["html-encode", "<x>", "&lt;x&gt;"],
+        ["calc", "2^10", /1024/],
     ];
     for (const [tool, input, expected] of warm) {
         await page.goto(`/#/tool/${tool}`);
@@ -444,7 +445,7 @@ test("wasm integrity: pins baked into the bundle, tampering detected", async ({
     const pins = JSON.parse(
         readFileSync(new URL("../src/lib/wasm-integrity.json", import.meta.url), "utf8"),
     );
-    for (const m of ["text.wasm", "image.wasm", "crypto.wasm", "data.wasm"]) {
+    for (const m of ["text.wasm", "image.wasm", "crypto.wasm", "data.wasm", "math.wasm"]) {
         expect(pins[m]).toMatch(/^[0-9a-f]{64}$/);
     }
 

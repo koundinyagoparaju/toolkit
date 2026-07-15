@@ -146,6 +146,7 @@ crates/packs/text   encodings, json, hash, gzip, diff, case/sort/escape tools
 crates/packs/image  resize, crop, convert, compress, merge, EXIF, QR codes
 crates/packs/crypto hmac, base32/58, uuid + password + random-byte generators
 crates/packs/data   json/yaml/toml/csv, xml, timestamps, url, regex, markdown
+crates/packs/math   calculator, statistics, factorization, combinatorics
 crates/cli          `toolkit` binary, links the packs natively
 web/                Svelte app: catalog, tool pages, DAG chain builder;
                     loads the same packs as lazily-fetched wasm modules

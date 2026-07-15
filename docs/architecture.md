@@ -9,7 +9,7 @@ conceptual model see [concepts.md](concepts.md).
 crates/core          the contract: DataValue + coercions, Manifest/ports/
                      options, Tool trait + Registry, chain schema + the
                      push execution engine, StreamSession, the wasm ABI
-crates/packs/*       tool implementations (text, image, crypto, data)
+crates/packs/*       tool implementations (text, image, crypto, data, math)
 crates/cli           `toolkit` binary: links packs natively, fills entropy
                      from the OS RNG, streams chunked IO
 web/                 Svelte app: catalog/tool pages/builder generated from

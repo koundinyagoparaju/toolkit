@@ -6,6 +6,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- The five math tools moved into their own `math` pack (`math.wasm`,
+  ~320 KB), so using the calculator in the browser no longer downloads
+  the 2.4 MB data pack. Tool names are unchanged; CLI, chains, and MCP
+  configs are unaffected.
+
 ## [0.19.0] - 2026-07-15
 
 ### Added

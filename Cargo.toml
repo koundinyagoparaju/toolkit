@@ -6,6 +6,7 @@ members = [
     "crates/packs/image",
     "crates/packs/crypto",
     "crates/packs/data",
+    "crates/packs/math",
     "crates/cli",
 ]
 

@@ -40,6 +40,11 @@ pub fn catalog_json() -> String {
             "module": "data.wasm",
             "tools": toolkit_pack_data::registry().manifests(),
         },
+        {
+            "name": "math",
+            "module": "math.wasm",
+            "tools": toolkit_pack_math::registry().manifests(),
+        },
     ]);
 
     serde_json::to_string_pretty(&serde_json::json!({

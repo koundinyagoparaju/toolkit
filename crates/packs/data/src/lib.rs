@@ -1,10 +1,8 @@
 //! Data-format tools: converters, parsers, and formatters.
 
 #![deny(unsafe_code)]
-mod calc;
 mod cidr;
 mod color;
-mod combinatorics;
 mod contrast;
 mod cron;
 mod csv_stats;
@@ -17,9 +15,6 @@ mod json_diff;
 mod json_query;
 mod json_schema_infer;
 mod markdown;
-mod number_factor;
-mod number_stats;
-mod percent;
 mod regex_tool;
 mod semver_check;
 mod sql_format;
@@ -61,11 +56,6 @@ pub fn registry() -> Registry {
         Box::new(csv_stats::CsvStats),
         Box::new(cron::CronExplain),
         Box::new(semver_check::SemverCheck),
-        Box::new(calc::Calc),
-        Box::new(number_stats::NumberStats),
-        Box::new(number_factor::NumberFactor),
-        Box::new(combinatorics::Combinatorics),
-        Box::new(percent::PercentCalc),
         Box::new(units::DATA_SIZE),
         Box::new(units::LENGTH),
         Box::new(units::MASS),

@@ -1152,6 +1152,7 @@ dependencies = [
  "toolkit-pack-crypto",
  "toolkit-pack-data",
  "toolkit-pack-image",
+ "toolkit-pack-math",
  "toolkit-pack-text",
 ]
 
@@ -1203,6 +1204,14 @@ dependencies = [
  "kamadak-exif",
  "qrcode",
  "rqrr",
+ "serde_json",
+ "toolkit-core",
+]
+
+[[package]]
+name = "toolkit-pack-math"
+version = "0.19.0"
+dependencies = [
  "serde_json",
  "toolkit-core",
 ]

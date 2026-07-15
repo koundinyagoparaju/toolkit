@@ -6,13 +6,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-cargo build --release --target wasm32-unknown-unknown -p toolkit-pack-text -p toolkit-pack-image -p toolkit-pack-crypto -p toolkit-pack-data
+cargo build --release --target wasm32-unknown-unknown -p toolkit-pack-text -p toolkit-pack-image -p toolkit-pack-crypto -p toolkit-pack-data -p toolkit-pack-math
 
 mkdir -p web/public/wasm web/public/chains
 cp target/wasm32-unknown-unknown/release/toolkit_pack_text.wasm web/public/wasm/text.wasm
 cp target/wasm32-unknown-unknown/release/toolkit_pack_image.wasm web/public/wasm/image.wasm
 cp target/wasm32-unknown-unknown/release/toolkit_pack_crypto.wasm web/public/wasm/crypto.wasm
 cp target/wasm32-unknown-unknown/release/toolkit_pack_data.wasm web/public/wasm/data.wasm
+cp target/wasm32-unknown-unknown/release/toolkit_pack_math.wasm web/public/wasm/math.wasm
 
 cargo run --quiet --release -p toolkit-cli -- manifests > web/public/wasm/manifests.json
 
@@ -29,7 +30,7 @@ sha256_hex() { # portable: coreutils sha256sum or BSD/macOS shasum
 {
     printf '{'
     sep=""
-    for m in text image crypto data; do
+    for m in text image crypto data math; do
         printf '%s"%s.wasm":"%s"' "$sep" "$m" "$(sha256_hex "web/public/wasm/$m.wasm")"
         sep=","
     done

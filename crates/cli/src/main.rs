@@ -448,6 +448,7 @@ fn registry() -> Registry {
         toolkit_pack_image::registry(),
         toolkit_pack_crypto::registry(),
         toolkit_pack_data::registry(),
+        toolkit_pack_math::registry(),
     ])
 }
 
