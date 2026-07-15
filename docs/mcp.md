@@ -32,6 +32,28 @@ For Claude Code:
 claude mcp add toolkit -- toolkit mcp
 ```
 
+## Compact mode
+
+`toolkit mcp --compact` advertises three tools instead of one schema per
+tool: `search-tools`, `run-tool`, and `run-chain` — a few hundred tokens
+of context instead of ~10,000, however many tools exist. Use it with
+clients that inject every schema into every request or cap the total
+tool count.
+
+`search-tools` takes keywords (`{"query": "decode jwt", "limit": 5}`) and
+returns each match's description and full input schema — everything
+needed to call it. `run-tool` then runs one by name:
+
+```json
+{"name": "run-tool", "arguments": {
+  "name": "jwt-decode", "arguments": {"input": "eyJhbGciOi…"}}}
+```
+
+The trade-offs: an extra search call before first use of a tool, and
+client-side permissions can no longer distinguish tools (everything runs
+through `run-tool`). The default mode is better for clients that load
+tool schemas lazily, like recent Claude Code.
+
 ## How arguments map
 
 - A tool with one input takes `{"input": …}`; tools with named ports (e.g.

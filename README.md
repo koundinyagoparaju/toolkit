@@ -129,8 +129,10 @@ update` just tells you the above.
 
 `toolkit mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io)
 server over stdio, exposing every tool to an LLM agent — locally, no
-sockets. For Claude Code: `claude mcp add toolkit -- toolkit mcp`. See
-[docs/mcp.md](docs/mcp.md).
+sockets. For Claude Code: `claude mcp add toolkit -- toolkit mcp`. Add
+`--compact` for clients that load every tool schema into context: it
+advertises just `search-tools`/`run-tool`/`run-chain` instead of one
+schema per tool. See [docs/mcp.md](docs/mcp.md).
 
 ## How it's put together
 

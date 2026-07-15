@@ -122,7 +122,13 @@ enum Command {
     Completions { shell: clap_complete::Shell },
     /// Run a Model Context Protocol server over stdio, exposing every
     /// tool to an LLM agent (JSON-RPC on stdin/stdout; no network)
-    Mcp,
+    Mcp {
+        /// Expose two meta-tools (search-tools, run-tool) instead of one
+        /// schema per tool — for clients that load every schema into
+        /// context or cap the tool count
+        #[arg(long)]
+        compact: bool,
+    },
     /// Show how to update (toolkit never touches the network, so the
     /// separate `toolkit-update` command does it)
     Update,
@@ -869,7 +875,7 @@ fn run(cli: Cli) -> Result<(), String> {
             }
             Ok(())
         }
-        Command::Mcp => mcp::serve(&registry),
+        Command::Mcp { compact } => mcp::serve(&registry, compact),
         Command::Update => {
             println!(
                 "toolkit never touches the network or spawns processes, so it\n\

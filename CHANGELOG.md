@@ -6,6 +6,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `toolkit mcp --compact`: advertise three meta-tools (`search-tools`,
+  `run-tool`, `run-chain`) instead of one schema per tool — a few
+  hundred tokens of agent context instead of ~10,000, for MCP clients
+  that inject every schema or cap the tool count. `search-tools`
+  returns each match's full input schema, so one search is enough to
+  call anything.
+
 ## [0.17.0] - 2026-07-14
 
 ### Added

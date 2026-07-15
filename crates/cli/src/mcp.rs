@@ -15,11 +15,17 @@ use toolkit_core::{
 
 /// Synthetic tool name for running a whole toolchain in one call.
 const RUN_CHAIN: &str = "run-chain";
+/// Compact-mode meta-tools: find tools (returning their full schemas)
+/// and run one by name.
+const SEARCH_TOOLS: &str = "search-tools";
+const RUN_TOOL: &str = "run-tool";
 
 const PROTOCOL_VERSION: &str = "2024-11-05";
 
-/// Run the stdio server until stdin closes.
-pub fn serve(registry: &Registry) -> Result<(), String> {
+/// Run the stdio server until stdin closes. Compact mode advertises
+/// search-tools/run-tool/run-chain instead of one schema per tool, for
+/// clients that inject every schema into context or cap the tool count.
+pub fn serve(registry: &Registry, compact: bool) -> Result<(), String> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout().lock();
     for line in stdin.lock().lines() {
@@ -43,7 +49,7 @@ pub fn serve(registry: &Registry) -> Result<(), String> {
         };
         let method = request.get("method").and_then(Value::as_str).unwrap_or("");
         let params = request.get("params").cloned().unwrap_or(Value::Null);
-        let response = match dispatch(registry, method, &params) {
+        let response = match dispatch(registry, compact, method, &params) {
             Ok(result) => json!({ "jsonrpc": "2.0", "id": id, "result": result }),
             Err((code, message)) => error_response(&id, code, &message),
         };
@@ -52,7 +58,12 @@ pub fn serve(registry: &Registry) -> Result<(), String> {
     Ok(())
 }
 
-fn dispatch(registry: &Registry, method: &str, params: &Value) -> Result<Value, (i64, String)> {
+fn dispatch(
+    registry: &Registry,
+    compact: bool,
+    method: &str,
+    params: &Value,
+) -> Result<Value, (i64, String)> {
     match method {
         "initialize" => Ok(json!({
             "protocolVersion": PROTOCOL_VERSION,
@@ -60,10 +71,107 @@ fn dispatch(registry: &Registry, method: &str, params: &Value) -> Result<Value, 
             "serverInfo": { "name": "toolkit", "version": env!("CARGO_PKG_VERSION") },
         })),
         "ping" => Ok(json!({})),
+        "tools/list" if compact => Ok(json!({ "tools": compact_tool_list() })),
         "tools/list" => Ok(json!({ "tools": tool_list(registry) })),
         "tools/call" => call_tool(registry, params),
         other => Err((-32601, format!("method not found: {other}"))),
     }
+}
+
+/// The compact surface: three schemas regardless of how many tools exist.
+fn compact_tool_list() -> Vec<Value> {
+    vec![
+        json!({
+            "name": SEARCH_TOOLS,
+            "description": "Find toolkit tools by keyword (e.g. \"json\", \"decode jwt\", \
+                            \"subnet\"). Returns each match's full description and input \
+                            schema — everything needed to call it via run-tool.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "keywords to search for" },
+                    "limit": { "type": "integer", "minimum": 1, "maximum": 20, "default": 5 },
+                },
+                "required": ["query"],
+            },
+        }),
+        json!({
+            "name": RUN_TOOL,
+            "description": "Run a toolkit tool by name. `arguments` must match the tool's \
+                            inputSchema as returned by search-tools.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string", "description": "the tool's name" },
+                    "arguments": { "type": "object", "description": "inputs and options per the tool's inputSchema" },
+                },
+                "required": ["name", "arguments"],
+            },
+        }),
+        run_chain_tool(),
+    ]
+}
+
+/// Rank manifests against whitespace-separated query terms. Any term
+/// hit counts; name and keyword hits outrank description hits.
+fn search_tools(registry: &Registry, args: &Value) -> Result<Vec<Value>, String> {
+    let query = args
+        .get("query")
+        .and_then(Value::as_str)
+        .ok_or("missing \"query\"")?
+        .to_lowercase();
+    let limit = args
+        .get("limit")
+        .and_then(Value::as_u64)
+        .unwrap_or(5)
+        .clamp(1, 20) as usize;
+    let terms: Vec<&str> = query.split_whitespace().collect();
+    if terms.is_empty() {
+        return Err("\"query\" must contain at least one keyword".into());
+    }
+
+    let mut scored: Vec<(u32, Manifest)> = registry
+        .manifests()
+        .into_iter()
+        .map(|m| {
+            let mut score = 0u32;
+            if m.name == query {
+                score += 100;
+            }
+            for term in &terms {
+                if m.name.contains(term) {
+                    score += 8;
+                }
+                if m.keywords.iter().any(|k| k == term) {
+                    score += 10;
+                } else if m.keywords.iter().any(|k| k.contains(term)) {
+                    score += 4;
+                }
+                if m.label.to_lowercase().contains(term) {
+                    score += 6;
+                }
+                if m.description.to_lowercase().contains(term) {
+                    score += 2;
+                }
+            }
+            (score, m)
+        })
+        .filter(|(score, _)| *score > 0)
+        .collect();
+    scored.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.name.cmp(&b.1.name)));
+
+    Ok(scored
+        .into_iter()
+        .take(limit)
+        .map(|(_, m)| {
+            json!({
+                "name": m.name,
+                "description": m.description,
+                "output": m.output,
+                "inputSchema": input_schema(&m),
+            })
+        })
+        .collect())
 }
 
 fn tool_list(registry: &Registry) -> Vec<Value> {
@@ -212,15 +320,34 @@ fn call_tool(registry: &Registry, params: &Value) -> Result<Value, (i64, String)
 
     // A tool/chain error is a normal MCP result with isError, not a
     // protocol error — the agent should see the message and adjust.
-    let outcome = if name == RUN_CHAIN {
-        run_chain_call(registry, &args)
-    } else {
-        match registry.find(name) {
+    let outcome = match name {
+        RUN_CHAIN => run_chain_call(registry, &args),
+        SEARCH_TOOLS => search_tools(registry, &args).map(|hits| {
+            vec![json!({
+                "type": "text",
+                "text": serde_json::to_string_pretty(&hits).unwrap_or_default(),
+            })]
+        }),
+        // run-tool unwraps to a direct call; a bad tool name here is a
+        // tool error (the agent should search and retry), not protocol.
+        RUN_TOOL => {
+            let inner = args.get("name").and_then(Value::as_str);
+            let inner_args = args.get("arguments").cloned().unwrap_or(json!({}));
+            match inner.map(|n| (n, registry.find(n))) {
+                Some((_, Some(tool))) => run_call(registry, &tool.manifest(), &inner_args)
+                    .map(|v| vec![output_content(&v)]),
+                Some((n, None)) => Err(format!(
+                    "unknown tool \"{n}\" — use search-tools to find the right name"
+                )),
+                None => Err("missing \"name\"".into()),
+            }
+        }
+        _ => match registry.find(name) {
             Some(tool) => {
                 run_call(registry, &tool.manifest(), &args).map(|v| vec![output_content(&v)])
             }
             None => return Err((-32602, format!("unknown tool: {name}"))),
-        }
+        },
     };
     match outcome {
         Ok(content) => Ok(json!({ "content": content, "isError": false })),
@@ -428,11 +555,11 @@ mod tests {
     #[test]
     fn initialize_and_list_shape() {
         let reg = crate::registry();
-        let init = dispatch(&reg, "initialize", &Value::Null).unwrap();
+        let init = dispatch(&reg, false, "initialize", &Value::Null).unwrap();
         assert_eq!(init["serverInfo"]["name"], "toolkit");
         assert_eq!(init["capabilities"]["tools"], json!({}));
 
-        let list = dispatch(&reg, "tools/list", &Value::Null).unwrap();
+        let list = dispatch(&reg, false, "tools/list", &Value::Null).unwrap();
         let tools = list["tools"].as_array().unwrap();
         assert!(tools.len() > 50);
         let hash = tools.iter().find(|t| t["name"] == "hash").unwrap();
@@ -483,7 +610,7 @@ mod tests {
         assert_eq!(r["isError"], true);
 
         // Unknown method / tool are protocol errors.
-        assert!(dispatch(&reg, "nope", &Value::Null).is_err());
+        assert!(dispatch(&reg, false, "nope", &Value::Null).is_err());
         assert!(call_tool(&reg, &json!({ "name": "nope", "arguments": {} })).is_err());
     }
 
@@ -491,7 +618,7 @@ mod tests {
     fn run_chain_pipe_and_inline_json() {
         let reg = crate::registry();
         // run-chain is advertised.
-        let list = dispatch(&reg, "tools/list", &Value::Null).unwrap();
+        let list = dispatch(&reg, false, "tools/list", &Value::Null).unwrap();
         assert!(list["tools"]
             .as_array()
             .unwrap()
@@ -581,6 +708,78 @@ mod tests {
             .collect();
         assert!(sinks.contains(&("e", "aGk=")));
         assert!(sinks.contains(&("h", "6869")));
+    }
+
+    #[test]
+    fn compact_mode_lists_three_and_searches() {
+        let reg = crate::registry();
+        let list = dispatch(&reg, true, "tools/list", &Value::Null).unwrap();
+        let names: Vec<&str> = list["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["name"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, [SEARCH_TOOLS, RUN_TOOL, RUN_CHAIN]);
+
+        // Search returns ranked hits with a callable schema. An exact
+        // name match ranks first.
+        let r = call_tool(
+            &reg,
+            &json!({ "name": SEARCH_TOOLS, "arguments": { "query": "jwt-decode" } }),
+        )
+        .unwrap();
+        assert_eq!(r["isError"], false);
+        let hits: Vec<Value> =
+            serde_json::from_str(r["content"][0]["text"].as_str().unwrap()).unwrap();
+        assert_eq!(hits[0]["name"], "jwt-decode");
+        assert!(hits[0]["inputSchema"]["properties"]["input"].is_object());
+
+        // Keyword search finds tools whose name shares no substring.
+        let r = call_tool(
+            &reg,
+            &json!({ "name": SEARCH_TOOLS, "arguments": { "query": "subnet" } }),
+        )
+        .unwrap();
+        let hits: Vec<Value> =
+            serde_json::from_str(r["content"][0]["text"].as_str().unwrap()).unwrap();
+        assert_eq!(hits[0]["name"], "cidr-calc");
+
+        // limit caps the hit count.
+        let r = call_tool(
+            &reg,
+            &json!({ "name": SEARCH_TOOLS, "arguments": { "query": "json", "limit": 2 } }),
+        )
+        .unwrap();
+        let hits: Vec<Value> =
+            serde_json::from_str(r["content"][0]["text"].as_str().unwrap()).unwrap();
+        assert_eq!(hits.len(), 2);
+    }
+
+    #[test]
+    fn run_tool_dispatches_by_name() {
+        let reg = crate::registry();
+        let r = call_tool(
+            &reg,
+            &json!({ "name": RUN_TOOL, "arguments": {
+                "name": "base64-encode", "arguments": { "input": "hi" } } }),
+        )
+        .unwrap();
+        assert_eq!(r["isError"], false);
+        assert_eq!(r["content"][0]["text"], "aGk=");
+
+        // Unknown inner tool is a tool error steering back to search,
+        // not a protocol error.
+        let r = call_tool(
+            &reg,
+            &json!({ "name": RUN_TOOL, "arguments": { "name": "nope", "arguments": {} } }),
+        )
+        .unwrap();
+        assert_eq!(r["isError"], true);
+        assert!(r["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("search-tools"));
     }
 
     #[test]
