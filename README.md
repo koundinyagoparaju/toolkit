@@ -1,114 +1,165 @@
 # toolkit
 
-Everyday data tools that run entirely on your device: in the browser as
-WebAssembly, or in your terminal as a single static binary. There is no
-server, so the JWT you decode or the photo you strip EXIF from never
-leaves your machine.
+**Everyday data tools that keep your data on your device.**
 
-Try it: [koundinyagoparaju.github.io/toolkit](https://koundinyagoparaju.github.io/toolkit/)
+Encode, decode, inspect, convert, calculate, and transform data from your
+terminal or browser. toolkit has no backend: the web app runs tools in
+WebAssembly, and the CLI is a single native binary with no network client.
 
-Or install the CLI:
+[Open the web app](https://koundinyagoparaju.github.io/toolkit/) ·
+[Install the CLI](#install-the-cli) ·
+[Browse the tools](#whats-in-the-box) ·
+[Build a chain](#compose-tools-with-chains)
+
+![Tool catalog](docs/images/catalog.png)
+
+## Why toolkit?
+
+- **Private by design.** JWTs, photos, API keys, and documents never leave
+  your device.
+- **Useful in two places.** The same Rust implementations power a friendly
+  browser app and a fast command-line tool.
+- **Composable.** Connect typed tools into reusable pipelines, from a short
+  shell expression to a branching DAG.
+- **Streaming where it matters.** Hash, encode, merge, and transform large
+  files without loading the whole input into memory.
+- **Built to be inspected.** No server, no hidden runtime downloads, pinned
+  dependencies, verified WASM packs, and reproducible releases.
+
+## Quick start
+
+Use the browser without installing anything:
+
+**[Launch toolkit →](https://koundinyagoparaju.github.io/toolkit/)**
+
+Or install the CLI and run a tool:
 
 ```sh
 # Linux / macOS
 curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh
-# Windows (PowerShell)
-irm https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.ps1 | iex
 
-echo -n "$JWT" | toolkit run-chain 'jwt-decode | json-format'
-toolkit run-chain -n image-web-ready --set width=800 -i photo.png -o photo.jpg
-toolkit run-tool hash -i backup.iso                  # streams, gigabytes in a few MB of RAM
+echo -n 'hello world' | toolkit run-tool base64-encode
+# aGVsbG8gd29ybGQ=
 ```
 
-The tools: base64/32/58, URL and hex encoding, JWT inspection, JSON to and
-from YAML/TOML/CSV, hashing and HMAC, TOTP codes, timestamps, regex extract
-and replace, diffs, gzip, QR codes, password and UUID generation, UUID
-inspection, EXIF stripping, image resize/crop/convert/merge, unit and
-duration conversion (length, mass, volume, temperature, data size,
-px/pt/em), grep and duplicate-line counts, JSONPath queries, CSV column
-stats, hex dumps, HTML to text, cron and semver explainers, CIDR math,
-WCAG contrast ratios, X.509 certificate decoding, an exact calculator,
-number statistics, prime factorization, combinatorics. More than 90 of
-them, and they compose into pipelines (chains) you can share as URLs. The
-URL encodes the chain definition, not your data.
-
-## The web app
-
-Live at [koundinyagoparaju.github.io/toolkit](https://koundinyagoparaju.github.io/toolkit/).
-Works offline after the first visit.
-
-![Tool catalog](docs/images/catalog.png)
-
-The chain builder composes tools into typed pipelines. Here two resize
-branches fan into image-merge's named ports:
-
-![Chain builder](docs/images/builder.png)
-
-To run it locally:
+Compose tools with pipe syntax:
 
 ```sh
-./scripts/build-web-assets.sh   # compile tool packs to wasm, emit the catalog
-cd web && npm install && npm run dev
+echo -n "$JWT" | toolkit run-chain 'jwt-decode | json-format indent=4'
 ```
 
-## The CLI
-
-The install one-liners at the top download the latest release for your
-platform and verify its SHA-256 checksum. Package managers work too; the
-tap and bucket live in this repo, so what you install is what you can
-read here:
+Process files without sending them anywhere:
 
 ```sh
-# Homebrew (macOS/Linux)
+toolkit run-chain -n image-web-ready \
+  --set width=800 \
+  -i photo.png \
+  -o photo.jpg
+
+toolkit run-tool hash -i backup.iso
+```
+
+## What's in the box
+
+toolkit currently includes more than 90 tools across five packs:
+
+| Pack | Examples |
+|---|---|
+| Text | Base64, hex, gzip, hashes, JWT inspection, diffs, case conversion, line sorting |
+| Data | JSON/YAML/TOML/CSV, JSONPath, regex, timestamps, URLs, CIDR, cron, SQL formatting |
+| Image | Resize, crop, convert, compress, merge, rotate, EXIF cleaning, QR codes |
+| Crypto | HMAC, TOTP, Base32/58, certificate decoding, UUIDs, passwords, random bytes |
+| Math | Calculator, statistics, prime factorization, combinatorics, percentages |
+
+Run `toolkit tools` for the complete catalog, or browse it in the
+[web app](https://koundinyagoparaju.github.io/toolkit/).
+
+## Install the CLI
+
+### Linux and macOS
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.sh | sh
+```
+
+### Homebrew
+
+```sh
 brew tap koundinyagoparaju/toolkit https://github.com/koundinyagoparaju/toolkit
 brew install koundinyagoparaju/toolkit/toolkit
 ```
 
+### Windows PowerShell
+
 ```powershell
-# Scoop (Windows)
+irm https://raw.githubusercontent.com/koundinyagoparaju/toolkit/main/scripts/install.ps1 | iex
+```
+
+### Scoop
+
+```powershell
 scoop bucket add toolkit https://github.com/koundinyagoparaju/toolkit
 scoop install toolkit
 ```
 
-Piping a script into your shell means trusting it, and this project's
-whole point is that you shouldn't have to. Each install script is about
-90 lines. Read it first, or skip it and build from source:
+### Build from source
 
 ```sh
-cargo build --release -p toolkit-cli   # -> target/release/toolkit
+cargo build --release --locked -p toolkit-cli
+# binary: target/release/toolkit
 ```
 
-Usage:
+The install scripts download a release for your platform and verify its
+SHA-256 checksum. They are intentionally short and live in this repository:
+read [install.sh](scripts/install.sh) or [install.ps1](scripts/install.ps1),
+or build from source if you prefer.
+
+## Use the CLI
+
+Inputs can be passed as an argument, piped through stdin, or read from a file:
 
 ```sh
-toolkit tools                                      # what's available
-toolkit run-tool base64-encode 'hello world'           # input as an argument
-echo -n 'hello' | toolkit run-tool base64-encode       # or from stdin
-toolkit run-tool image-resize --set width=800 -i in.png -o out.png
+toolkit tools
+toolkit info --tool hash
 
-# multi-input tools take one file per named port:
-toolkit run-tool image-merge -i first=a.png -i second=b.png --set mode=vertical -o out.png
-# variable-arity ports (marked "…" in `toolkit tools`) take repeated -i:
-toolkit run-tool doc-merge -i a.txt -i b.txt -i c.txt --set separator=$'\n---\n'
-
-# chains, as pipe syntax:
-echo "$JWT" | toolkit run-chain 'jwt-decode | json-format indent=4'
-# or from the library, with declared typed parameters:
-toolkit chains
-toolkit run-chain --name image-web-ready --set width=800 -i photo.png -o photo.jpg
-toolkit run-chain --file my-chain.json -i input.txt
+toolkit run-tool base64-encode 'hello world'
+echo -n 'hello' | toolkit run-tool base64-encode
+toolkit run-tool image-resize --set width=800 -i input.png -o output.png
 ```
 
-Tab completion covers tool names, options with their enum values
-(`toolkit run-tool hash --set algorithm=<TAB>` offers the algorithms), chain
-names (`toolkit run-chain -n <TAB>` lists your library), and chain params.
-Works in bash, zsh, and fish; PowerShell gets commands and flags. Put the
-files at these paths and the installer keeps them fresh on every update:
+Tools with named ports accept `port=path` inputs:
 
 ```sh
-toolkit completions zsh  > ~/.zsh/completions/_toolkit   # add the dir to fpath, run compinit
-toolkit completions fish > ~/.config/fish/completions/toolkit.fish
+toolkit run-tool image-merge \
+  -i first=left.png \
+  -i second=right.png \
+  --set mode=horizontal \
+  -o joined.png
+```
+
+Variable-arity ports accept repeated inputs in order:
+
+```sh
+toolkit run-tool doc-merge \
+  -i first.txt \
+  -i second.txt \
+  -i third.txt \
+  --set separator=$'\n---\n'
+```
+
+### Shell completions
+
+Completions include tool names, chain names, option keys, and enum values:
+
+```sh
+# zsh
+toolkit completions zsh > ~/.zsh/completions/_toolkit
+
+# bash
 toolkit completions bash > ~/.local/share/bash-completion/completions/toolkit
+
+# fish
+toolkit completions fish > ~/.config/fish/completions/toolkit.fish
 ```
 
 ```powershell
@@ -116,97 +167,156 @@ toolkit completions powershell > "$env:LOCALAPPDATA\toolkit\completions.ps1"
 Add-Content $PROFILE '. "$env:LOCALAPPDATA\toolkit\completions.ps1"'
 ```
 
-The chain library ships inside the binary, so `toolkit chains` works
-anywhere. Your own chain files go in `~/.config/toolkit/chains/` and run
-by name; a file with the same name as a built-in overrides it.
-Chains are pure data, so dropping files there needs no code trust. To
-update the CLI, run `toolkit-update` — the installer saves a copy of
-itself under that name next to the binary (package-manager installs
-update with `brew upgrade` / `scoop update` instead). The binary never
-updates itself: it has no network code to do it with, and `toolkit
-update` just tells you the above.
+The installer refreshes completions when toolkit is updated. Direct installs
+also include `toolkit-update`; Homebrew and Scoop installations update through
+their package managers. The main `toolkit` binary never updates itself and
+contains no network code.
 
-## Use it from an AI agent
+## Compose tools with chains
 
-`toolkit mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io)
-server over stdio, exposing every tool to an LLM agent — locally, no
-sockets. For Claude Code: `claude mcp add toolkit -- toolkit mcp`. Add
-`--compact` for clients that load every tool schema into context: it
-advertises just `search-tools`/`run-tool`/`run-chain` instead of one
-schema per tool. See [docs/mcp.md](docs/mcp.md).
+A chain is a typed pipeline stored as portable JSON. Chains can be linear,
+branch into several tools, join through named ports, expose parameters, and
+produce multiple outputs.
 
-## How it's put together
+For a quick pipeline, use pipe syntax:
 
-```
-crates/core         the contract: typed values (text/bytes/json/image) with a
-                    coercion matrix, tool manifests (options auto-generate web
-                    forms and CLI flags), the chain (DAG) schema + executor,
-                    and the wasm pack ABI
-crates/packs/text   encodings, json, hash, gzip, diff, case/sort/escape tools
-crates/packs/image  resize, crop, convert, compress, merge, EXIF, QR codes
-crates/packs/crypto hmac, base32/58, uuid + password + random-byte generators
-crates/packs/data   json/yaml/toml/csv, xml, timestamps, url, regex, markdown
-crates/packs/math   calculator, statistics, factorization, combinatorics
-crates/cli          `toolkit` binary, links the packs natively
-web/                Svelte app: catalog, tool pages, DAG chain builder;
-                    loads the same packs as lazily-fetched wasm modules
-chains/             community chain library (pure data, no code)
+```sh
+echo "$JWT" | toolkit run-chain 'jwt-decode | json-format indent=4'
 ```
 
-One tool implementation serves both frontends. The CLI links the Rust
-directly; the browser fetches the same crate compiled to WebAssembly over
-a small hand-written ABI (no codegen, see `crates/core/src/abi.rs`).
-Chains are a versioned JSON DAG, and the same file runs in the CLI, the
-web builder, and the shareable-URL encoding.
+For reusable workflows, run a built-in or custom chain:
 
-Tools declare typed, named input ports. Most have one; `image-merge` has
-`first` and `second`; a `multi` port like doc-merge's `documents` accepts
-any number of connections, in order. Chains wire ports into a DAG with
-fan-out, and every edge is type-checked, with a few sanctioned runtime
-coercions (bytes to text if valid UTF-8, and so on). A chain can also
-declare params, which are named typed knobs (`width`, `quality`) mapped
-onto node options. That makes a chain a callable unit: the CLI takes
-`--set width=800`, the web builder renders a settings form.
-
-Streaming tools (hash, base64, hex, URL, doc-merge, marked `streaming`
-in the catalog) process input incrementally. Hashing a multi-gigabyte
-file takes about 5 MB of RAM in the CLI, and the browser feeds dropped
-files chunk by chunk via `file.stream()` without loading them. Chains
-run on one push-based dataflow engine for both buffered and streaming
-modes: streaming nodes pass chunks through, tools that need the whole
-value (images, JSON) buffer only at their own inputs. Memory is bounded
-by the largest single buffered step, not the sum of intermediates.
-
-Generators (uuid, password-gen, random-bytes) take randomness through an
-explicit `entropy` input port that the driver fills, from the OS RNG in
-the CLI and `crypto.getRandomValues` in the browser. This keeps tools
-pure functions and the wasm sandbox at zero host imports, and anyone
-auditing a request can see the entropy in it. You can even wire fixed
-bytes into the port for reproducible output.
-
-On dependencies: anything that touches user data is Rust with a minimal,
-pinned, pure-Rust dependency set (vendorable with `cargo vendor`, gated
-by `cargo audit` and `cargo vet` in CI). npm exists only for the web
-shell — svelte and vite, plus playwright as the dev-only e2e test
-runner with its managed browser (zero third-party transitive deps;
-nothing npm ever ships to users) — and the CSP backstops it. Every
-tool must work on plain single-threaded CPU; hardware acceleration can
-only ever be an additive fast path.
-
-## Hosting
-
-Any static file host works. Serve `web/dist` and send the CSP as an HTTP
-header (it's also in a `<meta>` tag, but a header covers more):
-
+```sh
+toolkit chains
+toolkit info --chain image-web-ready
+toolkit run-chain --name image-web-ready --set width=800 -i photo.png -o photo.jpg
+toolkit run-chain --file my-chain.json -i input.txt
 ```
-Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+The built-in chain library is embedded in the binary. Personal chains can be
+placed in `~/.config/toolkit/chains/`; a personal chain with the same name as
+a built-in one takes precedence.
+
+The web chain builder creates the same format and can encode a definition in a
+shareable URL. Only the chain definition is included—never the input data.
+
+![Chain builder showing two resize branches feeding an image merge](docs/images/builder.png)
+
+See [Concepts](docs/concepts.md) for the type system and execution model, or
+[Adding a chain](docs/adding-a-chain.md) for the JSON format.
+
+## Use toolkit from an AI agent
+
+toolkit can expose its tools through the
+[Model Context Protocol](https://modelcontextprotocol.io) over stdio:
+
+```sh
+toolkit mcp
 ```
+
+For Claude Code:
+
+```sh
+claude mcp add toolkit -- toolkit mcp
+```
+
+Clients that load every tool schema into context can use compact mode:
+
+```sh
+toolkit mcp --compact
+```
+
+Compact mode advertises `search-tools`, `run-tool`, and `run-chain` instead of
+one schema per tool. See [MCP integration](docs/mcp.md) for details.
+
+## How it works
+
+```text
+crates/core         typed values, manifests, options, chains, streaming, WASM ABI
+crates/packs/text   encoding, formatting, hashing, compression, and text tools
+crates/packs/data   structured data, network notation, regex, time, and format tools
+crates/packs/image  image transforms, metadata, and QR tools
+crates/packs/crypto signatures, certificates, OTP, IDs, and secure generators
+crates/packs/math   arithmetic, statistics, number theory, and combinatorics
+crates/cli          native CLI and MCP server
+web/                Svelte catalog, tool runner, and visual chain builder
+chains/             reusable chain definitions—pure data, no executable code
+```
+
+Each tool declares a manifest containing its typed input ports, output type,
+options, description, and streaming capability. Those manifests drive the
+CLI, web forms, MCP schemas, catalog, and chain validation. Adding a tool does
+not require separate frontend implementations.
+
+The CLI links the Rust packs directly. The browser loads the same packs,
+compiled to WebAssembly, through a small hand-written ABI with no host imports.
+WASM packs are fetched lazily, verified against hashes embedded in the app
+bundle, and cached for offline use.
+
+Chains run through a push-based dataflow engine. Streaming nodes pass chunks
+on immediately; tools that need a complete value buffer only at their own
+boundary. Memory use is therefore bounded by the largest buffered stage rather
+than the total size of every intermediate value.
+
+Random generators remain pure functions: the CLI supplies entropy from the OS,
+and the browser supplies it through `crypto.getRandomValues`. The entropy is an
+explicit input rather than an ambient capability inside a tool or WASM module.
+
+For the byte-level protocol, execution rules, and release pipeline, read the
+[architecture guide](docs/architecture.md).
+
+## Trust and verification
+
+toolkit is designed around the claim that sensitive data stays local:
+
+- The web app is static and has no application server.
+- Its CSP blocks connections to other origins.
+- The CLI has no network client.
+- WASM packs have zero host imports.
+- Pack integrity is verified before instantiation.
+- Dependencies are locked, audited with `cargo audit`, and reviewed with
+  `cargo vet`.
+- CI exercises every tool against arbitrary input and runs scheduled fuzzing.
+- Release builds are reproducible and carry GitHub build-provenance
+  attestations.
+
+The browser's small JavaScript shell and service worker remain inside the trust
+boundary because they see inputs before WASM. The native CLI bypasses that
+layer entirely. The full threat model is documented in
+[Architecture](docs/architecture.md#threat-model-briefly).
+
+## Run the web app locally
+
+Requirements: the pinned Rust toolchain, the `wasm32-unknown-unknown` target,
+and Node.js/npm.
+
+```sh
+rustup target add wasm32-unknown-unknown
+./scripts/build-web-assets.sh
+cd web
+npm ci
+npm run dev
+```
+
+`build-web-assets.sh` compiles the five Rust packs to WASM, generates the tool
+catalog, copies the chain library, and updates the embedded integrity hashes.
+
+To produce a deployable static build:
+
+```sh
+cd web
+npm run build
+```
+
+Any static host can serve `web/dist`. See [Architecture](docs/architecture.md)
+for the recommended CSP and release-reproduction instructions.
 
 ## Contributing
 
-Adding a tool is one Rust file plus a registry line. Adding a chain is
-one JSON file. Start with [CONTRIBUTING.md](CONTRIBUTING.md); concepts
-and walkthroughs are in [docs/](docs/concepts.md).
+Adding a tool is usually one Rust module plus one registry entry. Adding a
+chain is one JSON file. Start with [CONTRIBUTING.md](CONTRIBUTING.md), then use
+[Adding a tool](docs/adding-a-tool.md) or
+[Adding a chain](docs/adding-a-chain.md) for a walkthrough.
 
 ## License
 
